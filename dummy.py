@@ -369,6 +369,7 @@ X, y = ds.interleave(lambda filename: tf.data.Dataset.from_generator(
         tf.TensorShape([None, patch_size, patch_size, 1]),
         args=(filename,)),
        cycle_length=4, block_length=4)
+print(X, y)
 # y = tf.data.Dataset.from_tensor_slices((flist, 'y'))
 # y = y.interleave(lambda filename: tf.data.Dataset.from_generator(
 #         generator(),
