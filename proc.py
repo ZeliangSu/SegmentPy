@@ -43,11 +43,15 @@ def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=Tru
     # handle file id
     maxId, rest = _idParser(outdir, batch_size, patch_size)
     id_length = (X_patches.shape[0] - rest) // batch_size
-
     if mode == 'h5':
-        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId)
+        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5')
+    elif mode == 'h5s':
+        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5s')
+    elif mode == 'csvs':
+        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='csvs')
     elif mode == 'tfrecord':
-        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId)
+        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
+
 
 
 
@@ -71,7 +75,6 @@ def _idParser(dir, patch_size, batch_size, mode='h5'):
                 l_f.append(os.path.abspath(os.path.join(dirpath, fname)))
                 max_id = max(max_id, int(fname.split('_')[2]))
 
-    #
     if mode == 'h5':
         try:
             with h5py.File(dir + '{}.'.format(patch_size) + mode, 'r') as f:
@@ -79,14 +82,16 @@ def _idParser(dir, patch_size, batch_size, mode='h5'):
                 return max_id, rest
         except:
             return 0, 0
-
-    elif mode == 'tfrecord':
+    elif mode == 'csv':
         try:
-            # TODO: tf V1.12 hasn't append, only need to check the max_id
-            rest = None
-            return max_id, rest
+            with open(dir + '{}_{}_{}.csv'.format(patch_size, batch_size, max_id) + mode, 'r') as f:
+                rest = batch_size - f['X'].shape[0]
+                return max_id, rest
         except:
             return 0, 0
+    elif mode == 'tfrecord':
+        raise NotImplementedError('tfrecord has not been implemented yet')
+
 
 
 

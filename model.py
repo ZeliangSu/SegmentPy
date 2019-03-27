@@ -5,7 +5,7 @@ up_2by2, concat, optimizer, cal_acc, loss_fn, train_operation
 def choose_model(mode='test'):
     pass
 
-def model(patch_size, conv_size, nb_conv):
+def model(patch_size, conv_size, nb_conv, learning_rate = 0.0001):
     # encoder
     hold_prob = tf.placeholder(tf.float32, name='prob_hold')
     X, X_dyn_batsize = placeholder([None, patch_size, patch_size, 1], name='input_placeholder')
@@ -58,7 +58,7 @@ def model(patch_size, conv_size, nb_conv):
     #fixme: mysterious constant gradient bug with the following function
     # y_pred = prediction(deconv_8bisbis, 'prediction')
     mse, m_loss = loss_fn(y_true, deconv_8bisbis, name='loss_fn')
-    opt = optimizer(0.0001, name='optimizer')
+    opt = optimizer(learning_rate, name='optimizer')
     train_op = train_operation(opt, mse, name='train_op')
     grads = opt.compute_gradients(mse)
     grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
