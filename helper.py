@@ -160,11 +160,6 @@ class MBGD_Helper_v3:
         # return dataset
 
 class MBGD_Helper_v4:
-    # def __init__(self, patch_size, batch_size, io='X'):
-    #     self.patch_size = patch_size
-    #     self.batch_size = batch_size
-    #     self.io = io
-
     def __call__(self, fname, patch_size, batch_size, io):
         with h5py.File(fname, 'r') as f:
             if io == 'X':
@@ -175,6 +170,37 @@ class MBGD_Helper_v4:
                 yield y
 
 def MBGD_Helper_V5():
+def parse_h5(name, patch_size=40, batch_size=1000):
+    '''
+    input:
+    -------
+    name: (bytes literal) file name
+    output:
+    -------
+    X: (numpy ndarray) reshape array as dataformat 'NHWC'
+    y: (numpy ndarray) reshape array as dataformat 'NHWC'
+    '''
+    with h5py.File(name.decode('utf-8'), 'r') as f:
+        X = f['X'][:].reshape(batch_size, patch_size, patch_size, 1)
+        y = f['y'][:].reshape(batch_size, patch_size, patch_size, 1)
+        return X, y
+
+
+def _pyfn_wrapper(filename):
+    return tf.py_func(parse_h5,  #wrapped pythonic function
+                      [filename],
+                      [tf.float32, tf.int8]  #[input, output] dtype
+                      )
+
+def MBGDHelper_v5(patch_size, batch_size, ncores=mp.cpu_count()):
+    files = tf.data.Dataset.list_files('./proc/{}_{}_*.h5'.format(patch_size, batch_size))
+    dataset = files.map(_pyfn_wrapper, num_parallel_calls=ncores)
+    dataset = dataset.batch(1).prefetch(ncores + 1)  #batch() should be 1 here because 1 .h5 file for 1 batch
+    it = dataset.make_initializable_iterator()
+    iter_init_op = it.initializer
+    X_it, y_it = it.get_next()
+    inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
+    return inputs
 
     pass
 

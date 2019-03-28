@@ -364,6 +364,56 @@ import numpy as np
 #
 # ds = tf.data.Dataset.from_tensor_slices(flist)
 # X, y = ds.interleave(lambda filename: tf.data.Dataset.from_generator(
+# import h5py
+# import os
+# import multiprocessing as mp
+################# https://stackoverflow.com/questions/50046505/how-to-use-parallel-interleave-in-tensorflow#############
+# class generator:
+#     def __call__(self, path, io):
+#         with h5py.File(path, 'r') as f:
+#             if io == 'X':
+#                 X = f['X'].reshape(batch_size, patch_size, patch_size, 1)
+#                 return X
+#             else:
+#                 y = f['y'].reshape(batch_size, patch_size, patch_size, 1)
+#                 return y
+#
+# def generator_returnX(path):
+#     with h5py.File(path, 'r') as f:
+#         return f['X'][:]
+#
+# def generator_returny(path):
+#     with h5py.File(path, 'r') as f:
+#         return f['y'][:]
+#
+# flist = []
+# for dirpath, _, fnames in os.walk('./proc/'):
+#     for fname in fnames:
+#         if fname.startswith('{}_{}'.format(patch_size, batch_size)) and fname.endswith('h5'):
+#             flist.append(fname)
+#
+# ds = tf.data.Dataset.from_tensor_slices(flist)
+# X = ds.apply(tf.data.experimental.parallel_interleave(lambda filename: tf.data.Dataset.from_generator(
+#     generator_returnX, output_types=tf.float32, output_shapes=tf.TensorShape([10000, 40, 40])),
+#                                                               cycle_length=len(flist), sloppy=False))
+# y = ds.apply(tf.data.experimental.parallel_interleave(lambda filename: tf.data.Dataset.from_generator(
+#     generator_returny, output_types=tf.float32, output_shapes=tf.TensorShape([10000, 40, 40])),
+#                                                               cycle_length=len(flist), sloppy=False))
+# print(X, y)
+# X = X.cache()
+# y = y.cache()
+# X_it = X.make_one_shot_iterator()
+# y_it = y.make_one_shot_iterator()
+#########https://stackoverflow.com/questions/50046505/how-to-use-parallel-interleave-in-tensorflow######################
+# X, y = ds.interleave(lambda filename: tf.data.Dataset.from_generator(
+#         generator(),
+#         tf.uint8,
+#         tf.TensorShape([None, patch_size, patch_size, 1]),
+#         args=(filename,)),
+#        cycle_length=4, block_length=4)
+# print(X, y)
+# y = tf.data.Dataset.from_tensor_slices((flist, 'y'))
+# y = y.interleave(lambda filename: tf.data.Dataset.from_generator(
 #         generator(),
 #         tf.uint8,
 #         tf.TensorShape([None, patch_size, patch_size, 1]),
@@ -444,7 +494,7 @@ import numpy as np
 #
 # # define parser function
 # def parse_function(fname):
-#     with h5py.File(fname.cache(), 'r') as f:
+#     with h5py.File(fname, 'r') as f:
 #         X = f['X'].reshape(batch_size, patch_size, patch_size, 1)
 #         y = f['y'].reshape(batch_size, patch_size, patch_size, 1)
 #         return X, y
@@ -457,24 +507,21 @@ import numpy as np
 #             flist.append(fname)
 #
 # # prefetch data
-# dataset = tf.data.Dataset.from_tensor_slices((flist))
+# dataset = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
 # dataset = dataset.shuffle(len(flist))
 # dataset = dataset.map(parse_function, num_parallel_calls=4)
 # dataset = dataset.batch(1)
 # dataset = dataset.prefetch(3)
-#
+# X_it, y_it = dataset.make_initializable_iterator().get_next()
 # # simplest model that I think of
-# X_ph = tf.placeholder(tf.float32, shape=None)
-# y_ph = tf.placeholder(tf.float32, shape=None)
 # W = tf.get_variable('w', shape=[conv_size, conv_size, 1, 1], initializer=tf.contrib.layers.xavier_initializer())
-# loss = tf.reduce_mean(tf.losses.mean_squared_error(tf.nn.softmax(labels=y_ph, predictions=tf.matmul(X_ph, W))))
+# loss = tf.reduce_mean(tf.losses.mean_squared_error(tf.nn.softmax(labels=y_it, predictions=tf.matmul(X_it, W))))
 # train_op = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 #
 # # start session
 # with tf.Session() as sess:
 #     sess.run(tf.global_variables_initializer())
-#     print(sess.run(train_op, feed_dict={X_ph: dataset[0], y_ph: dataset[1]}))
-#
+#     print(sess.run(train_op))
 
 ############################################multiprocessing pool #######################################################
 # from itertools import repeat
@@ -498,3 +545,109 @@ import numpy as np
 # with mp.Pool(processes=mp.cpu_count()) as pool:
 #     pool.starmap(_writer, [(X_patches[i], y_patches[i], outdir, i, patch_size) for i in range(X_patches.shape[0])])
 
+
+###https://stackoverflow.com/questions/52179857/parallelize-tf-from-generator-using-tf-contrib-data-parallel-interleave#
+
+import h5py
+import threading
+from tqdm import tqdm
+import multiprocessing as mp
+
+def write_h5(x):
+    with h5py.File('./proc/test_{}.h5'.format(x), 'w') as f:
+            print(mp.current_process())  # see process ID
+            a = np.ones((1000, 100, 100))
+            b = np.dot(a, 3)
+            f.create_dataset('X', shape=(1000, 100, 100), dtype='float32', data=a)
+            f.create_dataset('y', shape=(1000, 100, 100), dtype='float32', data=b)
+
+# p = mp.Pool(mp.cpu_count())
+# p.map(write_h5, range(100))
+
+shuffle_size = prefetch_buffer = 1
+batch_size = 1
+
+
+def parse_file(f):
+    print(f.decode('utf-8'))
+    with h5py.File(f.decode("utf-8"), 'r') as fi:
+        X = fi['X'][:].reshape(1000, 100, 100)
+        y = fi['y'][:].reshape(1000, 100, 100)
+        return X, y
+
+
+def parse_file_tf(filename):
+    return tf.py_func(parse_file, [filename], [tf.float32, tf.float32])
+
+files = tf.data.Dataset.list_files('./proc/test_*.h5')
+dataset = files.map(parse_file_tf, num_parallel_calls=mp.cpu_count())
+dataset = dataset.batch(batch_size).shuffle(shuffle_size).prefetch(5)
+it = dataset.make_initializable_iterator()
+iter_init_op = it.initializer
+X_it, y_it = it.get_next()
+
+# C1
+W1 = tf.get_variable("W1", shape=[3, 3, 1, 32], initializer=tf.contrib.layers.xavier_initializer())
+b1 = tf.get_variable("b1", shape=[32], initializer=tf.contrib.layers.xavier_initializer())
+layer1 = tf.nn.relu(tf.nn.conv2d(X_it, W1, strides=[1, 1, 1, 1], padding='SAME') + b1)
+
+# C2
+W2 = tf.get_variable("W2", shape=[3, 3, 32, 1], initializer=tf.contrib.layers.xavier_initializer())
+b2 = tf.get_variable("b2", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+layer2 = tf.nn.relu(tf.nn.conv2d(layer1, W2, strides=[1, 1, 1, 1], padding='SAME') + b2)
+
+# MP
+maxpool = tf.nn.max_pool(layer2, [1, 2, 2, 1], [1, 2, 2, 1], 'SAME')
+
+# UP
+up = tf.image.resize_nearest_neighbor(maxpool, [100, 100])
+
+# D3
+W3 = tf.get_variable("W3", shape=[3, 3, 64, 1], initializer=tf.contrib.layers.xavier_initializer())
+b3 = tf.get_variable("b3", shape=[64], initializer=tf.contrib.layers.xavier_initializer())
+layer3 = tf.nn.conv2d_transpose(up, W3, output_shape=(batch_size,
+                                                      int(up.shape[1]),
+                                                      int(up.shape[2]),
+                                                      int(W3.shape[2])),
+                                strides=[1, 1, 1, 1], padding='SAME') + b3
+
+# D4
+W4 = tf.get_variable("W4", shape=[3, 3, 32, 64], initializer=tf.contrib.layers.xavier_initializer())
+b4 = tf.get_variable("b4", shape=[32], initializer=tf.contrib.layers.xavier_initializer())
+Qpred = tf.nn.conv2d_transpose(layer3, W4, output_shape=(batch_size,
+                                                         int(layer3.shape[1]),
+                                                         int(layer3.shape[2]),
+                                                         int(W4.shape[2])),
+                               strides=[1, 1, 1, 1], padding='SAME') + b4
+
+# Loss function
+loss = tf.reduce_mean(tf.losses.mean_squared_error(
+        labels=tf.cast(y_it, tf.int32),
+        predictions=Qpred))
+
+
+# Train_op
+opt = tf.train.AdamOptimizer(0.0001)
+grads = opt.compute_gradients(loss)
+train_op = opt.minimize(loss)
+m = tf.summary.merge([tf.summary.histogram('w1', W1),
+                      tf.summary.histogram('b1', b1),
+                      tf.summary.histogram('W2', W2),
+                      tf.summary.histogram('b2', b2),
+                      tf.summary.histogram('W3', W3),
+                      tf.summary.histogram('b3', b3),
+                      tf.summary.histogram('W4', W4),
+                      tf.summary.histogram('b4', b4),
+                      tf.summary.scalar("loss", loss),
+                      [tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads]
+                      ])
+
+# session
+sess = tf.Session()
+writer = tf.summary.FileWriter('./dummy', sess.graph)
+sess.run(tf.global_variables_initializer())
+sess.run(iter_init_op)
+for i in tqdm(range(30)):
+    sess.run([train_op])
+    writer.add_summary(m.eval(session=sess), i)
+sess.close()
