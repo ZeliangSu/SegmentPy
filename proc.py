@@ -4,20 +4,9 @@ from numpy.lib.stride_tricks import as_strided
 from PIL import Image
 import os
 import h5py
-from writer import _h5Writer, _tfrecordWriter
+from writer import _h5Writer, _tfrecordWriter, _h5Writer_V2
 from reader import _tifReader
 from sklearn.utils import shuffle
-
-
-def _shuffle(tensor_a, tensor_b, random_state=42):
-    # shuffle two tensors in unison
-    idx = np.random.permutation(tensor_a.shape[0]) #artifacts
-    return tensor_a[idx], tensor_b[idx]
-    # tensor_a, tensor_b = shuffle(tensor_a, tensor_b, random_state=random_state) #artifacts
-    # np.random.seed(random_state)
-    # np.random.shuffle(tensor_a)
-    # np.random.shuffle(tensor_b)
-    # return tensor_a, tensor_b
 
 
 def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=True):
@@ -52,7 +41,43 @@ def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=Tru
     elif mode == 'tfrecord':
         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
 
+def preprocess_V2(indir, stride, patch_size, mode='h5', shuffle=True):
+    # import data
+    X_stack, y_stack, shapes = _tifReader(indir)
+    outdir = './proc/'
 
+    X_patches = _stride(X_stack[0], stride, patch_size)
+    y_patches = _stride(y_stack[0], stride, patch_size)
+
+    # extract patches
+    for i in range(1, len(X_stack) - 1):
+        X_patches = np.vstack((X_patches, _stride(X_stack[i], stride, patch_size)))
+    for i in range(1, len(y_stack) - 1):
+        y_patches = np.vstack((y_patches, _stride(y_stack[i], stride, patch_size)))
+
+    assert X_patches.shape[0] == y_patches.shape[0], 'numbers of raw image: {} and label image: {} are different'.format(X_patches.shape[0], y_patches.shape[0])
+
+    # shuffle
+    if shuffle:
+        X_patches, y_patches = _shuffle(X_patches, y_patches)
+
+    if mode == 'h5':
+        _h5Writer_V2(X_patches, y_patches, outdir, patch_size)
+    elif mode == 'csv':
+        raise NotImplementedError
+    else:
+        raise NotImplementedError
+
+
+def _shuffle(tensor_a, tensor_b, random_state=42):
+    # shuffle two tensors in unison
+    idx = np.random.permutation(tensor_a.shape[0]) #artifacts
+    return tensor_a[idx], tensor_b[idx]
+    # tensor_a, tensor_b = shuffle(tensor_a, tensor_b, random_state=random_state) #artifacts
+    # np.random.seed(random_state)
+    # np.random.shuffle(tensor_a)
+    # np.random.shuffle(tensor_b)
+    # return tensor_a, tensor_b
 
 
 def _stride(tensor, stride, patch_size):
@@ -64,6 +89,7 @@ def _stride(tensor, stride, patch_size):
     patches = as_strided(tensor, shape=(p_h, p_w, patch_size, patch_size), strides=_strides)\
         .reshape(-1, patch_size, patch_size)
     return patches
+
 
 def _idParser(dir, patch_size, batch_size, mode='h5'):
     l_f = []

@@ -174,6 +174,9 @@ class MBGD_Helper_v4:
                 y = f['y'].reshape(batch_size, patch_size, patch_size, 1)
                 yield y
 
+def MBGD_Helper_V5():
+
+    pass
 
 if __name__ == '__main__':
     mode = 'v3'
