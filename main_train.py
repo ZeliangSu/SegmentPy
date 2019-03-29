@@ -4,7 +4,7 @@ import datetime
 from tqdm import tqdm
 import csv
 
-from helper import MBGDHelper_v5
+from helper import MBGDHelper_V6
 from model import model
 from layers import cal_acc
 
@@ -22,7 +22,7 @@ date = '{}_{}_{}'.format(now.year, now.month, now.day)
 gpu_list = ['/gpu:0']
 
 # init input pipeline
-inputs = MBGDHelper_v5(patch_size, batch_size)
+inputs, ep_len = MBGDHelper_V6(patch_size, batch_size)
 
 # init model
 y_pred, train_op, X, y_true, hold_prob, merged, Xdb = model(patch_size,
@@ -53,40 +53,36 @@ with tf.Session() as sess:
     # init summary
     writer = tf.summary.FileWriter('./logs/' + date + '/bs{}_ps{}_lr{}_cs{}'.format(batch_size, patch_size, learning_rate, conv_size), sess.graph)
 
-    for ep in tqdm(range(nb_epoch)):
-        print('Epoch: {}'.format(ep))
+    for ep in tqdm(range(nb_epoch), desc='Epoch'):
         sess.run(inputs['iterator_init_op'])
         # begin training
-        for step in tqdm(range(1000)):  #assume 1000 batch
-            if step % 1000 == 0:
-                print('step:{}'.format(step))
+        for step in tqdm(range(ep_len // batch_size), desc='Batch step'): #fixme: handle ep_len not multiple of batch_size
 
-            with tf.device('/device:XLA_GPU:0'):
-                summary, _ = sess.run([merged, train_op])
+            summary, _ = sess.run([merged, train_op])
+            # test accuracy
+            accuracy, summ_acc = sess.run(cal_acc)
+            tf.summary.merge([merged, summ_acc])
+            try:
+                with open('./logs/{}/accuracy_bs{}_ps{}_lr{}_cs{}'.format(date,
+                                                                          batch_size,
+                                                                          patch_size,
+                                                                          learning_rate,
+                                                                          conv_size), 'a') as f:
+                    csv.writer(f).writerow([step + ep * 1000 // batch_size, accuracy])
+            except:
+                with open('./logs/{}/accuracy_bs{}_ps{}_lr{}_cs{}'.format(date,
+                                                                          batch_size,
+                                                                          patch_size,
+                                                                          learning_rate,
+                                                                          conv_size), 'w') as f:
+                    csv.writer(f).writerow([step + ep * 1000 // batch_size, accuracy])
 
-            with tf.device('/device:XLA_CPU:0'):
-                # test accuracy
-                accuracy, summ_acc = sess.run(cal_acc)
-                tf.summary.merge([merged, summ_acc])
-                try:
-                    with open('./logs/{}/accuracy_bs{}_ps{}_lr{}_cs{}'.format(date,
-                                                                              batch_size,
-                                                                              patch_size,
-                                                                              learning_rate,
-                                                                              conv_size), 'a') as f:
-                        csv.writer(f).writerow([step + ep * 1000 // batch_size, accuracy])
-                except:
-                    with open('./logs/{}/accuracy_bs{}_ps{}_lr{}_cs{}'.format(date,
-                                                                              batch_size,
-                                                                              patch_size,
-                                                                              learning_rate,
-                                                                              conv_size), 'w') as f:
-                        csv.writer(f).writerow([step + ep * 1000 // batch_size, accuracy])
+            # if step % 1000 == 0:
+            #     print('accuracy:{}'.format(accuracy))
 
-            if step % 1000 == 0:
-                print('accuracy:{}'.format(accuracy))
             # merge and write summary
-            writer.add_summary(summary.eval(session=sess), step + ep * 1000 // batch_size)
+            writer.add_summary(summary, step + ep * batch_size)
 
+        #todo: save model too
         saver = tf.train.Saver()
         saver.save(sess, './weight/{}_{}_{}_epoch{}.ckpt'.format(date, patch_size, batch_size, ep))

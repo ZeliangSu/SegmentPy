@@ -119,6 +119,7 @@ class MBGD_Helper_v2(object):
             self.threads.append(thread)
         return self.threads
 
+
 class MBGD_Helper_v3:
     def __init__(self, patch_size, batch_size):
         self.patch_size = patch_size
@@ -159,6 +160,7 @@ class MBGD_Helper_v3:
         return X, y
         # return dataset
 
+
 class MBGD_Helper_v4:
     def __call__(self, fname, patch_size, batch_size, io):
         with h5py.File(fname, 'r') as f:
@@ -169,11 +171,81 @@ class MBGD_Helper_v4:
                 y = f['y'].reshape(batch_size, patch_size, patch_size, 1)
                 yield y
 
+
+def MBGDHelper_v5(patch_size, batch_size, ncores=mp.cpu_count()):
+    '''
+    tensorflow tf.data input pipeline based helper that return batches of images and labels at once
+
+    input:
+    -------
+    patch_size: (int) pixel length of one small sampling window (patch)
+    batch_size: (int) number of images per batch before update parameters
+
+    output:
+    -------
+    inputs: (dict) output of this func, but inputs of the neural network. A dictionary of batch and the iterator
+    initialization operation
+    '''
+    # init list of files
+    files = tf.data.Dataset.list_files('./proc/{}_{}_*.h5'.format(patch_size, batch_size))
+    dataset = files.map(_pyfn_wrapper, num_parallel_calls=ncores)
+    dataset = dataset.batch(1).prefetch(ncores + 1)  #batch() should be 1 here because 1 .h5 file for 1 batch
+
+    # construct iterator
+    it = dataset.make_initializable_iterator()
+    iter_init_op = it.initializer
+
+    # get next batch
+    X_it, y_it = it.get_next()
+    inputs = {'imgs': X_it, 'labels': y_it, 'iterator_init_op': iter_init_op}
+    return inputs
+
+
+def MBGDHelper_V6(patch_size, batch_size, ncores=mp.cpu_count()):
+    '''
+    tensorflow tf.data input pipeline based helper that return image and label at once
+
+    input:
+    -------
+    patch_size: (int) pixel length of one small sampling window (patch)
+    batch_size: (int) number of images per batch before update parameters
+
+    output:
+    -------
+    inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
+    initialization operation
+    '''
+    # get length of epoch
+    flist = []
+    for dirpath, _, fnames in os.walk('./proc/{}/'.format(patch_size)):
+        for fname in fnames:
+            flist.append(fname)
+    ep_len = len(flist)
+    print('Epoch length: {}'.format(ep_len))
+
+    # init list of files
+    batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
+    batch = batch.map(_pyfn_wrapper_V2, num_parallel_calls=ncores)
+    batch = batch.shuffle(batch_size).batch(batch_size).prefetch(ncores + 6)
+
+    # construct iterator
+    it = batch.make_initializable_iterator()
+    iter_init_op = it.initializer
+
+    # get next img and label
+    X_it, y_it = it.get_next()
+    inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
+    return inputs, ep_len
+
+
 def parse_h5(name, patch_size=40, batch_size=1000):
     '''
+    parser that return the input images and  output labels
+
     input:
     -------
     name: (bytes literal) file name
+
     output:
     -------
     X: (numpy ndarray) reshape array as dataformat 'NHWC'
@@ -185,64 +257,57 @@ def parse_h5(name, patch_size=40, batch_size=1000):
         return X, y
 
 
-def _pyfn_wrapper(filename):
+def parse_h5_V2(name, patch_size):
+    '''
+    parser that return the input images and  output labels
+
+    input:
+    -------
+    name: (bytes literal) file name
+
+    output:
+    -------
+    X: (numpy ndarray) reshape array as dataformat 'NHWC'
+    y: (numpy ndarray) reshape array as dataformat 'NHWC'
+    '''
+    with h5py.File('./proc/{}/{}'.format(patch_size, name.decode('utf-8')), 'r') as f:
+        X = f['X'][:].reshape(patch_size, patch_size, 1)
+        y = f['y'][:].reshape(patch_size, patch_size, 1)
+        return X, y
+
+
+def _pyfn_wrapper(filename, patch_size, batch_size):
+    '''
+    input:
+    -------
+    filename: (tf.data.Dataset)  Tensors of strings
+
+    output:
+    -------
+    function: (function) tensorflow's pythonic function with its arguements
+    '''
     return tf.py_func(parse_h5,  #wrapped pythonic function
-                      [filename],
-                      [tf.float32, tf.int8]  #[input, output] dtype
+                      [filename, patch_size, batch_size],
+                      [tf.float32, tf.int8]  #[input, output] dtype #fixme: maybe gpu version doesn't have algorithm for int8
                       )
 
-def MBGDHelper_v5(patch_size, batch_size, ncores=mp.cpu_count()):
-    files = tf.data.Dataset.list_files('./proc/{}_{}_*.h5'.format(patch_size, batch_size))
-    dataset = files.map(_pyfn_wrapper, num_parallel_calls=ncores)
-    dataset = dataset.batch(1).prefetch(ncores + 1)  #batch() should be 1 here because 1 .h5 file for 1 batch
-    it = dataset.make_initializable_iterator()
-    iter_init_op = it.initializer
-    X_it, y_it = it.get_next()
-    inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
-    return inputs
+
+def _pyfn_wrapper_V2(filename):
+    '''
+    input:
+    -------
+    filename: (tf.data.Dataset)  Tensors of strings
+
+    output:
+    -------
+    function: (function) tensorflow's pythonic function with its arguements
+    '''
+    patch_size = 40 #fixme: ask how to tf.data.Dataset map multi-args
+    # args = [filename, patch_size]
+    return tf.py_func(parse_h5_V2,  #wrapped pythonic function
+                      [filename, patch_size],
+                      [tf.float32, tf.float32]  #[input, output] dtype
+                      )
 
 if __name__ == '__main__':
-    mode = 'v3'
-    if mode == 'v4':
-        from model import model
-        patch_size = 40
-        batch_size = 1000
-        conv_size = 3
-        nb_conv = 32
-        learning_rate = 0.0001
-        fnames = tf.data.Dataset.list_files("./proc/{}_{}_*.h5".format(patch_size, batch_size))
-        X_batch = fnames.apply(tf.data.experimental.parallel_interleave(
-            lambda filename: tf.data.Dataset.from_generator(
-                MBGD_Helper_v4,
-                tf.uint8,
-                tf.TensorShape([batch_size, patch_size, patch_size, 1]),
-                args=(filename, 'X')),
-            cycle_length=4,
-            block_length=8
-            )
-        )
-        y_batch = fnames.apply(tf.data.experimental.parallel_interleave(
-            lambda filename: tf.data.Dataset.from_generator(
-                MBGD_Helper_v4,
-                tf.uint8,
-                tf.TensorShape([1000, 40, 40, 1]),
-                args=(filename, 'y')),
-            cycle_length=4,
-            block_length=8
-            )
-        )
-        y_pred, train_op, X, y_true, hold_prob, merged = model(patch_size, conv_size, nb_conv, learning_rate=learning_rate)
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            summary, _ = sess.run([merged, train_op], feed_dict={X: X_batch, y_true: y_batch, hold_prob: 0.5})
-
-    elif mode == 'v3':
-        from model import model
-        patch_size = 40
-        batch_size = 1000
-        conv_size = 3
-        nb_conv = 32
-        learning_rate = 0.0001
-        fnames = tf.data.Dataset.list_files("./proc/{}_{}_*.h5".format(40, 1000))
-        # dataset = dataset.shuffle(len(fnames))
-        # dataset.map()
+   pass

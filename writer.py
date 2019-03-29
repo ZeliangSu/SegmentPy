@@ -24,11 +24,17 @@ def _h5Writer_V2(X_patches, y_patches, outdir, patch_size):
 
     if not os.path.exists(outdir):
         os.mkdir(outdir)
-    with mp.Pool(processes=mp.cpu_count()) as pool:
-        pool.starmap(_writer, ((X_patches[i], y_patches[i], outdir, i, patch_size) for i in range(X_patches.shape[0])))
 
-def _writer(X, y, outdir, name, patch_size):
-    with h5py.File('{}{}_{}.h5'.format(outdir, patch_size, name), 'w') as f:
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        pool.starmap(_writer_V2, ((X_patches[i], y_patches[i], outdir, i, patch_size) for i in range(X_patches.shape[0])))
+
+def _writer_V2(X, y, outdir, name, patch_size):
+    import os
+
+    if not os.path.exists('{}{}'.format(outdir, patch_size)):
+        os.mkdir('{}{}'.format(outdir, patch_size))
+
+    with h5py.File('{}{}/{}.h5'.format(outdir, patch_size, name), 'w') as f:
         f.create_dataset('X', (patch_size, patch_size), dtype='float32', data=X)
         f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
 

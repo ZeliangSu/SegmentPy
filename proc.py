@@ -6,7 +6,6 @@ import os
 import h5py
 from writer import _h5Writer, _tfrecordWriter, _h5Writer_V2
 from reader import _tifReader
-from sklearn.utils import shuffle
 
 
 def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=True):
