@@ -3,6 +3,7 @@ import numpy as np
 import datetime
 from tqdm import tqdm
 import csv
+import os
 
 from helper import MBGDHelper_V6
 from model import model
@@ -19,6 +20,7 @@ learning_rate = 0.00001
 dropout = 0.5
 now = datetime.datetime.now()
 date = '{}_{}_{}'.format(now.year, now.month, now.day)
+hour = '{}'.format(now.hour)
 gpu_list = ['/gpu:0']
 
 # init input pipeline
@@ -38,7 +40,8 @@ cal_acc = cal_acc(y_pred, y_true)
 # print number of params
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
-
+if not os.path.exists('./logs/{}/hour{}/'.format(date, hour)):
+    os.mkdir('./logs/{}/hour{}/'.format(date, hour))
 # begin session
 # with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess: # use only CPU
 # gpu_options = tf.GPUOptions(visible_device_list='0')
@@ -51,34 +54,36 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # init summary
-    writer = tf.summary.FileWriter('./logs/' + date + '/bs{}_ps{}_lr{}_cs{}'.format(batch_size, patch_size, learning_rate, conv_size), sess.graph)
+    writer = tf.summary.FileWriter('./logs/{}/hour{}/bs{}_ps{}_lr{}_cs{}'.format(date, hour,
+                                                                                 batch_size, patch_size,
+                                                                                 learning_rate, conv_size), sess.graph)
 
-    for ep in tqdm(range(nb_epoch), desc='Epoch'):
+    for ep in tqdm(range(nb_epoch), desc='Epoch'): #fixme: tqdm print new line after an exception
         sess.run(inputs['iterator_init_op'])
         # begin training
+        step_len = ep_len // batch_size
         for step in tqdm(range(ep_len // batch_size), desc='Batch step'): #fixme: handle ep_len not multiple of batch_size
 
             summary, _ = sess.run([merged, train_op])
+
             # test accuracy
-            accuracy, summ_acc = sess.run(cal_acc)
+            accuracy, summ_acc = sess.run(cal_acc) #fixme: consume again data
             tf.summary.merge([merged, summ_acc])
             try:
-                with open('./logs/{}/accuracy_bs{}_ps{}_lr{}_cs{}'.format(date,
+                with open('./logs/{}/hour{}/accuracy_bs{}_ps{}_lr{}_cs{}.csv'.format(date, hour,
                                                                           batch_size,
                                                                           patch_size,
                                                                           learning_rate,
                                                                           conv_size), 'a') as f:
-                    csv.writer(f).writerow([step + ep * 1000 // batch_size, accuracy])
+                    csv.writer(f).writerow([step + ep * ep_len, accuracy])
             except:
-                with open('./logs/{}/accuracy_bs{}_ps{}_lr{}_cs{}'.format(date,
+                with open('./logs/{}/hour{}/accuracy_bs{}_ps{}_lr{}_cs{}.csv'.format(date, hour,
                                                                           batch_size,
                                                                           patch_size,
                                                                           learning_rate,
                                                                           conv_size), 'w') as f:
-                    csv.writer(f).writerow([step + ep * 1000 // batch_size, accuracy])
+                    csv.writer(f).writerow([step + ep * ep_len, accuracy])
 
-            # if step % 1000 == 0:
-            #     print('accuracy:{}'.format(accuracy))
 
             # merge and write summary
             writer.add_summary(summary, step + ep * batch_size)

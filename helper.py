@@ -226,7 +226,8 @@ def MBGDHelper_V6(patch_size, batch_size, ncores=mp.cpu_count()):
     # init list of files
     batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
     batch = batch.map(_pyfn_wrapper_V2, num_parallel_calls=ncores)
-    batch = batch.shuffle(batch_size).batch(batch_size).prefetch(ncores + 6)
+    batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores + 6)
+    #todo: prefetch_to_device
 
     # construct iterator
     it = batch.make_initializable_iterator()
@@ -254,7 +255,7 @@ def parse_h5(name, patch_size=40, batch_size=1000):
     with h5py.File(name.decode('utf-8'), 'r') as f:
         X = f['X'][:].reshape(batch_size, patch_size, patch_size, 1)
         y = f['y'][:].reshape(batch_size, patch_size, patch_size, 1)
-        return X, y
+        return _minmaxscalar(X), _minmaxscalar(y)
 
 
 def parse_h5_V2(name, patch_size):
@@ -267,14 +268,29 @@ def parse_h5_V2(name, patch_size):
 
     output:
     -------
-    X: (numpy ndarray) reshape array as dataformat 'NHWC'
-    y: (numpy ndarray) reshape array as dataformat 'NHWC'
+    X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
+    y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     '''
     with h5py.File('./proc/{}/{}'.format(patch_size, name.decode('utf-8')), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
-        return X, y
+        return _minmaxscalar(X), _minmaxscalar(y)
 
+def _minmaxscalar(ndarray, dtype=np.float32):
+    '''
+    func normalize values of a ndarray into interval of 0 to 1
+
+    input:
+    -------
+    ndarray: (numpy ndarray) input array to be normalized
+    dtype: (dtype of numpy) data type of the output of this function
+
+    output:
+    -------
+    scaled: (numpy ndarray) output normalized array
+    '''
+    scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.max(ndarray)), dtype=dtype)
+    return scaled
 
 def _pyfn_wrapper(filename, patch_size, batch_size):
     '''
