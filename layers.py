@@ -40,7 +40,7 @@ def conv2d_layer(input_layer, shape, name='', stride=1):
 
 def conv2d_transpose_layer(input_layer, shape, dyn_batch_size, stride=1, name=''):
     with tf.variable_scope(name):
-        shape = [shape[0], shape[1], shape[3], shape[2]]  # [height, width, output_channels, in_channels]
+        shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name)
         b = init_bias([shape[2]], name)
         transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=(dyn_batch_size,

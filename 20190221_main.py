@@ -1,6 +1,6 @@
 from proc import preprocess
 from train import test_train
-from model import test
+# from model import test
 import tensorflow as tf
 import h5py
 import os
@@ -26,10 +26,8 @@ class generator_yield:
             yield f['X'][:], f['y'][:]
 
 def generator_return(path):
-    sess = tf.Session()
-    with sess.as_default():
-        with h5py.File(path, 'r') as f:
-            return f['X'][:], f['y'][:]
+    with h5py.File(path, 'r') as f:
+        return f['X'][:], f['y'][:]
 
 
 
@@ -75,8 +73,9 @@ with tf.Session() as sess:
 
     # https://stackoverflow.com/questions/50046505/how-to-use-parallel-interleave-in-tensorflow
     files = fnames.apply(tf.data.experimental.parallel_interleave(lambda filename: tf.data.Dataset.from_generator(
-        generator_yield(filename), output_types=tf.float32, output_shapes=tf.TensorShape([10000, 40, 40])),
+        generator_return, output_types=tf.float32, output_shapes=tf.TensorShape([10000, 40, 40])),
                                                                   cycle_length=len_fnames, sloppy=False))
+    print(files)
     files = files.cache()  # cache into memory
     print(files)
     # imgs = files.map(read_decode, num_parallel_calls=mp.cpu_count())\
