@@ -169,7 +169,6 @@ class MBGD_Helper_v4:
                 y = f['y'].reshape(batch_size, patch_size, patch_size, 1)
                 yield y
 
-def MBGD_Helper_V5():
 def parse_h5(name, patch_size=40, batch_size=1000):
     '''
     input:
@@ -201,8 +200,6 @@ def MBGDHelper_v5(patch_size, batch_size, ncores=mp.cpu_count()):
     X_it, y_it = it.get_next()
     inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
     return inputs
-
-    pass
 
 if __name__ == '__main__':
     mode = 'v3'

@@ -339,34 +339,6 @@ import numpy as np
 # import h5py
 # import os
 # import multiprocessing as mp
-#
-# patch_size = 40
-# batch_size = 1000
-# conv_size = 3
-# nb_conv = 32
-# learning_rate = 0.0001
-#
-# class generator:
-#     def __call__(self, path, io):
-#         with h5py.File(path, 'r') as f:
-#             if io == 'X':
-#                 X = f['X'].reshape(batch_size, patch_size, patch_size, 1)
-#                 return X
-#             else:
-#                 y = f['y'].reshape(batch_size, patch_size, patch_size, 1)
-#                 return y
-#
-# flist = []
-# for dirpath, _, fnames in os.walk('./proc/'):
-#     for fname in fnames:
-#         if fname.startswith('{}_{}'.format(patch_size, batch_size)) and fname.endswith('h5'):
-#             flist.append(fname)
-#
-# ds = tf.data.Dataset.from_tensor_slices(flist)
-# X, y = ds.interleave(lambda filename: tf.data.Dataset.from_generator(
-# import h5py
-# import os
-# import multiprocessing as mp
 ################# https://stackoverflow.com/questions/50046505/how-to-use-parallel-interleave-in-tensorflow#############
 # class generator:
 #     def __call__(self, path, io):
@@ -522,29 +494,6 @@ import numpy as np
 # with tf.Session() as sess:
 #     sess.run(tf.global_variables_initializer())
 #     print(sess.run(train_op))
-
-############################################multiprocessing pool #######################################################
-# from itertools import repeat
-# import os
-# import multiprocessing as mp
-# import h5py
-#
-# outdir = './proc/'
-# X_patches = np.arange(16000).reshape(10, 40, 40)
-# y_patches = np.arange(16000).reshape(10, 40, 40)
-# patch_size = 40
-#
-# def _writer(X, y, outdir, name, patch_size):
-#     with h5py.File('{}{}_{}.h5'.format(outdir, patch_size, name), 'w') as f:
-#         f.create_dataset('X', (patch_size, patch_size), dtype='float32', data=X)
-#         f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
-#
-# if not os.path.exists(outdir):
-#     os.mkdir(outdir)
-#
-# with mp.Pool(processes=mp.cpu_count()) as pool:
-#     pool.starmap(_writer, [(X_patches[i], y_patches[i], outdir, i, patch_size) for i in range(X_patches.shape[0])])
-
 
 ###https://stackoverflow.com/questions/52179857/parallelize-tf-from-generator-using-tf-contrib-data-parallel-interleave#
 
