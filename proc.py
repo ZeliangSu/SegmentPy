@@ -40,10 +40,12 @@ def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=Tru
     elif mode == 'tfrecord':
         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
 
-def preprocess_V2(indir, stride, patch_size, mode='h5', shuffle=True):
+def preprocess_V2(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True):
     # import data
     X_stack, y_stack, shapes = _tifReader(indir)
     outdir = './proc/'
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
     X_patches = _stride(X_stack[0], stride, patch_size)
     y_patches = _stride(y_stack[0], stride, patch_size)
@@ -60,12 +62,24 @@ def preprocess_V2(indir, stride, patch_size, mode='h5', shuffle=True):
     if shuffle:
         X_patches, y_patches = _shuffle(X_patches, y_patches)
 
-    if mode == 'h5':
-        _h5Writer_V2(X_patches, y_patches, outdir, patch_size)
-    elif mode == 'csv':
-        raise NotImplementedError
+    if evaluate:
+        if mode == 'h5':
+            _h5Writer_V2(X_patches[:np.int(X_patches.shape[0] * 0.9)], y_patches, outdir + 'train/', patch_size)
+            _h5Writer_V2(X_patches[np.int(X_patches.shape[0] * 0.9):], y_patches, outdir + 'test/', patch_size)
+        elif mode == 'csv':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+
     else:
-        raise NotImplementedError
+        if mode == 'h5':
+            _h5Writer_V2(X_patches, y_patches, outdir, patch_size)
+        elif mode == 'csv':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+
 
 
 def _shuffle(tensor_a, tensor_b, random_state=42):

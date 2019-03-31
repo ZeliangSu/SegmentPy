@@ -201,7 +201,7 @@ def MBGDHelper_v5(patch_size, batch_size, ncores=mp.cpu_count()):
     return inputs
 
 
-def MBGDHelper_V6(patch_size, batch_size, ncores=mp.cpu_count()):
+def MBGDHelper_V6(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
     '''
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -215,11 +215,12 @@ def MBGDHelper_V6(patch_size, batch_size, ncores=mp.cpu_count()):
     inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
     initialization operation
     '''
+
     # get length of epoch
     flist = []
-    for dirpath, _, fnames in os.walk('./proc/{}/'.format(patch_size)):
+    for dirpath, _, fnames in os.walk('./proc/{}/{}/'.format('train' if is_training else 'test', patch_size)):
         for fname in fnames:
-            flist.append(fname)
+            flist.append(os.path.abspath(os.path.join(dirpath, fname)))
     ep_len = len(flist)
     print('Epoch length: {}'.format(ep_len))
 

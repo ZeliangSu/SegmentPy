@@ -99,12 +99,6 @@ def cal_acc(y_pred, y_true):
     return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)])
 
 
-def prediction(output_layer, name=''):
-    with tf.variable_scope(name):
-        y_pred = tf.nn.softmax(output_layer, name='softmax')
-        return y_pred
-
-
 def optimizer(lr, name=''):
     with tf.variable_scope(name):
         adam = tf.train.AdamOptimizer(learning_rate=lr, name='AdamOptim')
@@ -115,6 +109,9 @@ def train_operation(adam, loss_fn, name='train_op'):
     with tf.variable_scope(name):
         return adam.minimize(loss_fn)
 
+def test_operation():
+    '''During test operation, one take imgs and labels for evaluating metrics from testset without minimization operation'''
+    pass
 
 def accuracy_placeholder(name='acc'):
     with tf.name_scope(name):

@@ -1,9 +1,9 @@
 import tensorflow as tf
 from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, dropout, conv2d_transpose_layer,\
-up_2by2, concat, optimizer, loss_fn, train_operation
+up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation, test_operation
 
 
-def model(patch_size, inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001, drop_prob=0.5):
+def model(patch_size, inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001, drop_prob=0.5, is_training=True):
     # encoder
     X_dyn_batsize = batch_size  #tf.placeholder(tf.int32, name='X_dynamic_batch_size')
 
@@ -48,22 +48,24 @@ def model(patch_size, inputs, batch_size, conv_size, nb_conv, learning_rate=0.00
 
     deconv_8, m8 = conv2d_transpose_layer(concat3, [conv_size, conv_size, int(outshape7[3]), nb_conv], X_dyn_batsize, name='deconv8')
     deconv_8bis, m8b = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], X_dyn_batsize, name='deconv8bis')
-    deconv_8bisbis, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], X_dyn_batsize, name='deconv8bisbis')
+    logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], X_dyn_batsize, name='deconv8bisbis')
 
     # optimizer/train operation
-    #fixme: mysterious constant gradient bug with the following function
-    # y_pred = prediction(deconv_8bisbis, 'prediction')
-    mse, m_loss = loss_fn(inputs['label'], deconv_8bisbis, name='loss_fn')
+    mse, m_loss = loss_fn(inputs['label'], logits, name='loss_fn')
     opt = optimizer(learning_rate, name='optimizer')
-    train_op = train_operation(opt, mse, name='train_op')
-    grads = opt.compute_gradients(mse)
+    _, m_acc = cal_acc(logits, inputs['label'])
+
+    # train operation
+    train_op = train_operation(opt, mse, name='train_op') if is_training else None
+
+    grads = opt.compute_gradients(mse)  #TODO: This might be fused with the minimize operation (here may have used twice the NN)
     grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
-    y_pred = tf.cast(deconv_8bisbis, tf.int32)
+    y_pred = tf.cast(logits, tf.int32)
 
     # merged summaries
     m_X = tf.summary.image("input", tf.reshape(inputs['img'][0], [-1, patch_size, patch_size, 1]), 1)  #fixme: show only the first img of the batch
     m_y = tf.summary.image("output", tf.reshape(tf.cast(inputs['label'][0], tf.uint8), [-1, patch_size, patch_size, 1]), 1)  #fixme: same pb
     merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
-                               m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_X, m_y, grad_sum])
+                               m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, m_X, m_y, grad_sum])
     return y_pred, train_op, inputs['img'], inputs['label'], drop_prob, merged, X_dyn_batsize
 
