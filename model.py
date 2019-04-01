@@ -3,12 +3,18 @@ from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, drop
 up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation
 from tensorboard import summary as sm
 
-def model(patch_size, inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001, drop_prob=0.5):
+def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001, drop_prob=0.5):
     # encoder
     X_dyn_batsize = batch_size  #tf.placeholder(tf.int32, name='X_dynamic_batch_size')
     is_training = tf.placeholder(tf.int32, name='is_training')
 
-    conv1, m1 = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], name='conv1')  #[height, width, in_channels, output_channels]
+    # 1: train, 0: cv, -1: test
+    def f1(): return train_inputs
+    def f2(): return test_inputs
+    inputs = tf.cond(tf.less(-1, is_training, name='less1'), lambda: f1(), lambda: f2(), name='input_cond')
+
+    # build model
+    conv1, m1 = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], name='conv1')#[height, width, in_channels, output_channels]
     conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], name='conv1bis')
     conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
 
@@ -57,22 +63,19 @@ def model(patch_size, inputs, batch_size, conv_size, nb_conv, learning_rate=0.00
     y_pred = tf.cast(logits, tf.int32)
     _, m_acc, _ = cal_acc(y_pred, inputs['label'])
 
-    # update pr curve
-    _, pr_op = sm.pr_curve_streaming_op(name='pr curve', predictions=logits, labels=inputs['label'])
-
     # program gradients
     grads = opt.compute_gradients(mse)  #TODO: This might be fused with the minimize operation (here may have used twice the NN)
     grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
     # train operation
     # run train_op otherwise do nothing
-    train_op = tf.cond(tf.less(0, is_training), lambda: train_operation(opt, mse, name='train_op'),
-                       lambda: cal_acc(y_pred, inputs['label'])[2])
+    train_or_test_op = tf.cond(tf.less(0, is_training, name='less2'), lambda: train_operation(opt, mse, name='train_op'),
+                               lambda: tf.constant(True, dtype=tf.bool), name='train_op_cond')
 
     # merged summaries
     m_X = tf.summary.image("input", tf.reshape(inputs['img'][0], [-1, patch_size, patch_size, 1]), 1)  #fixme: show only the first img of the batch
     m_y = tf.summary.image("output", tf.reshape(tf.cast(inputs['label'][0], tf.uint8), [-1, patch_size, patch_size, 1]), 1)  #fixme: same pb
     merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
                                m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, m_X, m_y, grad_sum])
-    return y_pred, train_op, inputs['img'], inputs['label'], drop_prob, merged, is_training
+    return y_pred, train_or_test_op, inputs['img'], inputs['label'], drop_prob, merged, is_training
 

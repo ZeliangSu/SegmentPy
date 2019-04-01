@@ -215,7 +215,7 @@ def MBGDHelper_V6(patch_size, batch_size, is_training=True, ncores=mp.cpu_count(
     inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
     initialization operation
     '''
-
+    from itertools import repeat
     # get length of epoch
     flist = []
     for dirpath, _, fnames in os.walk('./proc/{}/{}/'.format('train' if is_training else 'test', patch_size)):
@@ -273,6 +273,9 @@ def parse_h5_V2(name, patch_size):
     y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     '''
     with h5py.File(name.decode('utf-8'), 'r') as f:
+        string = name.decode('utf-8').split('/')
+        if string[-3] == 'test':
+            print('{}: {}'.format(string[-3], string[-1]))
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         return _minmaxscalar(X), y  #can't do minmaxscalar for y
@@ -319,6 +322,8 @@ def _pyfn_wrapper_V2(filename):
     -------
     function: (function) tensorflow's pythonic function with its arguements
     '''
+
+    # filename, patch_size = args
     patch_size = 96 #fixme: ask how to tf.data.Dataset map multi-args
     # args = [filename, patch_size]
     return tf.py_func(parse_h5_V2,  #wrapped pythonic function
