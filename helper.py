@@ -272,10 +272,10 @@ def parse_h5_V2(name, patch_size):
     X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     '''
-    with h5py.File('./proc/{}/{}'.format(patch_size, name.decode('utf-8')), 'r') as f:
+    with h5py.File(name.decode('utf-8'), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
-        return _minmaxscalar(X), _minmaxscalar(y)
+        return _minmaxscalar(X), y  #can't do minmaxscalar for y
 
 def _minmaxscalar(ndarray, dtype=np.float32):
     '''
@@ -290,7 +290,7 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     -------
     scaled: (numpy ndarray) output normalized array
     '''
-    scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.max(ndarray)), dtype=dtype)
+    scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
     return scaled
 
 def _pyfn_wrapper(filename, patch_size, batch_size):
@@ -319,7 +319,7 @@ def _pyfn_wrapper_V2(filename):
     -------
     function: (function) tensorflow's pythonic function with its arguements
     '''
-    patch_size = 40 #fixme: ask how to tf.data.Dataset map multi-args
+    patch_size = 96 #fixme: ask how to tf.data.Dataset map multi-args
     # args = [filename, patch_size]
     return tf.py_func(parse_h5_V2,  #wrapped pythonic function
                       [filename, patch_size],

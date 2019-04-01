@@ -95,8 +95,9 @@ def loss_fn(y_true, output_layer, name=''):
 
 def cal_acc(y_pred, y_true):
     with tf.name_scope('accuracy'):
-        acc = tf.reduce_mean(tf.cast(tf.equal(y_pred, tf.cast(y_true, tf.int32)), tf.float32))  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
-    return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)])
+        acc = tf.reduce_mean(tf.cast(tf.equal(y_pred,
+                                              tf.cast(y_true, dtype=tf.int32)), dtype=tf.float32))  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
+    return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)]), tf.constant(True, dtype=tf.bool)
 
 
 def optimizer(lr, name=''):

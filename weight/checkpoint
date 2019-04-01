@@ -1,2 +1,2 @@
-model_checkpoint_path: "2019_3_29_40_1000_epoch0.ckpt"
-all_model_checkpoint_paths: "2019_3_29_40_1000_epoch0.ckpt"
+model_checkpoint_path: "2019_4_1_96_200_epoch5.ckpt"
+all_model_checkpoint_paths: "2019_4_1_96_200_epoch5.ckpt"
