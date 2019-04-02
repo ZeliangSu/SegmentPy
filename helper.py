@@ -258,7 +258,8 @@ def parse_h5(name, patch_size=40, batch_size=1000):
         y = f['y'][:].reshape(batch_size, patch_size, patch_size, 1)
         return _minmaxscalar(X), _minmaxscalar(y)
 
-
+TEST = 0
+TRAIN = 0
 def parse_h5_V2(name, patch_size):
     '''
     parser that return the input images and  output labels
@@ -272,10 +273,16 @@ def parse_h5_V2(name, patch_size):
     X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     '''
+    global TEST
+    global TRAIN
     with h5py.File(name.decode('utf-8'), 'r') as f:
         string = name.decode('utf-8').split('/')
         if string[-3] == 'test':
-            print('{}: {}'.format(string[-3], string[-1]))
+            TEST += 1
+            print('test: {}'.format(TEST))
+        else:
+            TRAIN += 1
+            print('train: {}'.format(TRAIN))
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         return _minmaxscalar(X), y  #can't do minmaxscalar for y
