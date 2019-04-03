@@ -80,19 +80,23 @@ with tf.Session() as sess:
         # begin training
         step_len = train_len // batch_size
         for step in tqdm(range(ep_len // batch_size), desc='Batch step'): #fixme: handle ep_len not multiple of batch_size
-            # 1: train, 0: cv, -1: test
-            if step % 20 == 18:
-                # 5 percent of the data will be use to cross-validation
-                summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: 0})
-                cv_writer.add_summary(summary, step + ep * batch_size)
-            # in situ testing without loading weights like cs-230-stanford
-            elif step % 20 == 19:
-                summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: -2})
-                test_writer.add_summary(summary, step + ep * batch_size)
-            else:
-                # 90 percent of the data will be use for training
-                summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: 2})
-                train_writer.add_summary(summary, step + ep * batch_size)
+            try:
+                # 1: train, 0: cv, -1: test
+                if step % 20 == 18:
+                    # 5 percent of the data will be use to cross-validation
+                    summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: 0})
+                    cv_writer.add_summary(summary, step + ep * batch_size)
+                # in situ testing without loading weights like cs-230-stanford
+                elif step % 20 == 19:
+                    summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: -2})
+                    test_writer.add_summary(summary, step + ep * batch_size)
+                else:
+                    # 90 percent of the data will be use for training
+                    summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: 2})
+                    train_writer.add_summary(summary, step + ep * batch_size)
+
+            except tf.errors.OutOfRangeError:
+                break
 
         #todo: save model too
         saver = tf.train.Saver()

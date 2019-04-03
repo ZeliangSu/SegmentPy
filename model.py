@@ -60,7 +60,7 @@ def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv,
     # optimizer/train operation
     mse, m_loss = loss_fn(inputs['label'], logits, name='loss_fn')
     opt = optimizer(learning_rate, name='optimizer')
-    y_pred = tf.cast(logits, tf.int32)
+    y_pred = tf.cast(logits, tf.int32, name='y_pred')
     _, m_acc, _ = cal_acc(y_pred, inputs['label'])
 
     # program gradients

@@ -693,90 +693,143 @@
 #                 break
 
 ###############################double tf.data input pipeline with tf.cond###############################################
-import tensorflow as tf
-import numpy as np
+# import tensorflow as tf
+# import numpy as np
+# import os
+# import h5py
+# import multiprocessing as mp
+#
+#
+# def write_h5(x):
+#     with h5py.File('./proc/test_{}.h5'.format(x), 'w') as f:
+#             print(mp.current_process())  # see process ID
+#             x = y = np.arange(-1, 1, 0.02)
+#             xx, _ = np.meshgrid(x, y)
+#             a = xx ** 2
+#             b = np.add(a, np.random.randn(100, 100))  #do something and add gaussian noise
+#             f.create_dataset('X', shape=(100, 100), dtype='float32', data=a)
+#             f.create_dataset('y', shape=(100, 100), dtype='float32', data=b)
+#
+#
+#
+# def helper(window_size, batch_size, ncores=mp.cpu_count()):
+#     flist = []
+#     for dirpath, _, fnames in os.walk('./proc/'):
+#         for fname in fnames:
+#             if fname.startswith('test') and fname.endswith('.h5'):
+#                 flist.append((os.path.abspath(os.path.join(dirpath, fname)), str(window_size)))
+#     f_len = len(flist)
+#
+#     # init list of files
+#     batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))  #fixme: how to zip one list of string and a list of int
+#     batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)  #fixme: how to map two args
+#     batch = batch.batch(batch_size, drop_remainder=True).prefetch(ncores + 6).shuffle(batch_size)
+#
+#     # construct iterator
+#     it = batch.make_initializable_iterator()
+#     iter_init_op = it.initializer
+#
+#     # get next img and label
+#     X_it, y_it = it.get_next()
+#     inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
+#     return inputs, f_len
+#
+#
+# def _pyfn_wrapper(args):
+#     return tf.py_func(parse_h5,  #wrapped pythonic function
+#                       [args],
+#                       [tf.float32, tf.float32]  #[input, output] dtype
+#                       )
+#
+# def parse_h5(args):
+#     name, window_size = args
+#     window_size = int(window_size.decode('utf-8'))
+#     with h5py.File(name, 'r') as f:
+#         X = f['X'][:].reshape(window_size, window_size, 1)
+#         y = f['y'][:].reshape(window_size, window_size, 1)
+#         return X, y
+#
+#
+# # init data
+# # p = mp.Pool(mp.cpu_count())
+# # p.map(write_h5, range(100))
+# # create tf.data.Dataset
+# helper, f_len = helper(100, 5)
+# # inject into model
+# with tf.name_scope("Conv1"):
+#     W = tf.get_variable("W", shape=[3, 3, 1, 1],
+#                          initializer=tf.contrib.layers.xavier_initializer())
+#     b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+#     layer1 = tf.nn.conv2d(helper['img'], W, strides=[1, 1, 1, 1], padding='SAME') + b
+#     logits = tf.nn.relu(layer1)
+#
+#
+# loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=helper['label'], predictions=logits))
+# train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss)
+#
+# # session
+# with tf.Session() as sess:
+#     sess.run(tf.global_variables_initializer())
+#     for ep in range(5):
+#         print('ep:{}'.format(ep))
+#         sess.run(helper['iterator_init_op'])
+#         while True:
+#             try:
+#                 sess.run([train_op])
+#             except tf.errors.OutOfRangeError:
+#                 break
+
+########################## interleave
 import os
+import tensorflow as tf
 import h5py
-import multiprocessing as mp
 
+class generator_yield:
+    def __init__(self, file):
+        self.file = file
 
-def write_h5(x):
-    with h5py.File('./proc/test_{}.h5'.format(x), 'w') as f:
-            print(mp.current_process())  # see process ID
-            x = y = np.arange(-1, 1, 0.02)
-            xx, _ = np.meshgrid(x, y)
-            a = xx ** 2
-            b = np.add(a, np.random.randn(100, 100))  #do something and add gaussian noise
-            f.create_dataset('X', shape=(100, 100), dtype='float32', data=a)
-            f.create_dataset('y', shape=(100, 100), dtype='float32', data=b)
+    def __call__(self):
+        with h5py.File(self.file, 'r') as f:
+            yield f['X'][:].reshape(100, 100, 1), f['y'][:].reshape(100, 100, 1)
 
+def _fnamesmaker(dir, mode='h5'):
+    fnames = []
+    for dirpath, _, filenames in os.walk(dir):
+        for fname in filenames:
+            if fname.startswith('test') and fname.endswith(mode):
+                fnames.append(os.path.abspath(os.path.join(dirpath, fname)))
+    return fnames
 
+path = './proc/'
+fnames = _fnamesmaker(path)
+len_fnames = len(fnames)
+fnames = tf.data.Dataset.from_tensor_slices(fnames)
 
-def helper(window_size, batch_size, ncores=mp.cpu_count()):
-    flist = []
-    for dirpath, _, fnames in os.walk('./proc/'):
-        for fname in fnames:
-            if fname.startswith('test') and fname.endswith('.h5'):
-                flist.append((os.path.abspath(os.path.join(dirpath, fname)), str(window_size)))
-    f_len = len(flist)
-
-    # init list of files
-    batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))  #fixme: how to zip one list of string and a list of int
-    batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)  #fixme: how to map two args
-    batch = batch.batch(batch_size, drop_remainder=True).prefetch(ncores + 6).shuffle(batch_size)
-
-    # construct iterator
-    it = batch.make_initializable_iterator()
-    iter_init_op = it.initializer
-
-    # get next img and label
-    X_it, y_it = it.get_next()
-    inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
-    return inputs, f_len
-
-
-def _pyfn_wrapper(args):
-    return tf.py_func(parse_h5,  #wrapped pythonic function
-                      [args],
-                      [tf.float32, tf.float32]  #[input, output] dtype
-                      )
-
-def parse_h5(args):
-    name, window_size = args
-    window_size = int(window_size.decode('utf-8'))
-    with h5py.File(name, 'r') as f:
-        X = f['X'][:].reshape(window_size, window_size, 1)
-        y = f['y'][:].reshape(window_size, window_size, 1)
-        return X, y
-
-
-# init data
-# p = mp.Pool(mp.cpu_count())
-# p.map(write_h5, range(100))
-# create tf.data.Dataset
-helper, f_len = helper(100, 5)
-# inject into model
+# handle multiple files (parallelized)
+ds = fnames.interleave(lambda filename: tf.data.Dataset.from_generator(
+    generator_yield(filename), output_types=(tf.float32, tf.float32),
+    output_shapes=(tf.TensorShape([100, 100]), tf.TensorShape([100, 100]))), cycle_length=len_fnames)
+ds = ds.batch(5).shuffle(5).prefetch(5)
+it = ds.make_initializable_iterator()
+init_op = it.initializer
+X_it, y_it = it.get_next()
+# model
 with tf.name_scope("Conv1"):
     W = tf.get_variable("W", shape=[3, 3, 1, 1],
                          initializer=tf.contrib.layers.xavier_initializer())
     b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
-    layer1 = tf.nn.conv2d(helper['img'], W, strides=[1, 1, 1, 1], padding='SAME') + b
+    layer1 = tf.nn.conv2d(X_it, W, strides=[1, 1, 1, 1], padding='SAME') + b
     logits = tf.nn.relu(layer1)
 
 
-loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=helper['label'], predictions=logits))
-train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss)
-
-# session
+    loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=y_it, predictions=logits))
+    train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss)
 with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    for ep in range(5):
-        print('ep:{}'.format(ep))
-        sess.run(helper['iterator_init_op'])
-        while True:
-            try:
-                sess.run([train_op])
-            except tf.errors.OutOfRangeError:
-                break
-
-
+    sess.run([tf.global_variables_initializer(), init_op])
+    while True:
+        try:
+            data = sess.run(train_op)
+            print(data.shape)
+        except tf.errors.OutOfRangeError:
+            print('done.')
+            break
