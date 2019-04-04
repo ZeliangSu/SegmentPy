@@ -3,10 +3,11 @@ from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, drop
 up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation
 from tensorboard import summary as sm
 
-def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001, drop_prob=0.5):
+def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001):
     # encoder
     X_dyn_batsize = batch_size  #tf.placeholder(tf.int32, name='X_dynamic_batch_size')
     is_training = tf.placeholder(tf.string, name='is_training')
+    drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 
     # 1: train, 0: cv, -1: test
     def f1(): return train_inputs
