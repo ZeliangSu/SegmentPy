@@ -5,7 +5,7 @@ from tqdm import tqdm
 import csv
 import os
 
-from helper import MBGDHelper_V6
+from helper import MBGDHelper
 from model import model
 
 
@@ -23,22 +23,20 @@ hour = '{}'.format(now.hour)
 gpu_list = ['/gpu:0']
 
 # init input pipeline
-train_inputs, train_len = MBGDHelper_V6(patch_size, batch_size, is_training=True)
-test_inputs, test_len = MBGDHelper_V6(patch_size, batch_size, is_training=False)
+train_inputs, train_len = MBGDHelper(patch_size, batch_size, is_training=True)
+test_inputs, test_len = MBGDHelper(patch_size, batch_size, is_training=False)
 ep_len = train_len + test_len
 
 # init model
-y_pred, train_or_test_op, X, y_true, hold_prob, merged, is_training = model(patch_size,
-                                                                            train_inputs,
-                                                                            test_inputs,
-                                                                            batch_size,
-                                                                            conv_size,
-                                                                            nb_conv,
-                                                                            learning_rate=learning_rate,
-                                                                            drop_prob=dropout
-                                                                            )
-
-# cal_acc = cal_acc(y_pred, y_true)
+nodes = model(patch_size,
+              train_inputs,
+              test_inputs,
+              batch_size,
+              conv_size,
+              nb_conv,
+              learning_rate=learning_rate,
+              drop_prob=dropout
+              )
 
 # print number of params
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
@@ -57,6 +55,7 @@ if not os.path.exists('./logs/{}/hour{}/'.format(date, hour)):
 #                                       allow_soft_placement=True,
 #                                       log_device_placement=False,
 #                                       )) as sess:
+
 with tf.Session() as sess:
     # init params
     sess.run(tf.global_variables_initializer())
@@ -78,24 +77,26 @@ with tf.Session() as sess:
         sess.run(train_inputs['iterator_init_op'])
         sess.run(test_inputs['iterator_init_op'])
         # begin training
-        step_len = train_len // batch_size
-        for step in tqdm(range(ep_len // batch_size), desc='Batch step'): #fixme: handle ep_len not multiple of batch_size
+        for step in tqdm(range(train_len // batch_size), desc='Batch step'):
             try:
-                # 1: train, 0: cv, -1: test
-                if step % 20 == 18:
+                # 80%train 10%cross-validation 10%test
+                if step % 9 == 8:
                     # 5 percent of the data will be use to cross-validation
-                    summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: 0})
+                    summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']], feed_dict={nodes['is_training']: 'cv'})
                     cv_writer.add_summary(summary, step + ep * batch_size)
-                # in situ testing without loading weights like cs-230-stanford
-                elif step % 20 == 19:
-                    summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: -2})
+
+                    # in situ testing without loading weights like cs-230-stanford
+                    summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']], feed_dict={nodes['is_training']: 'test'})
                     test_writer.add_summary(summary, step + ep * batch_size)
+
+                # 90 percent of the data will be use for training
                 else:
-                    # 90 percent of the data will be use for training
-                    summary, _ = sess.run([merged, train_or_test_op], feed_dict={is_training: 2})
+                    summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
+                                          feed_dict={nodes['is_training']: 'train'})
                     train_writer.add_summary(summary, step + ep * batch_size)
 
-            except tf.errors.OutOfRangeError:
+            except tf.errors.OutOfRangeError as e:
+                print(e)
                 break
 
         #todo: save model too

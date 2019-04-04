@@ -6,7 +6,7 @@ import os
 import multiprocessing as mp
 
 
-def MBGDHelper_V6(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
+def MBGDHelper(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
     '''
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -31,8 +31,8 @@ def MBGDHelper_V6(patch_size, batch_size, is_training=True, ncores=mp.cpu_count(
 
     # init list of files
     batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
-    batch = batch.map(_pyfn_wrapper_V2, num_parallel_calls=ncores)
-    batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores + 6)
+    batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
+    batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
     #todo: prefetch_to_device
 
     # construct iterator
@@ -52,7 +52,7 @@ def _folder_parser(directory, is_training, patch_size):
     ep_len = len(flist)
     return flist, ep_len
 
-def parse_h5_V2(name, patch_size):
+def parse_h5(name, patch_size):
     '''
     parser that return the input images and  output labels
 
@@ -88,7 +88,7 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     return scaled
 
 
-def _pyfn_wrapper_V2(filename):
+def _pyfn_wrapper(filename):
     '''
     input:
     -------
@@ -102,7 +102,7 @@ def _pyfn_wrapper_V2(filename):
     # filename, patch_size = args
     patch_size = 96 #fixme: ask how to tf.data.Dataset map multi-args
     # args = [filename, patch_size]
-    return tf.py_func(parse_h5_V2,  #wrapped pythonic function
+    return tf.py_func(parse_h5,  #wrapped pythonic function
                       [filename, patch_size],
                       [tf.float32, tf.float32]  #[input, output] dtype
                       )
