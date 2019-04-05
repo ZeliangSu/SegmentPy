@@ -10,6 +10,7 @@ train_iterator = train_ds.make_initializable_iterator()
 test_iterator = test_ds.make_initializable_iterator()
 
 with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
     sess.run(train_iterator.initializer)
     sess.run(test_iterator.initializer)
     for i in range(len(train) + 1):

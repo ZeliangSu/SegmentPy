@@ -58,7 +58,6 @@ with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
 #
 # with tf.Session() as sess:
     # init params
-    global_step_op = tf.train.get_global_step()
     sess.run(tf.global_variables_initializer())
 
     # init summary
@@ -78,27 +77,26 @@ with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
         sess.run(train_inputs['iterator_init_op'])
         sess.run(test_inputs['iterator_init_op'])
         # begin training
-        for step in tqdm(range(train_len // batch_size), desc='Batch step'):
+        for step in tqdm(range(nb_batch), desc='Batch step'):
             try:
-                global_step = sess.run(global_step_op)
                 # 80%train 10%cross-validation 10%test
                 if step % 9 == 8:
                     # 5 percent of the data will be use to cross-validation
                     summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']], feed_dict={nodes['is_training']: 'cv',
                                                                                                     nodes['drop']: 1})
-                    cv_writer.add_summary(summary, global_step)
+                    cv_writer.add_summary(summary, ep * nb_batch + step)
 
                     # in situ testing without loading weights like cs-230-stanford
                     summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']], feed_dict={nodes['is_training']: 'test',
                                                                                                     nodes['drop']: 1})
-                    test_writer.add_summary(summary, global_step)
+                    test_writer.add_summary(summary, ep * nb_batch + step)
 
                 # 90 percent of the data will be use for training
                 else:
                     summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
                                           feed_dict={nodes['is_training']: 'train',
                                                      nodes['drop']: 0.5})
-                    train_writer.add_summary(summary, global_step)
+                    train_writer.add_summary(summary, ep * nb_batch + step)
 
             except tf.errors.OutOfRangeError as e:
                 print(e)
