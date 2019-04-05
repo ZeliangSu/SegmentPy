@@ -10,7 +10,7 @@ from model import model
 
 
 # params
-patch_size = 96
+patch_size = 40
 batch_size = 100  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
 nb_epoch = 20
 conv_size = 3
@@ -21,6 +21,7 @@ now = datetime.datetime.now()
 date = '{}_{}_{}'.format(now.year, now.month, now.day)
 hour = '{}'.format(now.hour)
 gpu_list = ['/gpu:0']
+
 
 # init input pipeline
 train_inputs, train_len = MBGDHelper(patch_size, batch_size, is_training=True)
@@ -57,6 +58,7 @@ if not os.path.exists('./logs/{}/hour{}/'.format(date, hour)):
 
 with tf.Session() as sess:
     # init params
+    global_step_op = tf.train.get_global_step()
     sess.run(tf.global_variables_initializer())
 
     # init summary
@@ -78,24 +80,25 @@ with tf.Session() as sess:
         # begin training
         for step in tqdm(range(train_len // batch_size), desc='Batch step'):
             try:
+                global_step = sess.run(global_step_op)
                 # 80%train 10%cross-validation 10%test
                 if step % 9 == 8:
                     # 5 percent of the data will be use to cross-validation
                     summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']], feed_dict={nodes['is_training']: 'cv',
                                                                                                     nodes['drop']: 1})
-                    cv_writer.add_summary(summary, step + ep * batch_size)
+                    cv_writer.add_summary(summary, global_step)
 
                     # in situ testing without loading weights like cs-230-stanford
                     summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']], feed_dict={nodes['is_training']: 'test',
                                                                                                     nodes['drop']: 1})
-                    test_writer.add_summary(summary, step + ep * batch_size)
+                    test_writer.add_summary(summary, global_step)
 
                 # 90 percent of the data will be use for training
                 else:
                     summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
                                           feed_dict={nodes['is_training']: 'train',
                                                      nodes['drop']: 0.5})
-                    train_writer.add_summary(summary, step + ep * batch_size)
+                    train_writer.add_summary(summary, global_step)
 
             except tf.errors.OutOfRangeError as e:
                 print(e)

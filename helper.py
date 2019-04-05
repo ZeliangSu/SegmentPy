@@ -20,12 +20,12 @@ def MBGDHelper(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
     inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
     initialization operation
     '''
-    from itertools import repeat
+
     # get length of epoch
     flist = []
     for dirpath, _, fnames in os.walk('./proc/{}/{}/'.format('train' if is_training else 'test', patch_size)):
         for fname in fnames:
-            flist.append(os.path.abspath(os.path.join(dirpath, fname)))
+            flist.append((os.path.abspath(os.path.join(dirpath, fname)), str(patch_size)))
     ep_len = len(flist)
     print('Epoch length: {}'.format(ep_len))
 
@@ -46,13 +46,13 @@ def MBGDHelper(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
 
 def _folder_parser(directory, is_training, patch_size):
     flist = []
-    for dirpath, _, fnames in os.walk('./proc/{}/{}/'.format('train' if is_training else 'test', patch_size)):
+    for dirpath, _, fnames in os.walk(directory.format('train' if is_training else 'test', patch_size)):
         for fname in fnames:
             flist.append(os.path.abspath(os.path.join(dirpath, fname)))
     ep_len = len(flist)
     return flist, ep_len
 
-def parse_h5(name, patch_size):
+def parse_h5(args):
     '''
     parser that return the input images and  output labels
 
@@ -65,7 +65,12 @@ def parse_h5(name, patch_size):
     X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     '''
-    with h5py.File(name.decode('utf-8'), 'r') as f:
+    name, patch_size = args
+    # decode binary to str or int
+    name = name.decode('utf-8')
+    patch_size = int(patch_size.decode('utf-8'))
+
+    with h5py.File(name, 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         return _minmaxscalar(X), y  #can't do minmaxscalar for y
@@ -88,7 +93,7 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     return scaled
 
 
-def _pyfn_wrapper(filename):
+def _pyfn_wrapper(args):
     '''
     input:
     -------
@@ -99,11 +104,8 @@ def _pyfn_wrapper(filename):
     function: (function) tensorflow's pythonic function with its arguements
     '''
 
-    # filename, patch_size = args
-    patch_size = 96 #fixme: ask how to tf.data.Dataset map multi-args
-    # args = [filename, patch_size]
     return tf.py_func(parse_h5,  #wrapped pythonic function
-                      [filename, patch_size],
+                      [args],
                       [tf.float32, tf.float32]  #[input, output] dtype
                       )
 

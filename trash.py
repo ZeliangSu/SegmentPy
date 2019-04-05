@@ -1021,3 +1021,35 @@ from itertools import repeat
 #                     sess.run([test_op])
 #             except tf.errors.OutOfRangeError:
 #                 raise('drop the remainder')
+
+# def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=True):
+#     # import data
+#     X_stack, y_stack, shapes = _tifReader(dir)
+#     outdir = './proc/'
+#
+#     X_patches = _stride(X_stack[0], stride, patch_size)
+#     y_patches = _stride(y_stack[0], stride, patch_size)
+#
+#     # extract patches
+#     for i in range(1, len(X_stack) - 1):
+#         X_patches = np.vstack((X_patches, _stride(X_stack[i], stride, patch_size)))
+#     for i in range(1, len(y_stack) - 1):
+#         y_patches = np.vstack((y_patches, _stride(y_stack[i], stride, patch_size)))
+#
+#     assert X_patches.shape[0] == y_patches.shape[0], 'numbers of raw image: {} and label image: {} are different'.format(X_patches.shape[0], y_patches.shape[0])
+#
+#     # shuffle
+#     if shuffle:
+#         X_patches, y_patches = _shuffle(X_patches, y_patches)
+#
+#     # handle file id
+#     maxId, rest = _idParser(outdir, batch_size, patch_size)
+#     id_length = (X_patches.shape[0] - rest) // batch_size
+#     if mode == 'h5':
+#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5')
+#     elif mode == 'h5s':
+#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5s')
+#     elif mode == 'csvs':
+#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='csvs')
+#     elif mode == 'tfrecord':
+#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
