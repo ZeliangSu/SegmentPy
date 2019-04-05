@@ -47,7 +47,7 @@ if not os.path.exists('./logs/{}/'.format(date)):
     
 if not os.path.exists('./logs/{}/hour{}/'.format(date, hour)):
     os.mkdir('./logs/{}/hour{}/'.format(date, hour))
-
+nb_batch = train_len // batch_size
 # begin session
 # with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess: # use only CPU
 gpu_options = tf.GPUOptions(visible_device_list='1')
@@ -55,7 +55,7 @@ with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
                                       allow_soft_placement=True,
                                       log_device_placement=False,
                                       )) as sess:
-#
+
 # with tf.Session() as sess:
     # init params
     sess.run(tf.global_variables_initializer())
