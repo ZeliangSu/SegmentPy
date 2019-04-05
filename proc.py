@@ -4,26 +4,18 @@ from numpy.lib.stride_tricks import as_strided
 from PIL import Image
 import os
 import h5py
-from writer import _h5Writer, _tfrecordWriter
+from writer import _h5Writer, _tfrecordWriter, _h5Writer_V2
 from reader import _tifReader
-from sklearn.utils import shuffle
 
 
-def _shuffle(tensor_a, tensor_b, random_state=42):
-    # shuffle two tensors in unison
-    idx = np.random.permutation(tensor_a.shape[0]) #artifacts
-    return tensor_a[idx], tensor_b[idx]
-    # tensor_a, tensor_b = shuffle(tensor_a, tensor_b, random_state=random_state) #artifacts
-    # np.random.seed(random_state)
-    # np.random.shuffle(tensor_a)
-    # np.random.shuffle(tensor_b)
-    # return tensor_a, tensor_b
 
 
-def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=True):
+def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True, traintest_split_rate=0.9):
     # import data
-    X_stack, y_stack, shapes = _tifReader(dir)
+    X_stack, y_stack, shapes = _tifReader(indir)
     outdir = './proc/'
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
     X_patches = _stride(X_stack[0], stride, patch_size)
     y_patches = _stride(y_stack[0], stride, patch_size)
@@ -40,19 +32,35 @@ def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=Tru
     if shuffle:
         X_patches, y_patches = _shuffle(X_patches, y_patches)
 
-    # handle file id
-    maxId, rest = _idParser(outdir, batch_size, patch_size)
-    id_length = (X_patches.shape[0] - rest) // batch_size
-    if mode == 'h5':
-        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5')
-    elif mode == 'h5s':
-        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5s')
-    elif mode == 'csvs':
-        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='csvs')
-    elif mode == 'tfrecord':
-        _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
+    if evaluate:
+        if mode == 'h5':
+            _h5Writer_V2(X_patches[:np.int(X_patches.shape[0] * traintest_split_rate)], y_patches, outdir + 'train/', patch_size)
+            _h5Writer_V2(X_patches[np.int(X_patches.shape[0] * traintest_split_rate):], y_patches, outdir + 'test/', patch_size)
+        elif mode == 'csv':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+    else:
+        if mode == 'h5':
+            _h5Writer_V2(X_patches, y_patches, outdir, patch_size)
+        elif mode == 'csv':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
 
 
+
+
+def _shuffle(tensor_a, tensor_b, random_state=42):
+    # shuffle two tensors in unison
+    idx = np.random.permutation(tensor_a.shape[0]) #artifacts
+    return tensor_a[idx], tensor_b[idx]
+    # tensor_a, tensor_b = shuffle(tensor_a, tensor_b, random_state=random_state) #artifacts
+    # np.random.seed(random_state)
+    # np.random.shuffle(tensor_a)
+    # np.random.shuffle(tensor_b)
+    # return tensor_a, tensor_b
 
 
 def _stride(tensor, stride, patch_size):
@@ -64,6 +72,7 @@ def _stride(tensor, stride, patch_size):
     patches = as_strided(tensor, shape=(p_h, p_w, patch_size, patch_size), strides=_strides)\
         .reshape(-1, patch_size, patch_size)
     return patches
+
 
 def _idParser(dir, patch_size, batch_size, mode='h5'):
     l_f = []

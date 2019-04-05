@@ -1,18 +1,19 @@
 from proc import preprocess
-from train import test_train
 import tensorflow as tf
 import h5py
 import os
 import multiprocessing as mp
-import matplotlib.pyplot as plt
+
 
 preproc = {
-    'dir': './raw',
-    'stride': 15,
+    'indir': './raw',
+    'stride': 20,
     'patch_size': 40,  # should be multiple of 8
-    'batch_size': 1000,
-    'mode': 'csvs',
-    'shuffle': True
+    # 'batch_size': 1000,
+    'mode': 'h5',
+    'shuffle': True,
+    'traintest_split_rate': 0.95
 }
 
+# preprocess(**preproc)
 preprocess(**preproc)

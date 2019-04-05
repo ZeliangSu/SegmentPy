@@ -40,7 +40,7 @@ def conv2d_layer(input_layer, shape, name='', stride=1):
 
 def conv2d_transpose_layer(input_layer, shape, dyn_batch_size, stride=1, name=''):
     with tf.variable_scope(name):
-        shape = [shape[0], shape[1], shape[3], shape[2]]  # [height, width, output_channels, in_channels]
+        shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name)
         b = init_bias([shape[2]], name)
         transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=(dyn_batch_size,
@@ -95,14 +95,9 @@ def loss_fn(y_true, output_layer, name=''):
 
 def cal_acc(y_pred, y_true):
     with tf.name_scope('accuracy'):
-        acc = tf.reduce_mean(tf.cast(tf.equal(y_pred, tf.cast(y_true, tf.int32)), tf.float32))  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
-    return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)])
-
-
-def prediction(output_layer, name=''):
-    with tf.variable_scope(name):
-        y_pred = tf.nn.softmax(output_layer, name='softmax')
-        return y_pred
+        acc = tf.reduce_mean(tf.cast(tf.equal(y_pred,
+                                              tf.cast(y_true, dtype=tf.int32)), dtype=tf.float32))  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
+    return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)]), tf.constant(True, dtype=tf.bool)
 
 
 def optimizer(lr, name=''):
@@ -115,6 +110,9 @@ def train_operation(adam, loss_fn, name='train_op'):
     with tf.variable_scope(name):
         return adam.minimize(loss_fn)
 
+def test_operation():
+    '''During test operation, one take imgs and labels for evaluating metrics from testset without minimization operation'''
+    pass
 
 def accuracy_placeholder(name='acc'):
     with tf.name_scope(name):
