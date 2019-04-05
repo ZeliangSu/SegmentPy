@@ -7,10 +7,11 @@ from model import model
 from layers import placeholder
 from PIL import Image
 from proc import _stride
+from ops import get_collection
 
-img = Image.open("./dummy")  # loading the image
+img = Image.open("./dummy/1.tif")  # loading the image
 img1 = np.asarray(img)       #transforming img object to array
-batch = _stride(img1, 1, 100)
+batch = _stride(img1, 1, 96)
 
 #img=np.float32(nor_data)
 
@@ -27,7 +28,7 @@ with tf.Sess() as Sess :
     saver.restore (Sess,'./weight/{}_{}.ckpt'.format(patch_size, batch_size))
     print("model restored with success")
 
-    #predict_op = tf.argmax(model, 1)
+    predict_op = tf.get_collection('predict_op')[0]
     #predict_op=
 
     # faire un aller

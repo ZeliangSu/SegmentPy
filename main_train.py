@@ -10,8 +10,8 @@ from model import model
 
 
 # params
-patch_size = 40
-batch_size = 100  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
+patch_size = 96
+batch_size = 1000  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
 nb_epoch = 20
 conv_size = 3
 nb_conv = 32
@@ -50,13 +50,13 @@ if not os.path.exists('./logs/{}/hour{}/'.format(date, hour)):
 
 # begin session
 # with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess: # use only CPU
-# gpu_options = tf.GPUOptions(visible_device_list='0')
-# with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
-#                                       allow_soft_placement=True,
-#                                       log_device_placement=False,
-#                                       )) as sess:
-
-with tf.Session() as sess:
+gpu_options = tf.GPUOptions(visible_device_list='1')
+with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
+                                      allow_soft_placement=True,
+                                      log_device_placement=False,
+                                      )) as sess:
+#
+# with tf.Session() as sess:
     # init params
     global_step_op = tf.train.get_global_step()
     sess.run(tf.global_variables_initializer())

@@ -12,7 +12,7 @@ from reader import _tifReader
 
 def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True, traintest_split_rate=0.9):
     # import data
-    X_stack, y_stack, shapes = _tifReader(indir)
+    X_stack, y_stack, _ = _tifReader(indir)
     outdir = './proc/'
     if not os.path.exists(outdir):
         os.mkdir(outdir)
