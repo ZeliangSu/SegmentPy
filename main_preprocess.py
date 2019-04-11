@@ -8,7 +8,7 @@ import multiprocessing as mp
 preproc = {
     'indir': './raw',
     'stride': 2,
-    'patch_size': 96,  # should be multiple of 8
+    'patch_size': 72,  # should be multiple of 8
     'mode': 'h5',
     'shuffle': True,
     'traintest_split_rate': 0.9

@@ -1,12 +1,11 @@
 import numpy as np
 import h5py
 import tensorflow as tf
-import threading
 import os
 import multiprocessing as mp
 
 
-def MBGDHelper(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
+def inputpipeline(list_data_ph, patch_size, batch_size, ncores=mp.cpu_count()):
     '''
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -22,17 +21,14 @@ def MBGDHelper(patch_size, batch_size, is_training=True, ncores=mp.cpu_count()):
     '''
 
     # get length of epoch
-    flist = []
-    for dirpath, _, fnames in os.walk('./proc/{}/{}/'.format('train' if is_training else 'test', patch_size)):
-        for fname in fnames:
-            flist.append((os.path.abspath(os.path.join(dirpath, fname)), str(patch_size)))
-    ep_len = len(flist)
+    ep_len = len(list_data_ph)
     print('Epoch length: {}'.format(ep_len))
 
     # init list of files
-    batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
+    batch = tf.data.Dataset.from_tensor_slices((tf.constant(list_data_ph), str(patch_size)))
     batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
     batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
+    batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
     #todo: prefetch_to_device
 
     # construct iterator
@@ -109,5 +105,3 @@ def _pyfn_wrapper(args):
                       [tf.float32, tf.float32]  #[input, output] dtype
                       )
 
-if __name__ == '__main__':
-   pass

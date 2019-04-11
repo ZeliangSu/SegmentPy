@@ -2,16 +2,15 @@ import tensorflow as tf
 import numpy as np
 import datetime
 from tqdm import tqdm
-import csv
 import os
 
-from helper import MBGDHelper
+from helper import inputpipeline
 from model import model
 
 
 # params
-patch_size = 96
-batch_size = 1000  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
+patch_size = 72
+batch_size = 100  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
 nb_epoch = 20
 conv_size = 3
 nb_conv = 32
@@ -22,10 +21,17 @@ date = '{}_{}_{}'.format(now.year, now.month, now.day)
 hour = '{}'.format(now.hour)
 gpu_list = ['/gpu:0']
 
+# get list of file names
+totrain_files = [os.path.join('./proc/train/{}/'.format(patch_size), f) for f in os.listdir('./proc/train/{}/'.format(patch_size)) if f.endswith('.h5')]
+totest_files = [os.path.join('./proc/test/{}/'.format(patch_size), f) for f in os.listdir('./proc/test/{}/'.format(patch_size)) if f.endswith('.h5')]
+
+# placeholder for list fo files
+totrain_files_ph = tf.placeholder(tf.string, shape=[None])
+totest_files_ph = tf.placeholder(tf.string, shape=[None])
 
 # init input pipeline
-train_inputs, train_len = MBGDHelper(patch_size, batch_size, is_training=True)
-test_inputs, test_len = MBGDHelper(patch_size, batch_size, is_training=False)
+train_inputs, train_len = inputpipeline(totrain_files_ph, patch_size, batch_size)
+test_inputs, test_len = inputpipeline(totest_files_ph, patch_size, batch_size)
 ep_len = train_len + test_len
 
 # init model
@@ -48,9 +54,10 @@ if not os.path.exists('./logs/{}/'.format(date)):
 if not os.path.exists('./logs/{}/hour{}/'.format(date, hour)):
     os.mkdir('./logs/{}/hour{}/'.format(date, hour))
 nb_batch = train_len // batch_size
+
 # begin session
 # with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess: # use only CPU
-gpu_options = tf.GPUOptions(visible_device_list='1')
+gpu_options = tf.GPUOptions(visible_device_list='0')
 with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
                                       allow_soft_placement=True,
                                       log_device_placement=False,
@@ -101,6 +108,18 @@ with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
             except tf.errors.OutOfRangeError as e:
                 print(e)
                 break
+
+            if step % 200 == 0:
+                # prepare input dict and out dict
+                in_dict = {
+                    'train_files_ph': totrain_files_ph,
+                    'test_files_ph': totest_files_ph,
+                }
+                out_dict = {
+                    'nodes': nodes
+                }
+                # builder
+                tf.saved_model.simple_save(sess, './logs/{}/hour{}/savedmodel/step{}/', in_dict, out_dict)
 
         #todo: save model too
         saver = tf.train.Saver()
