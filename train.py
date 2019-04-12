@@ -6,7 +6,8 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
     config_params = {}
     if device_option == 'cpu':
         config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
-    elif device_option == 'specific_gpu:1':
+    elif 'specific' in device_option:
+        print(device_option.split(':')[-1])
         config_params['config'] = tf.ConfigProto(gpu_options=tf.GPUOptions(visible_device_list=device_option.split(':')[-1]),
                                                  allow_soft_placement=True,
                                                  log_device_placement=False,

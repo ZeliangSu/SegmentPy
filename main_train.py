@@ -10,11 +10,11 @@ from train import train
 # params
 hyperparams = {
     'patch_size': 72,
-    'batch_size': 100,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
-    'nb_epoch': 20,
+    'batch_size': 300,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
+    'nb_epoch': 10,
     'nb_batch': None,
-    'conv_size': 3,
-    'nb_conv': 32,
+    'conv_size': 5,
+    'nb_conv': 48,
     'learning_rate': 0.000001,  #should use smaller learning rate when decrease batch size
     'dropout': 0.5,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
@@ -55,7 +55,7 @@ if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparam
 hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
 # start training
-train(nodes, train_inputs, test_inputs, hyperparams)
+train(nodes, train_inputs, test_inputs, hyperparams, device_option=hyperparams['device_option'])
 
 
 
