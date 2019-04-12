@@ -1,11 +1,10 @@
 import numpy as np
 import h5py
 import tensorflow as tf
-import os
 import multiprocessing as mp
 
 
-def inputpipeline(list_data_ph, patch_size, batch_size, ncores=mp.cpu_count()):
+def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
     '''
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -20,35 +19,50 @@ def inputpipeline(list_data_ph, patch_size, batch_size, ncores=mp.cpu_count()):
     initialization operation
     '''
 
-    # get length of epoch
-    ep_len = len(list_data_ph)
-    print('Epoch length: {}'.format(ep_len))
+    # placeholder for list fo files
+    with tf.name_scope('input_pipeline' + suffix):
+        fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
+        patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
 
-    # init list of files
-    batch = tf.data.Dataset.from_tensor_slices((tf.constant(list_data_ph), str(patch_size)))
-    batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
-    batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
-    batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
-    #todo: prefetch_to_device
+        # init list of files
+        batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph)) #fixme: nested structure for placeholder
+        batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
+        batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
+        #todo: prefetch_to_device
+        # batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
 
-    # construct iterator
-    it = batch.make_initializable_iterator()
-    iter_init_op = it.initializer
+        # construct iterator
+        it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+        iter_init_op = it.make_initializer(batch, name='iter_init_op')
 
-    # get next img and label
-    X_it, y_it = it.get_next()
-    inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
-    return inputs, ep_len
+        # get next img and label
+        X_it, y_it = it.get_next()
+        inputs = {'img': X_it,
+                  'label': y_it,
+                  'iterator_init_op': iter_init_op,
+                  'fnames_ph': fnames_ph,
+                  'patch_size_ph': patch_size_ph}
+        return inputs
 
-def _folder_parser(directory, is_training, patch_size):
-    flist = []
-    for dirpath, _, fnames in os.walk(directory.format('train' if is_training else 'test', patch_size)):
-        for fname in fnames:
-            flist.append(os.path.abspath(os.path.join(dirpath, fname)))
-    ep_len = len(flist)
-    return flist, ep_len
 
-def parse_h5(args):
+def _pyfn_wrapper(fname, patch_size):
+    '''
+    input:
+    -------
+    filename: (tf.data.Dataset)  Tensors of strings
+
+    output:
+    -------
+    function: (function) tensorflow's pythonic function with its arguements
+    '''
+
+    return tf.py_func(parse_h5,  #wrapped pythonic function
+                      [fname, patch_size],
+                      [tf.float32, tf.float32]  #[output, output] dtype
+                      )
+
+
+def parse_h5(fname, patch_size):
     '''
     parser that return the input images and  output labels
 
@@ -61,12 +75,8 @@ def parse_h5(args):
     X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
     '''
-    name, patch_size = args
-    # decode binary to str or int
-    name = name.decode('utf-8')
-    patch_size = int(patch_size.decode('utf-8'))
 
-    with h5py.File(name, 'r') as f:
+    with h5py.File(fname.decode('utf-8'), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         return _minmaxscalar(X), y  #can't do minmaxscalar for y
@@ -89,19 +99,4 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     return scaled
 
 
-def _pyfn_wrapper(args):
-    '''
-    input:
-    -------
-    filename: (tf.data.Dataset)  Tensors of strings
-
-    output:
-    -------
-    function: (function) tensorflow's pythonic function with its arguements
-    '''
-
-    return tf.py_func(parse_h5,  #wrapped pythonic function
-                      [args],
-                      [tf.float32, tf.float32]  #[input, output] dtype
-                      )
 

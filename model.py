@@ -3,16 +3,16 @@ from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, drop
 up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation
 from tensorboard import summary as sm
 
-def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv, learning_rate=0.0001):
+def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
     # encoder
     X_dyn_batsize = batch_size  #tf.placeholder(tf.int32, name='X_dynamic_batch_size')
-    is_training = tf.placeholder(tf.string, name='is_training')
+    train_or_test = tf.placeholder(tf.string, name='training_type')
     drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 
     # 1: train, 0: cv, -1: test
     def f1(): return train_inputs
     def f2(): return test_inputs
-    inputs = tf.cond(tf.equal(is_training, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
+    inputs = tf.cond(tf.equal(train_or_test, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
 
     # build model
     conv1, m1 = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], name='conv1')#[height, width, in_channels, output_channels]
@@ -70,7 +70,7 @@ def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv,
 
     # train operation
     # run train_op otherwise do nothing
-    train_or_test_op = tf.cond(tf.equal(is_training, 'train'), lambda: train_operation(opt, mse, name='train_op'),
+    train_or_test_op = tf.cond(tf.equal(train_or_test, 'train'), lambda: train_operation(opt, mse, name='train_op'),
                                lambda: tf.constant(True, dtype=tf.bool), name='train_op_cond')
 
     # merged summaries
@@ -85,6 +85,6 @@ def model(patch_size, train_inputs, test_inputs, batch_size, conv_size, nb_conv,
         'label': inputs['label'],
         'drop': drop_prob,
         'summary': merged,
-        'is_training': is_training
+        'train_or_test': train_or_test
     }
 

@@ -1074,4 +1074,256 @@ from itertools import repeat
 #         if i % 9 == 8:
 #             print(sess.run(test_iterator.get_next()))
 
-#################################
+################################# save/restore with saved_model API and Dataset input pipeline
+import tensorflow as tf
+import numpy as np
+import os
+import multiprocessing as mp
+from tqdm import tqdm
+import h5py
+
+def parse_h5(args):
+    patch_size = 100
+    with h5py.File(args.decode('utf-8'), 'r') as f:
+        X = f['X'][:].reshape(patch_size, patch_size, 1)
+        y = f['y'][:].reshape(patch_size, patch_size, 1)
+        return _minmaxscalar(X), y  #can't do minmaxscalar for y
+
+
+def _minmaxscalar(ndarray, dtype=np.float32):
+    scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
+    return scaled
+
+
+def _pyfn_wrapper(args):
+    return tf.py_func(parse_h5,  #wrapped pythonic function
+                      [args],
+                      [tf.float32, tf.float32]  #[input, output] dtype
+                      )
+
+
+def input_pipeline(file_names_ph):
+    # create new dataset for predict
+    dataset = tf.data.Dataset.from_tensor_slices(file_names_ph)
+
+    # apply list of file names to the py function wrapper for reading files
+    dataset = dataset.map(_pyfn_wrapper, num_parallel_calls=mp.cpu_count())
+
+    # construct batch size
+    dataset = dataset.batch(1).prefetch(mp.cpu_count())
+
+    # initialize iterator
+    iterator = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
+    iterator_initialize_op = iterator.make_initializer(dataset, name='predict_iter_init_op')
+
+    # get image and labels
+    image_getnext_op, label_getnext_op = iterator.get_next()
+    return {'img_next_op': image_getnext_op, 'label_next_op': label_getnext_op, 'iter_init_op': iterator_initialize_op}
+
+
+def model(in_ds, out_ds):
+
+    with tf.name_scope("Conv1"):
+        W = tf.get_variable("W", shape=[3, 3, 1, 1],
+                             initializer=tf.contrib.layers.xavier_initializer())
+        b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+        layer1 = tf.nn.conv2d(in_ds, W, strides=[1, 1, 1, 1], padding='SAME') + b
+        prediction = tf.nn.relu(layer1, name='prediction')
+
+    with tf.name_scope("Operations"):
+        global_step = tf.Variable(0, name='global_step', trainable=False)
+        loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=out_ds, predictions=prediction), name='loss')
+        train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss, name='train_op', global_step=global_step)
+        difference_op = tf.cast(tf.equal(prediction, out_ds), dtype=tf.int32, name='difference')
+
+    return {'global_step': global_step, 'loss': loss, 'train_op': train_op, 'diff_op': difference_op, 'predict_op': prediction}
+
+
+##############################Training####################################
+# create list of file names: ['test_0.h5', 'test_1.h5', ...]
+totrain_files = [os.path.join('./dummy/', f) for f in os.listdir('./dummy/') if f.endswith('.h5')]
+epoch_length = len(totrain_files)
+
+file_names_ph = tf.placeholder(tf.string, shape=(None), name='file_name_ph')
+in_pipeline = input_pipeline(file_names_ph)
+nodes = model(in_pipeline['img_next_op'], in_pipeline['label_next_op'])
+print([n.name for n in tf.get_default_graph().as_graph_def().node])  # add:  if 'file_name_ph' in n.name to filter names
+
+
+with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+    sess.run([tf.global_variables_initializer(), in_pipeline['iter_init_op']], feed_dict={file_names_ph: totrain_files})
+    for step in tqdm(range(epoch_length)):
+        # run train_op
+        _ = sess.run(nodes['train_op'])
+        # use saver to save weights
+        if step % epoch_length == epoch_length - 1:
+            in_dict = {
+                'file_names': file_names_ph,
+            }
+            out_dict = {
+                'predict': nodes['predict_op'],
+                'diff_op': nodes['diff_op']
+            }
+            tf.saved_model.simple_save(sess, './dummy/savedmodel', in_dict, out_dict)
+
+##############################Predicting####################################
+# input pipeline for predict
+# create list of file names: ['test_0.h5', 'test_1.h5', ...]
+topredict_files = [os.path.join('./predict/', f) for f in os.listdir('./predict/') if f.endswith('.h5')]
+epoch_length = len(topredict_files)
+
+# save prediction images to /results folder
+if not os.path.exists('./results'):
+    os.makedirs('./results')
+
+# restore
+# set to the default graph
+graph2 = tf.Graph()
+with graph2.as_default():
+    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+        tf.saved_model.loader.load(
+            sess,
+            [tf.saved_model.tag_constants.SERVING], './dummy/savedmodel'
+        )
+        # import graph
+        # get operation and so on
+        file_names_ph = graph2.get_tensor_by_name('file_name_ph:0')
+        predict_tensor = graph2.get_tensor_by_name('Conv1/prediction:0')
+        diff_tensor = graph2.get_tensor_by_name('Operations/difference:0')
+        iter_init_op = graph2.get_operation_by_name('predict_iter_init_op')
+
+        sess.run(iter_init_op, feed_dict={file_names_ph: topredict_files})
+        for step in tqdm(range(epoch_length)):
+            predict, difference = sess.run([predict_tensor, diff_tensor])
+            print(predict.shape, difference.shape)
+            with h5py.File('./results/{}.h5'.format(step), 'w') as f:
+                a = f.create_dataset('prediction', (100, 100), dtype='float32')
+                a[:] = predict.reshape(100, 100)
+                b = f.create_dataset('difference', (100, 100), dtype='float32', data=difference)
+                b[:] = difference.reshape(100, 100)
+
+##########################20190412 new mechanism
+# def parse_h5(name, patch_size):
+#     print('name:{}, ps:{}'.format(name, patch_size))
+#     with h5py.File(name.decode('utf-8'), 'r') as f:
+#         X = f['X'][:].reshape(patch_size, patch_size, 1)
+#         y = f['y'][:].reshape(patch_size, patch_size, 1)
+#         return _minmaxscalar(X), y  #can't do minmaxscalar for y
+#
+#
+# def _minmaxscalar(ndarray, dtype=np.float32):
+#     scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
+#     return scaled
+#
+#
+# def _pyfn_wrapper(fname, patchsize):
+#     return tf.py_func(parse_h5,  #wrapped pythonic function
+#                       [fname, patchsize],
+#                       [tf.float32, tf.float32]  #[input, output] dtype
+#                       )
+#
+#
+# def input_pipeline(fname_ph, ps_ph):
+#     # create new dataset for predict
+#     dataset = tf.data.Dataset.from_tensor_slices((fname_ph, ps_ph))
+#
+#     # apply list of file names to the py function wrapper for reading files
+#     dataset = dataset.map(_pyfn_wrapper, num_parallel_calls=mp.cpu_count())
+#
+#     # construct batch size
+#     dataset = dataset.batch(1).prefetch(mp.cpu_count())
+#
+#     # initialize iterator
+#     iterator = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
+#     iterator_initialize_op = iterator.make_initializer(dataset, name='predict_iter_init_op')
+#
+#     # get image and labels
+#     image_getnext_op, label_getnext_op = iterator.get_next()
+#     return {'img_next_op': image_getnext_op, 'label_next_op': label_getnext_op, 'iter_init_op': iterator_initialize_op}
+#
+#
+# def model(in_ds, out_ds):
+#
+#     with tf.name_scope("Conv1"):
+#         W = tf.get_variable("W", shape=[3, 3, 1, 1],
+#                              initializer=tf.contrib.layers.xavier_initializer())
+#         b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+#         layer1 = tf.nn.conv2d(in_ds, W, strides=[1, 1, 1, 1], padding='SAME') + b
+#         prediction = tf.nn.relu(layer1, name='prediction')
+#
+#     with tf.name_scope("Operations"):
+#         global_step = tf.Variable(0, name='global_step', trainable=False)
+#         loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=out_ds, predictions=prediction), name='loss')
+#         train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss, name='train_op', global_step=global_step)
+#         difference_op = tf.cast(tf.equal(prediction, out_ds), dtype=tf.int32, name='difference')
+#
+#     return {'global_step': global_step, 'loss': loss, 'train_op': train_op, 'diff_op': difference_op, 'predict_op': prediction}
+#
+#
+# ##############################Training####################################
+# # create list of file names: ['test_0.h5', 'test_1.h5', ...]
+# totrain_files = [os.path.join('./dummy/', f) for f in os.listdir('./dummy/') if f.endswith('.h5')]
+# epoch_length = len(totrain_files)
+# # args = [str((fname, 100)) for fname in totrain_files]
+# # print(args)
+#
+# fname_ph = tf.placeholder(tf.string, shape=(None), name='file_name_ph')
+# ps_ph = tf.placeholder(tf.int32, shape=(None), name='ps_ph')
+# in_pipeline = input_pipeline(fname_ph, ps_ph)
+# nodes = model(in_pipeline['img_next_op'], in_pipeline['label_next_op'])
+#
+#
+# with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+#     sess.run([tf.global_variables_initializer(), in_pipeline['iter_init_op']], feed_dict={fname_ph: totrain_files, ps_ph: [100] * epoch_length})
+#     for step in tqdm(range(epoch_length)):
+#         # run train_op
+#         _ = sess.run(nodes['train_op'])
+#         # use saver to save weights
+#         if step % epoch_length == epoch_length - 1:
+#             in_dict = {
+#                 'file_names': fname_ph,
+#             }
+#             out_dict = {
+#                 'predict': nodes['predict_op'],
+#                 'diff_op': nodes['diff_op']
+#             }
+#             tf.saved_model.simple_save(sess, './dummy/savedmodel', in_dict, out_dict)
+#
+# ##############################Predicting####################################
+# print('*** restoring')
+# # input pipeline for predict
+# # create list of file names: ['test_0.h5', 'test_1.h5', ...]
+# topredict_files = [os.path.join('./predict/', f) for f in os.listdir('./predict/') if f.endswith('.h5')]
+# epoch_length = len(topredict_files)
+#
+# # save prediction images to /results folder
+# if not os.path.exists('./results'):
+#     os.makedirs('./results')
+#
+# # restore
+# # set to the default graph
+# graph2 = tf.Graph()
+# with graph2.as_default():
+#     with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+#         tf.saved_model.loader.load(
+#             sess,
+#             [tf.saved_model.tag_constants.SERVING], './dummy/savedmodel'
+#         )
+#         # import graph
+#         # get operation and so on
+#         file_names_ph2 = graph2.get_tensor_by_name('file_name_ph:0')
+#         ps_ph2 = graph2.get_tensor_by_name('ps_ph:0')
+#         predict_tensor = graph2.get_tensor_by_name('Conv1/prediction:0')
+#         diff_tensor = graph2.get_tensor_by_name('Operations/difference:0')
+#         iter_init_op = graph2.get_operation_by_name('predict_iter_init_op')
+#
+#         sess.run(iter_init_op, feed_dict={file_names_ph2: topredict_files, ps_ph2: [100] * epoch_length})
+#         for step in tqdm(range(epoch_length)):
+#             predict, difference = sess.run([predict_tensor, diff_tensor])
+#             print(predict.shape, difference.shape)
+#             with h5py.File('./results/{}.h5'.format(step), 'w') as f:
+#                 a = f.create_dataset('prediction', (100, 100), dtype='float32')
+#                 a[:] = predict.reshape(100, 100)
+#                 b = f.create_dataset('difference', (100, 100), dtype='float32', data=difference)
+#                 b[:] = difference.reshape(100, 100)
+
