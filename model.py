@@ -1,7 +1,6 @@
 import tensorflow as tf
 from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, dropout, conv2d_transpose_layer,\
 up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation
-from tensorboard import summary as sm
 
 def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
     # encoder
