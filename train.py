@@ -43,17 +43,16 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
 
         for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
             sess.run(train_inputs['iterator_init_op'], feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
-                                                                  # train_inputs['patch_size_ph']: str(hyperparams['patch_size'])})
                                                                   train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totrain_files'])})
+
             sess.run(test_inputs['iterator_init_op'], feed_dict={test_inputs['fnames_ph']: hyperparams['totest_files'],
-                                                                 # test_inputs['patch_size_ph']: str(hyperparams['patch_size'])})
                                                                  test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totest_files'])})
             # begin training
             for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
                 try:
                     # 80%train 10%cross-validation 10%test
                     if step % 9 == 8:
-                        # 5 percent of the data will be use to cross-validation
+                        # 10 percent of the data will be use to cross-validation
                         summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
                                               feed_dict={nodes['train_or_test']: 'cv',
                                                          nodes['drop']: 1})
@@ -65,7 +64,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                          nodes['drop']: 1})
                         test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
-                    # 90 percent of the data will be use for training
+                    # 80 percent of the data will be use for training
                     else:
                         summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
                                               feed_dict={nodes['train_or_test']: 'train',
