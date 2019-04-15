@@ -69,7 +69,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
 
     # train operation
     # run train_op otherwise do nothing
-    train_or_test_op = tf.cond(tf.equal(train_or_test, 'train'), lambda: train_operation(opt, mse, name='train_op'),
+    train_or_test_op = tf.cond(tf.equal(train_or_test, 'train'), lambda: train_operation(opt, grads, name='train_op'),
                                lambda: tf.constant(True, dtype=tf.bool), name='train_op_cond')
 
     # merged summaries

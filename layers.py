@@ -106,9 +106,9 @@ def optimizer(lr, name=''):
         return adam
 
 
-def train_operation(adam, loss_fn, name='train_op'):
+def train_operation(adam, gradients, name='train_op'):
     with tf.variable_scope(name):
-        return adam.minimize(loss_fn)
+        return adam.apply_gradients(gradients)
 
 def test_operation():
     '''During test operation, one take imgs and labels for evaluating metrics from testset without minimization operation'''
