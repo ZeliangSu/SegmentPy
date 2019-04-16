@@ -64,7 +64,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
     _, m_acc, _ = cal_acc(y_pred, inputs['label'])
 
     # program gradients
-    grads = opt.compute_gradients(mse)  #TODO: This might be fused with the minimize operation (here may have used twice the NN)
+    grads = opt.compute_gradients(mse)
     grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
     # train operation
@@ -73,10 +73,10 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
                                lambda: tf.constant(True, dtype=tf.bool), name='train_op_cond')
 
     # merged summaries
-    m_X = tf.summary.image("input", tf.reshape(inputs['img'][0], [-1, patch_size, patch_size, 1]), 1)  #fixme: show only the first img of the batch
-    m_y = tf.summary.image("output", tf.reshape(tf.cast(inputs['label'][0], tf.uint8), [-1, patch_size, patch_size, 1]), 1)  #fixme: same pb
+    # m_X = tf.summary.image("input", tf.reshape(inputs['img'][0], [-1, patch_size, patch_size, 1]), 1)  #fixme: show only the first img of the batch
+    # m_y = tf.summary.image("output", tf.reshape(tf.cast(inputs['label'][0], tf.uint8), [-1, patch_size, patch_size, 1]), 1)  #fixme: same pb
     merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
-                               m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, m_X, m_y, grad_sum])
+                               m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, grad_sum])  #fixme: withdraw summary of imgs for resource reason
     return {
         'y_pred': y_pred,
         'train_or_test_op': train_or_test_op,
