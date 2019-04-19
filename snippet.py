@@ -920,46 +920,179 @@
 #                 break
 
 ###############################double tf.data input pipeline with tf.cond###############################################
-import tensorflow as tf
-import numpy as np
-import os
-import h5py
-import multiprocessing as mp
-from itertools import repeat
+# import tensorflow as tf
+# import numpy as np
+# import os
+# import h5py
+# import multiprocessing as mp
+# from itertools import repeat
+# #
+# # def write_h5(args):
+# #     x, is_training = args
+# #     with h5py.File('./{}_{}.h5'.format('train' if is_training else 'test', x), 'w') as f:
+# #         h = w = np.arange(-1, 1, 0.02)
+# #         hh, _ = np.meshgrid(h, w)
+# #         a = hh ** 2
+# #         b = np.add(a + 1, np.random.randn(100, 100))  #do something and add gaussian noise
+# #         f.create_dataset('X', shape=(100, 100), dtype='float32', data=a)
+# #         f.create_dataset('y', shape=(100, 100), dtype='float32', data=b)
+# #
+# #
+# # def input_pipeline(window_size, batch_size, is_train=True, ncores=mp.cpu_count()):
+# #     flist = []
+# #     for dirpath, _, fnames in os.walk('./'):
+# #         for fname in fnames:
+# #             if fname.startswith('train' if is_train else 'test') and fname.endswith('.h5'):
+# #                 print(fname)
+# #                 flist.append((os.path.abspath(os.path.join(dirpath, fname)), str(window_size)))
+# #     f_len = len(flist)
+# #     print(f_len)
+# #     # init list of files
+# #     batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
+# #     batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
+# #     batch = batch.batch(batch_size, drop_remainder=True).prefetch(ncores + 6).shuffle(batch_size).repeat()
+# #
+# #     # construct iterator
+# #     it = batch.make_initializable_iterator()
+# #     iter_init_op = it.initializer
+# #
+# #     # get next img and label
+# #     X_it, y_it = it.get_next()
+# #     inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
+# #     return inputs, f_len
+# #
+# #
+# # def _pyfn_wrapper(args):
+# #     return tf.py_func(parse_h5,  #wrapped pythonic function
+# #                       [args],
+# #                       [tf.float32, tf.float32]  #[input, output] dtype
+# #                       )
+# #
+# # def parse_h5(args):
+# #     name, window_size = args
+# #     window_size = int(window_size.decode('utf-8'))
+# #     with h5py.File(name, 'r') as f:
+# #         X = f['X'][:].reshape(window_size, window_size, 1)
+# #         y = f['y'][:].reshape(window_size, window_size, 1)
+# #         return X, y
+# #
+# #
+# # # init data
+# # # p = mp.Pool(mp.cpu_count())
+# # # p.map(write_h5, zip(range(9000), repeat(True)))
+# # # p.map(write_h5, zip(range(1000), repeat(False)))
+# #
+# # # hparam
+# # ep_len = 90
+# # step_len = 9  # run test_op after 9 steps
+# #
+# # # create tf.data.Dataset
+# # train_input, train_len = input_pipeline(100, 5, is_train=True)
+# # test_input, test_len = input_pipeline(100, 5, is_train=False)
+# #
+# #
+# # def model(input, reuse=True):
+# #     with tf.variable_scope('model', reuse=reuse):
+# #         with tf.name_scope("Conv1"):
+# #             W = tf.get_variable("W", shape=[3, 3, 1, 1],
+# #                                  initializer=tf.contrib.layers.xavier_initializer())
+# #             b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+# #             layer1 = tf.nn.conv2d(input['img'], W, strides=[1, 1, 1, 1], padding='SAME') + b
+# #             logits = tf.nn.relu(layer1)
+# #
+# #         loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=input['label'], predictions=logits))
+# #         return loss
+# #
+# # train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(model(train_input, False))
+# # test_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(model(test_input, True))
+# #
+# # # session
+# # with tf.Session() as sess:
+# #     sess.run(tf.global_variables_initializer())
+# #     for ep in range(5):
+# #         print('ep:{}'.format(ep))
+# #         sess.run(train_input['iterator_init_op'])
+# #         sess.run(test_input['iterator_init_op'])
+# #         for step in range(ep_len):
+# #             print('step:{}\r'.format(step))
+# #             try:
+# #                 sess.run([train_op])
+# #                 if step % step_len == (step_len - 1):
+# #                     sess.run([test_op])
+# #             except tf.errors.OutOfRangeError:
+# #                 raise('drop the remainder')
 #
-# def write_h5(args):
-#     x, is_training = args
-#     with h5py.File('./{}_{}.h5'.format('train' if is_training else 'test', x), 'w') as f:
-#         h = w = np.arange(-1, 1, 0.02)
-#         hh, _ = np.meshgrid(h, w)
-#         a = hh ** 2
-#         b = np.add(a + 1, np.random.randn(100, 100))  #do something and add gaussian noise
-#         f.create_dataset('X', shape=(100, 100), dtype='float32', data=a)
-#         f.create_dataset('y', shape=(100, 100), dtype='float32', data=b)
+# # def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=True):
+# #     # import data
+# #     X_stack, y_stack, shapes = _tifReader(dir)
+# #     outdir = './proc/'
+# #
+# #     X_patches = _stride(X_stack[0], stride, patch_size)
+# #     y_patches = _stride(y_stack[0], stride, patch_size)
+# #
+# #     # extract patches
+# #     for i in range(1, len(X_stack) - 1):
+# #         X_patches = np.vstack((X_patches, _stride(X_stack[i], stride, patch_size)))
+# #     for i in range(1, len(y_stack) - 1):
+# #         y_patches = np.vstack((y_patches, _stride(y_stack[i], stride, patch_size)))
+# #
+# #     assert X_patches.shape[0] == y_patches.shape[0], 'numbers of raw image: {} and label image: {} are different'.format(X_patches.shape[0], y_patches.shape[0])
+# #
+# #     # shuffle
+# #     if shuffle:
+# #         X_patches, y_patches = _shuffle(X_patches, y_patches)
+# #
+# #     # handle file id
+# #     maxId, rest = _idParser(outdir, batch_size, patch_size)
+# #     id_length = (X_patches.shape[0] - rest) // batch_size
+# #     if mode == 'h5':
+# #         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5')
+# #     elif mode == 'h5s':
+# #         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5s')
+# #     elif mode == 'csvs':
+# #         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='csvs')
+# #     elif mode == 'tfrecord':
+# #         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
+# ##################################repeat trick######################################
+# # import numpy as np
+# # import tensorflow as tf
+# # train = np.arange(909)
+# # test = np.arange(103)
+# #
+# # train_ds = tf.data.Dataset.from_tensor_slices(train).shuffle(10).batch(10).repeat()
+# # test_ds = tf.data.Dataset.from_tensor_slices(test).shuffle(10).batch(10).repeat()
+# #
+# # train_iterator = train_ds.make_initializable_iterator()
+# # test_iterator = test_ds.make_initializable_iterator()
+# #
+# # with tf.Session() as sess:
+# #     sess.run(tf.global_variables_initializer())
+# #     sess.run(train_iterator.initializer)
+# #     sess.run(test_iterator.initializer)
+# #     for i in range(len(train) + 1):
+# #         print(sess.run(train_iterator.get_next()))
+# #         if i % 9 == 8:
+# #             print(sess.run(test_iterator.get_next()))
+#
+# ################################# save/restore with saved_model API and Dataset input pipeline
+# import tensorflow as tf
+# import numpy as np
+# import os
+# import multiprocessing as mp
+# from tqdm import tqdm
+# import h5py
+#
+# def parse_h5(args):
+#     patch_size = 100
+#     with h5py.File(args.decode('utf-8'), 'r') as f:
+#         X = f['X'][:].reshape(patch_size, patch_size, 1)
+#         y = f['y'][:].reshape(patch_size, patch_size, 1)
+#         return _minmaxscalar(X), y  #can't do minmaxscalar for y
 #
 #
-# def input_pipeline(window_size, batch_size, is_train=True, ncores=mp.cpu_count()):
-#     flist = []
-#     for dirpath, _, fnames in os.walk('./'):
-#         for fname in fnames:
-#             if fname.startswith('train' if is_train else 'test') and fname.endswith('.h5'):
-#                 print(fname)
-#                 flist.append((os.path.abspath(os.path.join(dirpath, fname)), str(window_size)))
-#     f_len = len(flist)
-#     print(f_len)
-#     # init list of files
-#     batch = tf.data.Dataset.from_tensor_slices((tf.constant(flist)))
-#     batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
-#     batch = batch.batch(batch_size, drop_remainder=True).prefetch(ncores + 6).shuffle(batch_size).repeat()
-#
-#     # construct iterator
-#     it = batch.make_initializable_iterator()
-#     iter_init_op = it.initializer
-#
-#     # get next img and label
-#     X_it, y_it = it.get_next()
-#     inputs = {'img': X_it, 'label': y_it, 'iterator_init_op': iter_init_op}
-#     return inputs, f_len
+# def _minmaxscalar(ndarray, dtype=np.float32):
+#     scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
+#     return scaled
 #
 #
 # def _pyfn_wrapper(args):
@@ -968,241 +1101,108 @@ from itertools import repeat
 #                       [tf.float32, tf.float32]  #[input, output] dtype
 #                       )
 #
-# def parse_h5(args):
-#     name, window_size = args
-#     window_size = int(window_size.decode('utf-8'))
-#     with h5py.File(name, 'r') as f:
-#         X = f['X'][:].reshape(window_size, window_size, 1)
-#         y = f['y'][:].reshape(window_size, window_size, 1)
-#         return X, y
+#
+# def input_pipeline(file_names_ph):
+#     # create new dataset for predict
+#     dataset = tf.data.Dataset.from_tensor_slices(file_names_ph)
+#
+#     # apply list of file names to the py function wrapper for reading files
+#     dataset = dataset.map(_pyfn_wrapper, num_parallel_calls=mp.cpu_count())
+#
+#     # construct batch size
+#     dataset = dataset.batch(1).prefetch(mp.cpu_count())
+#
+#     # initialize iterator
+#     iterator = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
+#     iterator_initialize_op = iterator.make_initializer(dataset, name='predict_iter_init_op')
+#
+#     # get image and labels
+#     image_getnext_op, label_getnext_op = iterator.get_next()
+#     return {'img_next_op': image_getnext_op, 'label_next_op': label_getnext_op, 'iter_init_op': iterator_initialize_op}
 #
 #
-# # init data
-# # p = mp.Pool(mp.cpu_count())
-# # p.map(write_h5, zip(range(9000), repeat(True)))
-# # p.map(write_h5, zip(range(1000), repeat(False)))
+# def model(in_ds, out_ds):
 #
-# # hparam
-# ep_len = 90
-# step_len = 9  # run test_op after 9 steps
+#     with tf.name_scope("Conv1"):
+#         W = tf.get_variable("W", shape=[3, 3, 1, 1],
+#                              initializer=tf.contrib.layers.xavier_initializer())
+#         b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+#         layer1 = tf.nn.conv2d(in_ds, W, strides=[1, 1, 1, 1], padding='SAME') + b
+#         prediction = tf.nn.relu(layer1, name='prediction')
 #
-# # create tf.data.Dataset
-# train_input, train_len = input_pipeline(100, 5, is_train=True)
-# test_input, test_len = input_pipeline(100, 5, is_train=False)
+#     with tf.name_scope("Operations"):
+#         global_step = tf.Variable(0, name='global_step', trainable=False)
+#         loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=out_ds, predictions=prediction), name='loss')
+#         train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss, name='train_op', global_step=global_step)
+#         difference_op = tf.cast(tf.equal(prediction, out_ds), dtype=tf.int32, name='difference')
 #
-#
-# def model(input, reuse=True):
-#     with tf.variable_scope('model', reuse=reuse):
-#         with tf.name_scope("Conv1"):
-#             W = tf.get_variable("W", shape=[3, 3, 1, 1],
-#                                  initializer=tf.contrib.layers.xavier_initializer())
-#             b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
-#             layer1 = tf.nn.conv2d(input['img'], W, strides=[1, 1, 1, 1], padding='SAME') + b
-#             logits = tf.nn.relu(layer1)
-#
-#         loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=input['label'], predictions=logits))
-#         return loss
-#
-# train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(model(train_input, False))
-# test_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(model(test_input, True))
-#
-# # session
-# with tf.Session() as sess:
-#     sess.run(tf.global_variables_initializer())
-#     for ep in range(5):
-#         print('ep:{}'.format(ep))
-#         sess.run(train_input['iterator_init_op'])
-#         sess.run(test_input['iterator_init_op'])
-#         for step in range(ep_len):
-#             print('step:{}\r'.format(step))
-#             try:
-#                 sess.run([train_op])
-#                 if step % step_len == (step_len - 1):
-#                     sess.run([test_op])
-#             except tf.errors.OutOfRangeError:
-#                 raise('drop the remainder')
-
-# def preprocess(dir, stride, patch_size, batch_size, mode='tfrecord', shuffle=True):
-#     # import data
-#     X_stack, y_stack, shapes = _tifReader(dir)
-#     outdir = './proc/'
-#
-#     X_patches = _stride(X_stack[0], stride, patch_size)
-#     y_patches = _stride(y_stack[0], stride, patch_size)
-#
-#     # extract patches
-#     for i in range(1, len(X_stack) - 1):
-#         X_patches = np.vstack((X_patches, _stride(X_stack[i], stride, patch_size)))
-#     for i in range(1, len(y_stack) - 1):
-#         y_patches = np.vstack((y_patches, _stride(y_stack[i], stride, patch_size)))
-#
-#     assert X_patches.shape[0] == y_patches.shape[0], 'numbers of raw image: {} and label image: {} are different'.format(X_patches.shape[0], y_patches.shape[0])
-#
-#     # shuffle
-#     if shuffle:
-#         X_patches, y_patches = _shuffle(X_patches, y_patches)
-#
-#     # handle file id
-#     maxId, rest = _idParser(outdir, batch_size, patch_size)
-#     id_length = (X_patches.shape[0] - rest) // batch_size
-#     if mode == 'h5':
-#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5')
-#     elif mode == 'h5s':
-#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='h5s')
-#     elif mode == 'csvs':
-#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='csvs')
-#     elif mode == 'tfrecord':
-#         _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='tfrecord')
-##################################repeat trick######################################
-# import numpy as np
-# import tensorflow as tf
-# train = np.arange(909)
-# test = np.arange(103)
-#
-# train_ds = tf.data.Dataset.from_tensor_slices(train).shuffle(10).batch(10).repeat()
-# test_ds = tf.data.Dataset.from_tensor_slices(test).shuffle(10).batch(10).repeat()
-#
-# train_iterator = train_ds.make_initializable_iterator()
-# test_iterator = test_ds.make_initializable_iterator()
-#
-# with tf.Session() as sess:
-#     sess.run(tf.global_variables_initializer())
-#     sess.run(train_iterator.initializer)
-#     sess.run(test_iterator.initializer)
-#     for i in range(len(train) + 1):
-#         print(sess.run(train_iterator.get_next()))
-#         if i % 9 == 8:
-#             print(sess.run(test_iterator.get_next()))
-
-################################# save/restore with saved_model API and Dataset input pipeline
-import tensorflow as tf
-import numpy as np
-import os
-import multiprocessing as mp
-from tqdm import tqdm
-import h5py
-
-def parse_h5(args):
-    patch_size = 100
-    with h5py.File(args.decode('utf-8'), 'r') as f:
-        X = f['X'][:].reshape(patch_size, patch_size, 1)
-        y = f['y'][:].reshape(patch_size, patch_size, 1)
-        return _minmaxscalar(X), y  #can't do minmaxscalar for y
-
-
-def _minmaxscalar(ndarray, dtype=np.float32):
-    scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
-    return scaled
-
-
-def _pyfn_wrapper(args):
-    return tf.py_func(parse_h5,  #wrapped pythonic function
-                      [args],
-                      [tf.float32, tf.float32]  #[input, output] dtype
-                      )
-
-
-def input_pipeline(file_names_ph):
-    # create new dataset for predict
-    dataset = tf.data.Dataset.from_tensor_slices(file_names_ph)
-
-    # apply list of file names to the py function wrapper for reading files
-    dataset = dataset.map(_pyfn_wrapper, num_parallel_calls=mp.cpu_count())
-
-    # construct batch size
-    dataset = dataset.batch(1).prefetch(mp.cpu_count())
-
-    # initialize iterator
-    iterator = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
-    iterator_initialize_op = iterator.make_initializer(dataset, name='predict_iter_init_op')
-
-    # get image and labels
-    image_getnext_op, label_getnext_op = iterator.get_next()
-    return {'img_next_op': image_getnext_op, 'label_next_op': label_getnext_op, 'iter_init_op': iterator_initialize_op}
-
-
-def model(in_ds, out_ds):
-
-    with tf.name_scope("Conv1"):
-        W = tf.get_variable("W", shape=[3, 3, 1, 1],
-                             initializer=tf.contrib.layers.xavier_initializer())
-        b = tf.get_variable("b", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
-        layer1 = tf.nn.conv2d(in_ds, W, strides=[1, 1, 1, 1], padding='SAME') + b
-        prediction = tf.nn.relu(layer1, name='prediction')
-
-    with tf.name_scope("Operations"):
-        global_step = tf.Variable(0, name='global_step', trainable=False)
-        loss = tf.reduce_mean(tf.losses.mean_squared_error(labels=out_ds, predictions=prediction), name='loss')
-        train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss, name='train_op', global_step=global_step)
-        difference_op = tf.cast(tf.equal(prediction, out_ds), dtype=tf.int32, name='difference')
-
-    return {'global_step': global_step, 'loss': loss, 'train_op': train_op, 'diff_op': difference_op, 'predict_op': prediction}
+#     return {'global_step': global_step, 'loss': loss, 'train_op': train_op, 'diff_op': difference_op, 'predict_op': prediction}
 
 
 ##############################Training####################################
-# create list of file names: ['test_0.h5', 'test_1.h5', ...]
-totrain_files = [os.path.join('./dummy/', f) for f in os.listdir('./dummy/') if f.endswith('.h5')]
-epoch_length = len(totrain_files)
-
-file_names_ph = tf.placeholder(tf.string, shape=(None), name='file_name_ph')
-in_pipeline = input_pipeline(file_names_ph)
-nodes = model(in_pipeline['img_next_op'], in_pipeline['label_next_op'])
-print([n.name for n in tf.get_default_graph().as_graph_def().node])  # add:  if 'file_name_ph' in n.name to filter names
-
-
-with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
-    sess.run([tf.global_variables_initializer(), in_pipeline['iter_init_op']], feed_dict={file_names_ph: totrain_files})
-    for step in tqdm(range(epoch_length)):
-        # run train_op
-        _ = sess.run(nodes['train_op'])
-        # use saver to save weights
-        if step % epoch_length == epoch_length - 1:
-            in_dict = {
-                'file_names': file_names_ph,
-            }
-            out_dict = {
-                'predict': nodes['predict_op'],
-                'diff_op': nodes['diff_op']
-            }
-            tf.saved_model.simple_save(sess, './dummy/savedmodel', in_dict, out_dict)
+# # create list of file names: ['test_0.h5', 'test_1.h5', ...]
+# totrain_files = [os.path.join('./dummy/', f) for f in os.listdir('./dummy/') if f.endswith('.h5')]
+# epoch_length = len(totrain_files)
+#
+# file_names_ph = tf.placeholder(tf.string, shape=(None), name='file_name_ph')
+# in_pipeline = input_pipeline(file_names_ph)
+# nodes = model(in_pipeline['img_next_op'], in_pipeline['label_next_op'])
+# print([n.name for n in tf.get_default_graph().as_graph_def().node])  # add:  if 'file_name_ph' in n.name to filter names
+#
+#
+# with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+#     sess.run([tf.global_variables_initializer(), in_pipeline['iter_init_op']], feed_dict={file_names_ph: totrain_files})
+#     for step in tqdm(range(epoch_length)):
+#         # run train_op
+#         _ = sess.run(nodes['train_op'])
+#         # use saver to save weights
+#         if step % epoch_length == epoch_length - 1:
+#             in_dict = {
+#                 'file_names': file_names_ph,
+#             }
+#             out_dict = {
+#                 'predict': nodes['predict_op'],
+#                 'diff_op': nodes['diff_op']
+#             }
+#             tf.saved_model.simple_save(sess, './dummy/savedmodel', in_dict, out_dict)
 
 ##############################Predicting####################################
-# input pipeline for predict
-# create list of file names: ['test_0.h5', 'test_1.h5', ...]
-topredict_files = [os.path.join('./predict/', f) for f in os.listdir('./predict/') if f.endswith('.h5')]
-epoch_length = len(topredict_files)
-
-# save prediction images to /results folder
-if not os.path.exists('./results'):
-    os.makedirs('./results')
-
-# restore
-# set to the default graph
-graph2 = tf.Graph()
-with graph2.as_default():
-    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
-        tf.saved_model.loader.load(
-            sess,
-            [tf.saved_model.tag_constants.SERVING], './dummy/savedmodel'
-        )
-        # import graph
-        # get operation and so on
-        file_names_ph = graph2.get_tensor_by_name('file_name_ph:0')
-        predict_tensor = graph2.get_tensor_by_name('Conv1/prediction:0')
-        diff_tensor = graph2.get_tensor_by_name('Operations/difference:0')
-        iter_init_op = graph2.get_operation_by_name('predict_iter_init_op')
-
-        sess.run(iter_init_op, feed_dict={file_names_ph: topredict_files})
-        for step in tqdm(range(epoch_length)):
-            predict, difference = sess.run([predict_tensor, diff_tensor])
-            print(predict.shape, difference.shape)
-            with h5py.File('./results/{}.h5'.format(step), 'w') as f:
-                a = f.create_dataset('prediction', (100, 100), dtype='float32')
-                a[:] = predict.reshape(100, 100)
-                b = f.create_dataset('difference', (100, 100), dtype='float32', data=difference)
-                b[:] = difference.reshape(100, 100)
-
-##########################20190412 new mechanism
+# # input pipeline for predict
+# # create list of file names: ['test_0.h5', 'test_1.h5', ...]
+# topredict_files = [os.path.join('./predict/', f) for f in os.listdir('./predict/') if f.endswith('.h5')]
+# epoch_length = len(topredict_files)
+#
+# # save prediction images to /results folder
+# if not os.path.exists('./results'):
+#     os.makedirs('./results')
+#
+# # restore
+# # set to the default graph
+# graph2 = tf.Graph()
+# with graph2.as_default():
+#     with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+#         tf.saved_model.loader.load(
+#             sess,
+#             [tf.saved_model.tag_constants.SERVING], './dummy/savedmodel'
+#         )
+#         # import graph
+#         # get operation and so on
+#         file_names_ph = graph2.get_tensor_by_name('file_name_ph:0')
+#         predict_tensor = graph2.get_tensor_by_name('Conv1/prediction:0')
+#         diff_tensor = graph2.get_tensor_by_name('Operations/difference:0')
+#         iter_init_op = graph2.get_operation_by_name('predict_iter_init_op')
+#
+#         sess.run(iter_init_op, feed_dict={file_names_ph: topredict_files})
+#         for step in tqdm(range(epoch_length)):
+#             predict, difference = sess.run([predict_tensor, diff_tensor])
+#             print(predict.shape, difference.shape)
+#             with h5py.File('./results/{}.h5'.format(step), 'w') as f:
+#                 a = f.create_dataset('prediction', (100, 100), dtype='float32')
+#                 a[:] = predict.reshape(100, 100)
+#                 b = f.create_dataset('difference', (100, 100), dtype='float32', data=difference)
+#                 b[:] = difference.reshape(100, 100)
+#
+# ##########################20190412 new mechanism
 # def parse_h5(name, patch_size):
 #     print('name:{}, ps:{}'.format(name, patch_size))
 #     with h5py.File(name.decode('utf-8'), 'r') as f:
@@ -1326,4 +1326,175 @@ with graph2.as_default():
 #                 a[:] = predict.reshape(100, 100)
 #                 b = f.create_dataset('difference', (100, 100), dtype='float32', data=difference)
 #                 b[:] = difference.reshape(100, 100)
+##########################
+# import h5py
+# import numpy as np
+# import tensorflow as tf
+#
+# def parser(args):
+#     name, patch_size = args
+#     print(name)
+#     name = name.decode('utf-8')
+#     patch_size = int(patch_size.decode('utf-8'))
+#     return name
+#
+#
+# def _pyfn_wrapper(args):
+#     return tf.py_func(parser,  #wrapped pythonic function
+#                       [args],
+#                       [tf.int32]  #[input, output] dtype
+#                       )
+#
+# l_a = [i for i in range(90)]
+# l_b = [10] * 90
+# a = tf.placeholder(tf.int32, shape=[None])
+# b = tf.placeholder(tf.int32, shape=[None])
+# tmp = [(a, b)]
+# print(tmp)
+# ds = tf.data.Dataset.from_tensor_slices(tmp)
+# ds = ds.map(_pyfn_wrapper, num_parallel_calls=5)
+# ds = ds.batch(5, drop_remainder=True).shuffle(5).prefetch(5).repeat()
+# it = tf.data.Iterator.from_structure(ds.output_types, ds.output_shapes)  #one output with shape 1
+# iter_init_op = it.make_initializer(ds, name='iter')
+# a_it = it.get_next()
+# sum = tf.Variable(0)
+# sum = tf.add(sum, a)
+#
+# with tf.Session() as sess:
+#     sess.run([iter_init_op, tf.global_variables_initializer()], feed_dict={a: l_a,  b: l_b})
+#     # sess.run([iter_init_op])
+#     for step in range(90):
+#         print(sess.run(sum))
 
+###################### save and load model with ckpt then replace input_map
+# #########save part
+# import tensorflow as tf
+#
+#
+# def wrapper(x, y):
+#     with tf.name_scope('wrapper'):
+#         return tf.py_func(Copy, [x, y], [tf.float32, tf.float32])
+#
+#
+# def Copy(x, y):
+#     return x, y
+#
+#
+# x_ph = tf.placeholder(tf.float32, [None], 'x_ph')
+# y_ph = tf.placeholder(tf.float32, [None], 'y_ph')
+#
+# with tf.name_scope('input'):
+#     ds = tf.data.Dataset.from_tensor_slices((x_ph, y_ph))
+#     ds = ds.map(wrapper)
+#     ds = ds.batch(1)
+#
+#     it = tf.data.Iterator.from_structure(ds.output_types, ds.output_shapes)
+#     it_init_op = it.make_initializer(ds, name='it_init_op')
+# with tf.name_scope('getnext'):
+#     x_it, y_it = it.get_next()
+#
+# with tf.name_scope('add'):
+#     V = tf.get_variable('V', [1], initializer=tf.constant_initializer(5))
+#     res = tf.add(x_it, V)
+#
+# saver = tf.train.Saver()
+#
+# with tf.Session() as sess:
+#     sess.run([tf.global_variables_initializer(), it_init_op], feed_dict={y_ph: [10] * 10, x_ph: [i for i in range(10)]})
+#     sess.run([res])
+#     for n in tf.get_default_graph().as_graph_def().node:
+#         print(n.name)
+#     saver.save(sess, './dummy/ckpt/test')
+# #########load part
+# import tensorflow as tf
+#
+# def wrapper(x, y):
+#     with tf.name_scope('wrapper'):
+#         return tf.py_func(Copy, [x, y], [tf.float32, tf.float32])
+#
+#
+# def Copy(x, y):
+#     return x, y
+#
+#
+# x_ph = tf.placeholder(tf.float32, [None], 'x_ph')
+# y_ph = tf.placeholder(tf.float32, [None], 'y_ph')
+#
+# with tf.name_scope('input'):
+#     ds = tf.data.Dataset.from_tensor_slices((x_ph, y_ph))
+#     ds = ds.map(wrapper)
+#     ds = ds.batch(1)
+#
+#     it = tf.data.Iterator.from_structure(ds.output_types, ds.output_shapes)
+#     it_init_op = it.make_initializer(ds, name='it_init_op')
+#
+#
+# restorer = tf.train.import_meta_graph('./dummy/ckpt/test.meta', input_map={'getnext/IteratorGetNext': tf.convert_to_tensor(it.get_next())})
+# graph_def = tf.get_default_graph()
+# add_op = graph_def.get_tensor_by_name('add/Add:0')
+#
+# for n in tf.get_default_graph().as_graph_def().node:
+#     print(n.name)
+#
+# with tf.Session() as sess:
+#     sess.run(it_init_op, feed_dict={x_ph: [i for i in range(5)], y_ph: [10] * 5})
+#     restorer.restore(sess, './dummy/ckpt/test')
+#
+#     for _ in range(5):
+#         print(sess.run([add_op]))
+
+
+
+
+########################## saved_model API snippet recycled#############################################################
+# prepare input dict and out dict
+                    # in_dict = {
+                    #     'train_files_ph': train_inputs['fnames_ph'],
+                    #     'train_ps_ph': train_inputs['patch_size_ph'],
+                    #     'test_files_ph': test_inputs['fnames_ph'],
+                    #     'test_ps_ph': test_inputs['patch_size_ph'],
+                    # }
+                    # out_dict = {
+                    #     'prediction': nodes['y_pred'],
+                    #     'tot_op': nodes['train_op'],
+                    #     'summary': nodes['summary'],
+                    #     'img': nodes['img'],
+                    #     'label': nodes['label']
+                    # }
+                    # builder
+                    # tf.saved_model.simple_save(sess, './logs/{}/hour{}/savedmodel/step{}/'.format(hyperparams['date'],
+                    #                                                                               hyperparams['hour'],
+                    #                                                                               step + ep * hyperparams['nb_batch']), in_dict, out_dict)
+
+########################## reproducable duplicated Adam Optimizer issue
+# import tensorflow as tf
+# import numpy as np
+#
+# X_imgs = np.asarray([np.random.rand(784).reshape(28, 28, 1) for _ in range(100)], dtype=np.float32)
+# y_imgs = np.asarray([np.random.rand(784).reshape(28, 28, 1) for _ in range(100)], dtype=np.float32)
+# X_ph = tf.placeholder(tf.float32, [None, 28, 28, 1])
+# y_ph = tf.placeholder(tf.float32, [None, 28, 28, 1])
+#
+#
+# with tf.name_scope("layer1"):
+#     W1 = tf.get_variable("W1", shape=[3, 3, 1, 1],
+#                          initializer=tf.contrib.layers.xavier_initializer())
+#     b1 = tf.get_variable("b1", shape=[1], initializer=tf.contrib.layers.xavier_initializer())
+#     layer1 = tf.nn.conv2d(X_ph, W1, strides=[1, 1, 1, 1], padding='SAME') + b1
+#
+# with tf.name_scope("loss"):
+#     loss = tf.reduce_mean(tf.losses.mean_squared_error(
+#         labels=tf.cast(y_ph, tf.int32),
+#         predictions=layer1))
+#
+# with tf.name_scope("train"):
+#     optimizer = tf.train.AdamOptimizer(0.000001)
+#     grads = optimizer.compute_gradients(loss)
+#     train_op = optimizer.apply_gradients(grads)
+#
+# with tf.Session() as sess:
+#     sess.run([tf.global_variables_initializer()])
+#     writer = tf.summary.FileWriter('./dummy/', sess.graph, 3)
+#     for i in range(100):
+#         print(i)
+#         sess.run(train_op, feed_dict={X_ph: X_imgs, y_ph: y_imgs})

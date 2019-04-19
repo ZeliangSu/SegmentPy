@@ -10,16 +10,16 @@ from train import train
 # params
 hyperparams = {
     'patch_size': 72,
-    'batch_size': 300,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
+    'batch_size': 200,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
     'nb_epoch': 10,
     'nb_batch': None,
-    'conv_size': 5,
+    'conv_size': 3,
     'nb_conv': 48,
     'learning_rate': 0.000001,  #should use smaller learning rate when decrease batch size
     'dropout': 0.5,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
-    'device_option': 'specific_gpu:1'
+    'device_option': 'specific_gpu:0'
 }
 
 
@@ -47,6 +47,7 @@ nodes = model(train_inputs,
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
 
+
 if not os.path.exists('./logs/{}/'.format(hyperparams['date'])):
     os.mkdir('./logs/{}/'.format(hyperparams['date']))
     
@@ -55,7 +56,7 @@ if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparam
 hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
 # start training
-train(nodes, train_inputs, test_inputs, hyperparams, device_option=hyperparams['device_option'])
+train(nodes, train_inputs, test_inputs, hyperparams, device_option=hyperparams['device_option'], save_step=5)
 
 
 

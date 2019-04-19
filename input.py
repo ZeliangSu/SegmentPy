@@ -2,6 +2,8 @@ import numpy as np
 import h5py
 import tensorflow as tf
 import multiprocessing as mp
+import warnings
+
 
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
@@ -19,13 +21,15 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
     initialization operation
     '''
 
+    warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function()')
+
     # placeholder for list fo files
     with tf.name_scope('input_pipeline' + suffix):
         fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
         patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
 
         # init list of files
-        batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph)) #fixme: shuffle list of fnames
+        batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))  #fixme: shuffle list of fnames
         batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
         batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
         #todo: prefetch_to_device
@@ -55,7 +59,6 @@ def _pyfn_wrapper(fname, patch_size):
     -------
     function: (function) tensorflow's pythonic function with its arguements
     '''
-
     return tf.py_func(parse_h5,  #wrapped pythonic function
                       [fname, patch_size],
                       [tf.float32, tf.float32]  #[output, output] dtype

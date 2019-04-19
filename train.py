@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tqdm import tqdm
+import os
 
 def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None):
     # begin session
@@ -15,7 +16,6 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
 
     with tf.Session(**config_params) as sess:
 
-        # with tf.Session() as sess:
         # init params
         sess.run(tf.global_variables_initializer())
 
@@ -42,6 +42,11 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                                                                  hyperparams['conv_size']),
                                             sess.graph)
 
+        if not os.path.exists('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour'])):
+            os.mkdir('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour']))
+
+        saver = tf.train.Saver()
+
         for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
             sess.run(train_inputs['iterator_init_op'], feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
                                                                   train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totrain_files'])})
@@ -54,20 +59,20 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     # 80%train 10%cross-validation 10%test
                     if step % 9 == 8:
                         # 10 percent of the data will be use to cross-validation
-                        summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
+                        summary, _ = sess.run([nodes['summary'], nodes['y_pred']],
                                               feed_dict={nodes['train_or_test']: 'cv',
                                                          nodes['drop']: 1})
                         cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                         # in situ testing without loading weights like cs-230-stanford
-                        summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
+                        summary, _ = sess.run([nodes['summary'], nodes['y_pred']],
                                               feed_dict={nodes['train_or_test']: 'test',
                                                          nodes['drop']: 1})
                         test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                     # 80 percent of the data will be use for training
                     else:
-                        summary, _ = sess.run([nodes['summary'], nodes['train_or_test_op']],
+                        summary, _ = sess.run([nodes['summary'], nodes['train_op']],
                                               feed_dict={nodes['train_or_test']: 'train',
                                                          nodes['drop']: 0.5})
                         train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
@@ -77,7 +82,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     break
 
                 if step % save_step == 0:
-                    # prepare input dict and out dict
+                    #prepare input dict and out dict
                     in_dict = {
                         'train_files_ph': train_inputs['fnames_ph'],
                         'train_ps_ph': train_inputs['patch_size_ph'],
@@ -86,13 +91,16 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     }
                     out_dict = {
                         'prediction': nodes['y_pred'],
-                        'tot_op': nodes['train_or_test_op'],
-                        'img': nodes['img'],
-                        'label': nodes['label']
+                        # 'tot_op': nodes['train_op'],  #AttributeError: 'Operation' object has no attribute 'dtype'
+                        # 'summary': nodes['summary'],
+                        # 'img': nodes['img'],
+                        # 'label': nodes['label']
                     }
-                    # builder
+                    #builder
                     tf.saved_model.simple_save(sess, './logs/{}/hour{}/savedmodel/step{}/'.format(hyperparams['date'],
                                                                                                   hyperparams['hour'],
-                                                                                                  step + ep * hyperparams['nb_batch']),
-                                               in_dict, out_dict)
+                                                                                                  step + ep * hyperparams['nb_batch']), in_dict, out_dict)
 
+                    saver.save(sess, './logs/{}/hour{}/ckpt/step{}/ckpt'.format(hyperparams['date'],
+                                                                            hyperparams['hour'],
+                                                                            step + ep * hyperparams['nb_batch']))
