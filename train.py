@@ -45,7 +45,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
         if not os.path.exists('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour'])):
             os.mkdir('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour']))
 
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=100000000)
 
         for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
             sess.run(train_inputs['iterator_init_op'], feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
@@ -101,6 +101,6 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                                                                   hyperparams['hour'],
                                                                                                   step + ep * hyperparams['nb_batch']), in_dict, out_dict)
 
-                    saver.save(sess, './logs/{}/hour{}/ckpt/step{}/ckpt'.format(hyperparams['date'],
+                    saver.save(sess, './logs/{}/hour{}/ckpt/step{}'.format(hyperparams['date'],
                                                                             hyperparams['hour'],
                                                                             step + ep * hyperparams['nb_batch']))

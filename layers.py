@@ -31,7 +31,7 @@ def conv2d_layer(input_layer, shape, name='', stride=1):
     with tf.name_scope(name):
         W = init_weights(shape, name)  # [conv_height, conv_width, in_channels, output_channels]
         b = init_bias([shape[3]], name)
-        output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='deconv') + b
+        output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
         output_activation = tf.nn.relu(output, name='relu')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
@@ -48,7 +48,7 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size, stride=1, name=''
                                                                         int(input_layer.shape[1]),
                                                                         int(input_layer.shape[2]),
                                                                         int(W.shape[2])),
-                                           strides=[1, stride, stride, 1], padding='SAME', name='conv')
+                                           strides=[1, stride, stride, 1], padding='SAME', name='deconv')
         output = transpose + b
         output_activation = tf.nn.relu(output, name='relu')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
