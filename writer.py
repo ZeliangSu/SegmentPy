@@ -159,16 +159,19 @@ def _tfrecordWriter(X_patches, y_patches, id_length, rest, outdir, patch_size, b
 
 def _tifsWriter(tensor, layer_name='', path='./result/test/'):
     '''
-    tensor: images(numpy array) to save
+    tensor: images(numpy array) to save of (Height, Width, nth_Conv)
     path: path(string)
     layer_name: name of the layer(string)
     '''
-    if not os.path.exists(path):
-        try:
-            os.mkdir(path)
-        except:
+    if not os.path.exists(path + layer_name):
+        if not os.path.exists('./result'):
             os.mkdir('./result')
-            os.mkdir(path)
-    for i in range(tensor.shape[0]):
-        Image.fromarray(tensor).save(path + '/{}/{}.tif'.format(layer_name, i))
+        if not os.path.exists('./result/test'):
+            os.mkdir('./result/test')
+        os.mkdir(path + layer_name)
+    if tensor.ndim == 1:
+        Image.fromarray(np.expand_dims(tensor, axis=0)).save(path + '{}/dnn.tif'.format(layer_name))
+    else:
+        for i in range(tensor.shape[2]):
+            Image.fromarray(tensor[:, :, i]).save(path + '{}/{}.tif'.format(layer_name, i))
 
