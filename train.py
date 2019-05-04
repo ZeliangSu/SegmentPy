@@ -104,3 +104,4 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     saver.save(sess, './logs/{}/hour{}/ckpt/step{}'.format(hyperparams['date'],
                                                                             hyperparams['hour'],
                                                                             step + ep * hyperparams['nb_batch']))
+
