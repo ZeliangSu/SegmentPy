@@ -1,6 +1,11 @@
 import tensorflow as tf
 import numpy as np
-from util import print_nodes_name, print_nodes_name_shape
+from util import print_nodes_name
+from writer import _tifsWriter
+import os
+
+if os.name == 'posix':  #to fix MAC openMP bug
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # load ckpt
 new_ph = tf.placeholder(tf.float32, shape=[1, 72, 72, 1], name='new_ph')
@@ -72,7 +77,7 @@ with tf.Graph().as_default() as graph:
         name=''
     )
 
-    # print_nodes_name(graph)
+    print_nodes_name(graph)
     # feed graph for inference
     new_input = graph.get_tensor_by_name('new_ph:0')
     dropout_input = graph.get_tensor_by_name('input_pipeline/dropout_prob:0')
@@ -88,3 +93,6 @@ with tf.Graph().as_default() as graph:
             print(elt.shape)
 
 # save inference
+        # save partial/final inferences
+        for layer_name, imgs in zip(conserve_nodes, res):
+            _tifsWriter(imgs, layer_name.split()[-1], path='./result/test')

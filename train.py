@@ -1,8 +1,9 @@
 import tensorflow as tf
 from tqdm import tqdm
 import os
+from tensorflow.python.client import timeline
 
-def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None):
+def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None, mode='dev'):
     # begin session
     config_params = {}
     if device_option == 'cpu':
@@ -15,7 +16,6 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                  )
 
     with tf.Session(**config_params) as sess:
-
         # init params
         sess.run(tf.global_variables_initializer())
 
@@ -46,10 +46,13 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
             os.mkdir('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour']))
 
         saver = tf.train.Saver(max_to_keep=100000000)
+        run_metadata = tf.RunMetadata()
 
         for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
             sess.run(train_inputs['iterator_init_op'], feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
-                                                                  train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totrain_files'])})
+                                                                  train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totrain_files'])},
+                     options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if mode == 'dev' else None,
+                     run_metadata=run_metadata if mode == 'dev' else None)
 
             sess.run(test_inputs['iterator_init_op'], feed_dict={test_inputs['fnames_ph']: hyperparams['totest_files'],
                                                                  test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totest_files'])})
@@ -104,4 +107,10 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     saver.save(sess, './logs/{}/hour{}/ckpt/step{}'.format(hyperparams['date'],
                                                                             hyperparams['hour'],
                                                                             step + ep * hyperparams['nb_batch']))
-
+            # create json to store profiler
+            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            with open('./log/{}/hour{}/profiler/ep{}.json'.format(hyperparams['date'],
+                                                                  hyperparams['hour'],
+                                                                  ep), 'w') as f:
+                f.write(chrome_trace)
