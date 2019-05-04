@@ -1,6 +1,11 @@
 import tensorflow as tf
 import numpy as np
 from util import print_nodes_name
+from writer import _tifsWriter
+import os
+
+if os.name == 'posix':  #to fix MAC openMP bug
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # load ckpt
 new_ph = tf.placeholder(tf.float32, name='new_ph')
@@ -46,7 +51,7 @@ with tf.Session() as sess:
         input_graph_def=input_graph_def,
         output_node_names=conserve_nodes,
     )
-    print_nodes_name(sess.graph)
+    # print_nodes_name(sess.graph)
 
     # write pb
     with tf.gfile.GFile('./dummy/pb/test.pb', 'wb') as f:  #'wb' stands for write binary
@@ -69,9 +74,10 @@ with tf.Graph().as_default() as graph:
         name=''
     )
 
-    # print_nodes_name(graph)
+    print_nodes_name(graph)
     # feed graph for inference
     new_input = graph.get_tensor_by_name('new_ph:0')
+    # new_drop_ph = graph.get_tensor_by_name('input_pipeline/dropout_prob:0')
     ops = [graph.get_tensor_by_name(op_name + ':0') for op_name in conserve_nodes]
 
     with tf.Session(graph=graph) as sess:
@@ -79,6 +85,10 @@ with tf.Graph().as_default() as graph:
         graph = tf.get_default_graph()
         # print_nodes_name(graph)
 
-        res = sess.run(ops, feed_dict={new_input: np.ones((1, 72, 72, 1))})
+        res = sess.run(ops, feed_dict={new_input: np.ones((1, 72, 72, 1)),
+                                       # new_drop_ph: 1
+                                       })
         print(res.shape)
-# save inference
+        # save partial/final inferences
+        for layer_name, imgs in zip(conserve_nodes, res):
+            _tifsWriter(imgs, layer_name.split()[-1], path='./result/test')
