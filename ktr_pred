@@ -1,14 +1,14 @@
 # import everything
 import tensorflow as tf
 import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
 import os
 import multiprocessing as mp
 from tqdm import tqdm
 import h5py
-%matplotlib inline
-from tensorflow.saved_model import tag_constants
+from PIL import Image
+
+
 
 def parse_h5(args):
     '''
@@ -83,8 +83,8 @@ iterator_initialize_op = iterator.initializer
 # input
 # get image and labels
 image_getnext_op, label_getnext_op = iterator.get_next()
-# fisrt instance get the image and second get the label associated
 
+# first instance get the image and second get the label associated
 # inject into model
 with tf.name_scope("Conv1"):
     # initialize weights
@@ -113,31 +113,40 @@ print(totrain_files)
 
 # init session
 
-sess = tf.Session()
+with tf.Session() as sess:
+    # init global variable and iterator
+    # run train operation
+    sess.run([iterator_initialize_op, tf.global_variables_initializer()], feed_dict={totrain_files_ph: totrain_files})
 
-# init global variable and iterator
-# run train operation
-sess.run([iterator_initialize_op, tf.global_variables_initializer()], feed_dict={totrain_files_ph: totrain_files})
+    for step in range(epoch_length):
+        sess.run(train_op)
 
-for step in range(epoch_length):
-    sess.run(train_op)
+        path = os.path.join(os.getcwd(), 'simple')
+        inputs_dict = {'totrain_files_ph': totrain_files_ph}
+        outputs_dict = {'logits': logits}
+        tf.saved_model.simple_save(sess, path, inputs_dict, outputs_dict)
 
-    path = os.path.join(os.getcwd(), 'simple')
-    inputs_dict = {'totrain_files_ph': totrain_files_ph}
-    outputs_dict = {'logits': logits}
-    tf.saved_model.simple_save(sess, path, inputs_dict, outputs_dict)
-    # see all names of nodes
-    [n.name for n in tf.get_default_graph().as_graph_def().node]
-    # most important ones : 'IteratorGetNext_1' , 'Conv/prediction' , 'Operations/difference'
-    sess.close()
-    # checkpoint variable inspection
-    from tensorflow.python.tools import inspect_checkpoint as ckpt
+        # see all names of nodes
+        #[n.name for n in tf.get_default_graph().as_graph_def().node]
 
-    ckpt.print_tensors_in_checkpoint_file("./dummy/99.ckpt", tensor_name='',
-                                          all_tensors=True)  # you can also run for other step by changing to `step.ckpt`
-    # restore last step's weights
-    with tf.Session() as sess:
+        # most important ones : 'IteratorGetNext_1' , 'Conv/prediction' , 'Operations/difference'
+
+        sess.close()
+
+        # checkpoint variable inspection
+        #from tensorflow.python.tools import inspect_checkpoint as ckpt
+
+        #ckpt.print_tensors_in_checkpoint_file("./dummy/99.ckpt", tensor_name='', all_tensors=True)  # you can also run for other step by changing to `step.ckpt`
+
+        if not os.path.exists('./pred_results'):
+            os.makedirs('./pred_results')
+        graph = tf.Graph()
+        sess = tf.Session(graph=graph2)
+
+        # restore last step's weights
+        # with tf.Session() as sess:
         tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], export_dir=path)
+
         # create list of file names: ['test_0.h5', 'test_1.h5', ...]
         totest_files = [os.path.join('./predict/', f) for f in os.listdir('./predict/') if f.endswith('.h5')]
         epoch_length = len(totest_files)  # each epoch ==> 100 steps (100 h5 files)
@@ -146,17 +155,37 @@ for step in range(epoch_length):
         # transform on tf.data.Dataset:
         dataset = tf.data.Dataset.from_tensor_slices(totest_files)
 
-# create predict operation
-# Get restored placeholders
-totrain_files_ph = graph.get_tensor_by_name('totrain_files_ph')
-# Get restored model output
-restored_logits = graph.get_tensor_by_name('restored_logits')
-#get dataest initialising operation
-iterator_initialize_op = graph.get_operation_by_name('iterator_initialize_op')
+    # create predict operation
+    # Get restored placeholders
+    totest_files_ph = graph.get_tensor_by_name('Inputpipeline/totrain_files:0')
 
-sess.run( iterator_initialize_op, feed_dict={ totrain_files_ph : totrain_files })
+    # W = graph2.get_tensor_by_name('W:0')
+    # Get restored model output
+    restored_logits = graph.get_tensor_by_name('Conv1/logits:0')
 
-# sess.run(predict operation)
-print sess.run(prediction,feed_dict={input:dataset})  #newdata=put your data here
+    ####################################
+    diff_tensor = graph.get_tensor_by_name('Operations/difference:0')
 
-#sess.close()
+    # Get dataset initializing operation
+    iterator_initialize_op = graph.get_operation_by_name('Inputpipeline/predict_iter_init_op')
+
+    # sess.run(predict operation)
+    # with tf.Session() as sess:
+    sess.run(iterator_initialize_op , feed_dict={totest_files_ph:totest_files} )
+
+    #faire un aller
+    for step in range(epoch_length):
+        logits, difference = sess.run([restored_logits, diff_tensor])
+        print(logits.shape)
+
+        with h5py.File('./pred_results/{}.h5'.format(step), 'w') as f:
+            a = f.create_dataset('logits', (100, 100), dtype='float32')
+            a[:] = logits.reshape(100, 100)
+            b = f.create_dataset('difference', (100, 100), dtype='float32', data=difference)
+            b[:] = difference.reshape(100, 100)
+
+        hdf = h5py.File("49.h5", 'r')
+        array = hdf["./pred_results/{}.h5"][:]
+        img = Image.fromarray(array.astype('uint8'), 'RGB')
+        img.save("yourimage.thumbnail", "JPEG")
+        img.show()
