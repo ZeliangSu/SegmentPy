@@ -30,7 +30,7 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
 
         # init list of files
         batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))  #fixme: shuffle list of fnames
-        batch = batch.shuffle(tf.shape(fnames_ph)[0])
+        batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
         batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
         batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
         #todo: prefetch_to_device

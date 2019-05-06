@@ -17,7 +17,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
 
     with tf.Session(**config_params) as sess:
         # init params
-        sess.run(tf.global_variables_initializer())
+        sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
         # init summary
         train_writer = tf.summary.FileWriter('./logs/{}/hour{}/train/bs{}_ps{}_lr{}_cs{}'.format(hyperparams['date'],
@@ -110,7 +110,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
             # create json to store profiler
             fetched_timeline = timeline.Timeline(run_metadata.step_stats)
             chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            with open('./log/{}/hour{}/profiler/ep{}.json'.format(hyperparams['date'],
+            with open('./logs/{}/hour{}/profiler/ep{}.json'.format(hyperparams['date'],
                                                                   hyperparams['hour'],
                                                                   ep), 'w') as f:
                 f.write(chrome_trace)
