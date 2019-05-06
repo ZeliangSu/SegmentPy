@@ -47,13 +47,14 @@ with tf.name_scope("operation"):
     grads = optimizer.compute_gradients(loss)
     train_op = optimizer.apply_gradients(grads)
 
-saver = tf.train.Saver()
+saver = tf.train.Saver({'conv1/W': W1, 'conv1/b': b1})
 
 with tf.Session() as sess:
-    tf.summary.FileWriter('./dummy/test', sess.graph)
+    tf.summary.FileWriter('./dummy/tensorboard/save', sess.graph)
     for n in tf.get_default_graph().as_graph_def().node:
         print(n.name)
     for _ in range(100):
-        sess.run([tf.global_variables_initializer(), it_init_op], feed_dict={y_ph: y_imgs, X_ph: X_imgs})
+        sess.run([tf.global_variables_initializer()], feed_dict={y_ph: y_imgs, X_ph: X_imgs})
         sess.run([train_op])
         saver.save(sess, './dummy/ckpt/test')
+        tf.train.write_graph(sess.graph.as_graph_def(), './dummy/', 'tensorflowModel.pbtxt', as_text=True)

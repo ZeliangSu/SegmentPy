@@ -31,7 +31,7 @@ def conv2d_layer(input_layer, shape, name='', stride=1):
     with tf.name_scope(name):
         W = init_weights(shape, name)  # [conv_height, conv_width, in_channels, output_channels]
         b = init_bias([shape[3]], name)
-        output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='deconv') + b
+        output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
         output_activation = tf.nn.relu(output, name='relu')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
@@ -48,7 +48,7 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size, stride=1, name=''
                                                                         int(input_layer.shape[1]),
                                                                         int(input_layer.shape[2]),
                                                                         int(W.shape[2])),
-                                           strides=[1, stride, stride, 1], padding='SAME', name='conv')
+                                           strides=[1, stride, stride, 1], padding='SAME', name='deconv')
         output = transpose + b
         output_activation = tf.nn.relu(output, name='relu')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
@@ -91,15 +91,15 @@ def concat(list_tensors, name=''):
 def loss_fn(y_true, output_layer, name='loss_fn'):
     with tf.name_scope(name):
         loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
-        return loss_op, tf.summary.merge([tf.summary.scalar("loss", loss_op)])
+        return loss_op, tf.summary.merge([tf.summary.scalar("loss", tf.metrics.mean(loss_op))])
 
 
 def cal_acc(y_pred, y_true, name='accuracy'):
     with tf.name_scope('accuracy'):
-        acc = tf.reduce_mean(tf.cast(tf.equal(tf.cast(y_pred, dtype=tf.int32),
-                                              tf.cast(y_true, dtype=tf.int32)), dtype=tf.float32), name=name)  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
-        return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)])
-
+        # acc = tf.reduce_mean(tf.cast(tf.equal(tf.cast(y_pred, dtype=tf.int32),
+        #                                       tf.cast(y_true, dtype=tf.int32)), dtype=tf.float32), name=name)  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
+        # return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)])
+        return tf.summary.merge([tf.summary.scalar('accuracy', tf.metrics.accuracy(labels=y_true, predictions=y_pred))])
 
 def optimizer(lr, name='AdamOptimizer'):
     with tf.name_scope(name):

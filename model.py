@@ -64,7 +64,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         # optimizer/train operation
         mse, m_loss = loss_fn(inputs['label'], logits, name='loss_fn')
         opt = optimizer(learning_rate, name='optimizeR')
-        _, m_acc = cal_acc(logits, inputs['label'])
+        m_acc = cal_acc(logits, inputs['label'])
 
         # program gradients
         grads = opt.compute_gradients(mse)

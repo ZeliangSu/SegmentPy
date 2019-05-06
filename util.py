@@ -16,7 +16,7 @@ def print_nodes_name_shape(graph):
     for i in graph.get_operations():
         if len(i.outputs) is not 0:  #eliminate nodes like 'initializer' without tensoroutput
             for j in i.outputs:
-                print('{}: {}'.format(i.name, j.get_shape()))
+                print('{}: {}'.format(i.name, j.get_shape().as_list()))
 
             # for j in i.outputs:
             #     print(j.get_shape())
