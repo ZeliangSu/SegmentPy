@@ -2,6 +2,8 @@ import tensorflow as tf
 import h5py
 import numpy as np
 import multiprocessing as mp
+from PIL import Image
+import os
 
 def _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='onefile'):
     patch_shape = (patch_size, patch_size)
@@ -13,11 +15,9 @@ def _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_s
     elif mode == 'csvs':
         _csvs_writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId)
     elif mode == 'tfrecord':
-        #TODO:
         raise NotImplementedError("tfrecords part hasn't been implemented yet")
-    elif mode == 'npy':
-        #TODO:
-        raise NotImplementedError("npy part hasn't been implemented yet")
+    else:
+        raise ValueError("Please choose a mode from h5, csv or tfrecord!")
 
 def _h5Writer_V2(X_patches, y_patches, outdir, patch_size):
     import os
@@ -155,4 +155,23 @@ def _tfrecordWriter(X_patches, y_patches, id_length, rest, outdir, patch_size, b
 
                 # Serialize to string and write on the file
                 writer.write(example.SerializeToString())
+
+
+def _tifsWriter(tensor, layer_name='', path='./result/test/'):
+    '''
+    tensor: images(numpy array) to save of (Height, Width, nth_Conv)
+    path: path(string)
+    layer_name: name of the layer(string)
+    '''
+    if not os.path.exists(path + layer_name):
+        if not os.path.exists('./result'):
+            os.mkdir('./result')
+        if not os.path.exists('./result/test'):
+            os.mkdir('./result/test')
+        os.mkdir(path + layer_name)
+    if tensor.ndim == 1:
+        Image.fromarray(np.expand_dims(tensor, axis=0)).save(path + '{}/dnn.tif'.format(layer_name))
+    else:
+        for i in range(tensor.shape[2]):
+            Image.fromarray(tensor[:, :, i]).save(path + '{}/{}.tif'.format(layer_name, i))
 

@@ -11,13 +11,14 @@ def print_nodes_name(graph):
             print(n.name)
 
 def print_nodes_name_shape(graph):
-    '''input: (tf.Graph())'''
+    '''input: (tf.Graph()) or tf.GraphDef())'''
     # fixme: enlarge to GraphDef
+    if isinstance(graph, graph_pb2.GraphDef):
+        # convert GraphDef to Graph
+        graph = tf.import_graph_def(graph)
+
     for i in graph.get_operations():
         if len(i.outputs) is not 0:  #eliminate nodes like 'initializer' without tensoroutput
             for j in i.outputs:
-                print('{}: {}'.format(i.name, j.get_shape().as_list()))
-
-            # for j in i.outputs:
-            #     print(j.get_shape())
+                print('{}: {}'.format(i.name, j.get_shape()))
 

@@ -47,12 +47,14 @@ nodes = model(train_inputs,
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
 
-
-if not os.path.exists('./logs/{}/'.format(hyperparams['date'])):
-    os.mkdir('./logs/{}/'.format(hyperparams['date']))
-    
 if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour'])):
-    os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
+    try:
+        os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
+    except:
+        if not os.path.exists('./logs/{}/'.format(hyperparams['date'])):
+            os.mkdir('./logs/{}/'.format(hyperparams['date']))
+        os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
+
 hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
 # start training

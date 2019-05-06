@@ -2,16 +2,15 @@ import tensorflow as tf
 from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, dropout, conv2d_transpose_layer,\
 up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation
 
+
 def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
+    train_or_test = tf.placeholder(tf.string, name='training_type')
+    drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 
     with tf.name_scope('input_pipeline'):
         X_dyn_batsize = batch_size
-        train_or_test = tf.placeholder(tf.string, name='training_type')
-        drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
-
         def f1(): return train_inputs
         def f2(): return test_inputs
-
         inputs = tf.cond(tf.equal(train_or_test, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
 
     with tf.name_scope('model'):
@@ -58,7 +57,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
 
             deconv_8, m8 = conv2d_transpose_layer(concat3, [conv_size, conv_size, int(outshape7[3]), nb_conv], X_dyn_batsize, name='deconv8')
             deconv_8bis, m8b = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], X_dyn_batsize, name='deconv8bis')
-            logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], X_dyn_batsize, name='deconv8bisbis')
+            logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], X_dyn_batsize, name='deconv8bisbis')  #fixme: change activation function. 0 everywhere prediction?
 
     with tf.name_scope('operation'):
         # optimizer/train operation
@@ -71,7 +70,6 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
         # train operation
-        # train_op = train_operation(opt, grads, name='train_op')
         train_op = opt.apply_gradients(grads, name='train_op')
 
 
