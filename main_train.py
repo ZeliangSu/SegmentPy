@@ -58,7 +58,7 @@ if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparam
 hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
 # start training
-train(nodes, train_inputs, test_inputs, hyperparams, device_option=hyperparams['device_option'], save_step=5)
+train(nodes, train_inputs, test_inputs, hyperparams, device_option=hyperparams['device_option'], save_step=20)
 
 
 
