@@ -4,14 +4,14 @@ up_2by2, concat, optimizer, loss_fn,  metrics
 
 
 def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
-    train_or_test = tf.placeholder(tf.string, name='training_type')
+    training_type = tf.placeholder(tf.string, name='training_type')
     drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 
     with tf.name_scope('input_pipeline'):
         X_dyn_batsize = batch_size
         def f1(): return train_inputs
         def f2(): return test_inputs
-        inputs = tf.cond(tf.equal(train_or_test, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
+        inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
 
     with tf.name_scope('model'):
 
@@ -72,7 +72,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         train_op = opt.apply_gradients(grads, name='train_op')
 
     with tf.name_scope('metrics'):
-        m_loss, loss_up_ops, m_acc, acc_up_ops = metrics(logits, inputs['label'], mse)
+        m_loss, loss_up_ops, m_acc, acc_up_ops = metrics(logits, inputs['label'], mse, training_type)
 
     with tf.name_scope('summary'):
         merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
@@ -82,7 +82,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         'train_op': train_op,
         'drop': drop_prob,
         'summary': merged,
-        'train_or_test': train_or_test,
+        'train_or_test': training_type,
         'loss_update_op': loss_up_ops,
         'acc_update_op': acc_up_ops
     }

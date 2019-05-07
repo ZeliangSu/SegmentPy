@@ -94,12 +94,23 @@ def loss_fn(y_true, output_layer, name='loss_fn'):
         return loss_op
 
 
-def metrics(y_pred, y_true, loss_op, name=''):
-    with tf.name_scope(name):
-        loss_val_op, loss_update_op = tf.metrics.mean(loss_op)
-        acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred)
-        return tf.summary.merge([tf.summary.scalar("loss", loss_val_op)]), loss_update_op,\
-               tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op
+def metrics(y_pred, y_true, loss_op, training_type):
+    def loss_trn(): return tf.metrics.mean(loss_op, name='train')
+    def loss_cv(): return tf.metrics.mean(loss_op, name='cv')
+    def loss_tst(): return tf.metrics.mean(loss_op, name='test')
+    def acc_trn(): return tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='train')
+    def acc_cv(): return tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='train')
+    def acc_tst(): return tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='train')
+
+    loss_val_op, loss_update_op = tf.case({tf.equal(training_type, 'train'): loss_trn,
+                                           tf.equal(training_type, 'cv'): loss_cv},
+                                           default=loss_tst)
+    acc_val_op, acc_update_op = tf.case({tf.equal(training_type, 'train'): acc_trn,
+                                         tf.equal(training_type, 'cv'): acc_cv},
+                                         default=acc_tst)
+
+    return tf.summary.merge([tf.summary.scalar("loss", loss_val_op)]), loss_update_op,\
+           tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op
 
 def optimizer(lr, name='AdamOptimizer'):
     with tf.name_scope(name):
