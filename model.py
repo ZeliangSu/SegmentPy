@@ -1,6 +1,6 @@
 import tensorflow as tf
 from layers import conv2d_layer, max_pool_2by2, reshape, normal_full_layer, dropout, conv2d_transpose_layer,\
-up_2by2, concat, optimizer, loss_fn,  cal_acc, train_operation
+up_2by2, concat, optimizer, loss_fn,  metrics
 
 
 def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
@@ -33,8 +33,8 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
             conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], name='conv4bisbis')
 
         with tf.name_scope('dnn'):
-            conv2_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')
-            full_layer_1, mf1 = normal_full_layer(conv2_flat, patch_size ** 2 // 128, name='dnn1')
+            conv4_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')
+            full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, name='dnn1')
             full_dropout1 = dropout(full_layer_1, drop_prob, name='dropout1')
             full_layer_2, mf2 = normal_full_layer(full_dropout1, patch_size ** 2 // 128, name='dnn2')
             full_dropout2 = dropout(full_layer_2, drop_prob, name='dropout2')
@@ -61,9 +61,8 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
 
     with tf.name_scope('operation'):
         # optimizer/train operation
-        mse, m_loss, loss_up_op = loss_fn(inputs['label'], logits, name='loss_fn')
+        mse = loss_fn(inputs['label'], logits, name='loss_fn')
         opt = optimizer(learning_rate, name='optimizeR')
-        m_acc, acc_up_op = cal_acc(logits, inputs['label'])
 
         # program gradients
         grads = opt.compute_gradients(mse)
@@ -72,7 +71,10 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         # train operation
         train_op = opt.apply_gradients(grads, name='train_op')
 
+    with tf.name_scope('metrics'):
+        m_loss, loss_up_ops, m_acc, acc_up_ops = metrics(logits, inputs['label'], mse)
 
+    with tf.name_scope('summary'):
         merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
                                    m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, grad_sum])  #fixme: withdraw summary of imgs for resource reason
     return {
@@ -81,7 +83,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         'drop': drop_prob,
         'summary': merged,
         'train_or_test': train_or_test,
-        'loss_update_op': loss_up_op,
-        'acc_update_op': acc_up_op
+        'loss_update_op': loss_up_ops,
+        'acc_update_op': acc_up_ops
     }
 
