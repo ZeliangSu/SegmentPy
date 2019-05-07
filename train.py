@@ -62,20 +62,20 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     # 80%train 10%cross-validation 10%test
                     if step % 9 == 8:
                         # 10 percent of the data will be use to cross-validation
-                        summary, _ = sess.run([nodes['summary'], nodes['y_pred']],
+                        summary, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'cv',
                                                          nodes['drop']: 1})
                         cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                         # in situ testing without loading weights like cs-230-stanford
-                        summary, _ = sess.run([nodes['summary'], nodes['y_pred']],
+                        summary, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'test',
                                                          nodes['drop']: 1})
                         test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                     # 80 percent of the data will be use for training
                     else:
-                        summary, _ = sess.run([nodes['summary'], nodes['train_op']],
+                        summary, _ = sess.run([nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'train',
                                                          nodes['drop']: 0.5})
                         train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
@@ -110,6 +110,9 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
             # create json to store profiler
             fetched_timeline = timeline.Timeline(run_metadata.step_stats)
             chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            if not os.path.exists('./logs/{}/hour{}/profiler'.format(hyperparams['date'], hyperparams['hour'])):
+                os.mkdir('./logs/{}/hour{}/profiler'.format(hyperparams['date'], hyperparams['hour']))
+                
             with open('./logs/{}/hour{}/profiler/ep{}.json'.format(hyperparams['date'],
                                                                   hyperparams['hour'],
                                                                   ep), 'w') as f:

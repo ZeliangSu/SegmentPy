@@ -61,9 +61,9 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
 
     with tf.name_scope('operation'):
         # optimizer/train operation
-        mse, m_loss = loss_fn(inputs['label'], logits, name='loss_fn')
+        mse, m_loss, loss_up_op = loss_fn(inputs['label'], logits, name='loss_fn')
         opt = optimizer(learning_rate, name='optimizeR')
-        m_acc = cal_acc(logits, inputs['label'])
+        m_acc, acc_up_op = cal_acc(logits, inputs['label'])
 
         # program gradients
         grads = opt.compute_gradients(mse)
@@ -80,6 +80,8 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         'train_op': train_op,
         'drop': drop_prob,
         'summary': merged,
-        'train_or_test': train_or_test
+        'train_or_test': train_or_test,
+        'loss_update_op': loss_up_op,
+        'acc_update_op': acc_up_op
     }
 

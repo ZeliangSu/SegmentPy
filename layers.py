@@ -91,7 +91,8 @@ def concat(list_tensors, name=''):
 def loss_fn(y_true, output_layer, name='loss_fn'):
     with tf.name_scope(name):
         loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
-        return loss_op, tf.summary.merge([tf.summary.scalar("loss", tf.metrics.mean(loss_op) )])
+        loss_val_op, loss_update_op = tf.metrics.mean(loss_op)
+        return loss_op, tf.summary.merge([tf.summary.scalar("loss", loss_val_op)]), loss_update_op
 
 
 def cal_acc(y_pred, y_true, name='accuracy'):
@@ -99,7 +100,8 @@ def cal_acc(y_pred, y_true, name='accuracy'):
         # acc = tf.reduce_mean(tf.cast(tf.equal(tf.cast(y_pred, dtype=tf.int32),
         #                                       tf.cast(y_true, dtype=tf.int32)), dtype=tf.float32), name=name)  #[True, False, ... True] --> [1, 0 ,...1] --> 0.667
         # return acc, tf.summary.merge([tf.summary.scalar("accuracy", acc)])
-        return tf.summary.merge([tf.summary.scalar('accuracy', tf.metrics.accuracy(labels=y_true, predictions=y_pred)[0])])  #acc_value_op, acc_update_op = tf.metrics.accuracy(labels,predictions)
+        acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred)
+        return tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op
 
 def optimizer(lr, name='AdamOptimizer'):
     with tf.name_scope(name):
