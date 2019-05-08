@@ -62,7 +62,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     # 80%train 10%cross-validation 10%test
                     if step % 9 == 8:
                         # 10 percent of the data will be use to cross-validation
-                        summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_ops'], nodes['acc_update_op']],
+                        summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'cv',
                                                          nodes['drop']: 1})
                         cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)

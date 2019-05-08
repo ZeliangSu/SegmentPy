@@ -72,7 +72,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         train_op = opt.apply_gradients(grads, name='train_op')
 
     with tf.name_scope('metrics'):
-        m_loss, loss_up_ops, m_acc, acc_up_ops = metrics(logits, inputs['label'], mse, training_type)
+        m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
 
     with tf.name_scope('summary'):
         merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
@@ -83,7 +83,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         'drop': drop_prob,
         'summary': merged,
         'train_or_test': training_type,
-        'loss_update_op': loss_up_ops,
-        'acc_update_op': acc_up_ops
+        'loss_update_op': loss_up_op,
+        'acc_update_op': acc_up_op
     }
 
