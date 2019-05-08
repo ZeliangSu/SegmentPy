@@ -95,12 +95,14 @@ def loss_fn(y_true, output_layer, name='loss_fn'):
 
 
 def metrics(y_pred, y_true, loss_op, training_type):
-    def loss_trn(): return tf.metrics.mean(loss_op, name='train')
-    def loss_cv(): return tf.metrics.mean(loss_op, name='cv')
-    def loss_tst(): return tf.metrics.mean(loss_op, name='test')
-    def acc_trn(): return tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='train')
-    def acc_cv(): return tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='train')
-    def acc_tst(): return tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='train')
+    y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')
+    # y_pred_bis = tf.cast(y_pred, tf.int32, name='ypredbis')  #fixme: mysterious 0 gradients or 0 accuracy bug by using this line
+    def loss_trn(): return tf.metrics.mean(loss_op, name='ls_train')
+    def loss_cv(): return tf.metrics.mean(loss_op, name='ls_cv')
+    def loss_tst(): return tf.metrics.mean(loss_op, name='ls_test')
+    def acc_trn(): return tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_train')
+    def acc_cv(): return tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_cv')
+    def acc_tst(): return tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_test')
 
     loss_val_op, loss_update_op = tf.case({tf.equal(training_type, 'train'): loss_trn,
                                            tf.equal(training_type, 'cv'): loss_cv},

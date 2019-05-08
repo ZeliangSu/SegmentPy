@@ -19,7 +19,7 @@ hyperparams = {
     'dropout': 0.5,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
-    'device_option': 'specific_gpu:0'
+    'device_option': 'specific_gpu:1'
 }
 
 
