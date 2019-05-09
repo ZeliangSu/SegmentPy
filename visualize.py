@@ -11,7 +11,10 @@ if os.name == 'posix':  #to fix MAC openMP bug
 
 # load ckpt
 new_ph = tf.placeholder(tf.float32, shape=[200, 72, 72, 1], name='new_ph')
+label_ph = tf.placeholder(tf.int32, shape=[200, 72, 72, 1], name='label_ph')
+res_ph = tf.placeholder(tf.float32, shape=[1, 72, 72, 1], name='res_ph')
 bs_ph = tf.placeholder(tf.int32, shape=None, name='bs_ph')
+
 restorer = tf.train.import_meta_graph(
     './dummy/ckpt/step5/ckpt.meta',
     input_map={'input_pipeline/input_cond/Merge_1': new_ph,
@@ -20,10 +23,8 @@ restorer = tf.train.import_meta_graph(
     clear_devices=True
 )
 
-
 input_graph = tf.get_default_graph()
 input_graph_def = input_graph.as_graph_def()
-
 
 # freeze to pb
 with tf.Session() as sess:
@@ -54,17 +55,15 @@ with tf.Session() as sess:
         'model/decoder/deconv8bisbis/relu',
     ]
     output_graph_def = tf.graph_util.convert_variables_to_constants(
-        sess=sess,
+        sess=sess,  #note: variables are always in a session
         input_graph_def=input_graph_def,
         output_node_names=conserve_nodes,
     )
     # print_nodes_name_shape(sess.graph)
 
-
     # write pb
     with tf.gfile.GFile('./dummy/pb/test.pb', 'wb') as f:  #'wb' stands for write binary
         f.write(output_graph_def.SerializeToString())
-
 
 # use pb
 path = './dummy/pb/test.pb'
@@ -81,30 +80,38 @@ with tf.Graph().as_default() as graph:
         return_elements=conserve_nodes,
         name=''
     )
+    # print_nodes_name(graph)
 
-
-    print_nodes_name(graph)
     # feed graph for inference
     new_input = graph.get_tensor_by_name('new_ph:0')
     dropout_input = graph.get_tensor_by_name('input_pipeline/dropout_prob:0')
     ops = [graph.get_tensor_by_name(op_name + ':0') for op_name in conserve_nodes]
 
+    # diff op
+    diff = tf.cast(tf.not_equal(label_ph, tf.cast(res_ph, tf.int32)), tf.int8)  #todo: doing like this isn't optimal
 
+    # run inference
     with tf.Session(graph=graph) as sess:
         tf.summary.FileWriter('./dummy/tensorboard/after_cut', sess.graph)
         graph = tf.get_default_graph()
         print_nodes_name_shape(sess.graph)
 
         test = [h5.File('./proc/test/72/{}.h5'.format(i))['X'] for i in range(200)]
+        label = [h5.File('./proc/test/72/{}.h5'.format(i))['y'] for i in range(200)]
         res = sess.run(ops, feed_dict={new_input: np.array(test).reshape(200, 72, 72, 1), dropout_input: 1.0})
         for elt in res:
             print(elt.shape)
-
 
         # save inference
         # save partial/final inferences
         for layer_name, tensors in zip(conserve_nodes, res):
             if tensors.ndim == 4 or 2:
-                tensors = tensors[0]  #fixme: should generalize to batch
+                tensors = tensors[0]  #todo: should generalize to batch
             _tifsWriter(tensors, layer_name=layer_name.split('/')[-2], path='./result/test/')
+
+        # run diff
+        img_diff = sess.run(diff, feed_dict={res_ph: res[-1]})
+
+        # save diff
+        _tifsWriter(img_diff, 'diff')
 

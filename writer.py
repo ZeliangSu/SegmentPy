@@ -169,8 +169,11 @@ def _tifsWriter(tensor, layer_name='', path='./result/test/'):
         if not os.path.exists('./result/test'):
             os.mkdir('./result/test')
         os.mkdir(path + layer_name)
+    #  treat dnn
     if tensor.ndim == 1:
         Image.fromarray(np.expand_dims(tensor, axis=0)).save(path + '{}/dnn.tif'.format(layer_name))
+
+    #  for cnn
     else:
         for i in range(tensor.shape[2]):
             Image.fromarray(tensor[:, :, i]).save(path + '{}/{}.tif'.format(layer_name, i))
