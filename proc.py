@@ -34,8 +34,12 @@ def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True
 
     if evaluate:
         if mode == 'h5':
-            _h5Writer_V2(X_patches[:np.int(X_patches.shape[0] * traintest_split_rate)], y_patches, outdir + 'train/', patch_size)
-            _h5Writer_V2(X_patches[np.int(X_patches.shape[0] * traintest_split_rate):], y_patches, outdir + 'test/', patch_size)
+            _h5Writer_V2(X_patches[:np.int(X_patches.shape[0] * traintest_split_rate)],
+                         y_patches[:np.int(X_patches.shape[0] * traintest_split_rate)],
+                         outdir + 'train/', patch_size)
+            _h5Writer_V2(X_patches[np.int(X_patches.shape[0] * traintest_split_rate):],
+                         y_patches[:np.int(X_patches.shape[0] * traintest_split_rate)],
+                         outdir + 'test/', patch_size)
         elif mode == 'csv':
             raise NotImplementedError
         else:
@@ -56,11 +60,7 @@ def _shuffle(tensor_a, tensor_b, random_state=42):
     # shuffle two tensors in unison
     idx = np.random.permutation(tensor_a.shape[0]) #artifacts
     return tensor_a[idx], tensor_b[idx]
-    # tensor_a, tensor_b = shuffle(tensor_a, tensor_b, random_state=random_state) #artifacts
-    # np.random.seed(random_state)
-    # np.random.shuffle(tensor_a)
-    # np.random.shuffle(tensor_b)
-    # return tensor_a, tensor_b
+
 
 
 def _stride(tensor, stride, patch_size):

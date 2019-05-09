@@ -129,22 +129,24 @@ with tf.Graph().as_default() as g_combined:
         graph = tf.get_default_graph()
         print_nodes_name_shape(sess.graph)
 
-        test = [h5.File('./proc/test/72/{}.h5'.format(i))['X'] for i in range(200)]
+        imgs = [h5.File('./proc/test/72/{}.h5'.format(i))['X'] for i in range(200)]
+        _tifsWriter(imgs, 'input')
         label = [h5.File('./proc/test/72/{}.h5'.format(i))['y'] for i in range(200)]
+        _tifsWriter(label, 'label')
         res, res_diff = sess.run([ops, diff_img], feed_dict={
-            new_input: np.array(test).reshape(200, 72, 72, 1),
+            new_input: np.array(imgs).reshape(200, 72, 72, 1),
             dropout_input: 1.0,
             new_label: np.array(label).reshape(200, 72, 72, 1)
         })
         for elt in res:
             print(elt.shape)
 
-        # save partial/final inferences
+        #note: save partial/final inferences of the first image
         for layer_name, tensors in zip(conserve_nodes, res):
             if tensors.ndim == 4 or 2:
                 tensors = tensors[0]  #todo: should generalize to batch
-            _tifsWriter(tensors, layer_name=layer_name.split('/')[-2], path='./result/test/')
+            _tifsWriter(tensors, layer_name=layer_name.split('/')[-2], path='./result/test/')  #for cnn outputs shape: [batch, w, h, nb_conv]
 
-        # save diff
-        _tifsWriter(res_diff[0], 'diff')
+        # save diff of all imgs
+        _tifsWriter(np.transpose(np.squeeze(res_diff), (1, 2, 0)), 'diff')  #for diff output shape: [batch, w, h, 1]
 
