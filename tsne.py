@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.manifold import TSNE
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 # t-SNE on activation
 def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix='step0'):
@@ -40,6 +42,43 @@ def tsne_on_weights(embedded_tensor, labels, figsize=(90, 90), suffix='step0'):
     plt.savefig(
         fname='./dummy/tsne_kernel{}.png'.format(suffix),  #fixme: change here
         dpi=50  # 2048 pixel divided by 45 = 45
+    )
+
+
+# t-SNE on kernel weights
+def tsne_on_weights_bis(embedded_tensor, labels, grps, figsize=(90, 90), suffix='step0'):
+    assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
+    plt.figure(figsize=figsize)
+    df = pd.DataFrame(zip(embedded_tensor[:, 0], embedded_tensor[:, 1], labels, grps))
+    df.columns = ['coordX', 'coordY', 'labels', 'groups']
+    df_deconv = df[df['groups'].str.contains['deconv']]
+    df_conv = df[~df['groups'].str.contains['deconv']]
+    conv_plot = sns.lmplot(
+        x='coordX',
+        y='coordY',
+        data=df_conv,
+        fit_reg=False,
+        hue='groups',
+        legend=True,
+        palette='Set1',
+    )
+
+    deconv_plot = sns.lmplot(
+        x='coordX',
+        y='coordY',
+        data=df_deconv,
+        fit_reg=False,
+        hue='groups',
+        legend=True,
+        palette='Set1',
+    )
+    conv_plot.savefig(
+        fname='./dummy/tsne_kernel{}_conv.png'.format(suffix),  #fixme: change here
+        # dpi=50  # 2048 pixel divided by 45 = 45
+    )
+    deconv_plot.savefig(
+        fname='./dummy/tsne_kernel{}_deconv.png'.format(suffix),  #fixme: change here
+        # dpi=50  # 2048 pixel divided by 45 = 45
     )
 
 

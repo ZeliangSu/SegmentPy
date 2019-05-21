@@ -1,7 +1,7 @@
 import tensorflow as tf
 from visualize import convert_ckpt2pb, built_diff_block, join_diff_to_mainGraph, run_nodes_and_save
 from util import get_all_trainable_variables
-from tsne import tsne, tsne_on_weights
+from tsne import tsne, tsne_on_weights, tsne_on_weights_bis
 import numpy as np
 
 # load ckpt
@@ -52,9 +52,11 @@ wns, _, ws, _, _, _, _, _ = get_all_trainable_variables('./dummy/ckpt/step5/ckpt
 # arange label and kernel
 new_wn = []
 new_ws = []
+grps = []
 for wn, w in zip(wns, ws):  # w.shape = [c_w, c_h, c_in, nb_conv]
     for i in range(w.shape[3]):
         new_wn.append(wn + '_{}'.format(i))  # e.g. conv4bis_96
+        grps.append(wn.split('/')[0])
 
         # note: associativity: a x b + a x c = a x (b + c)
         # "...a kernel is the sum of all the dimensions in the previous layer..."
@@ -65,5 +67,6 @@ for wn, w in zip(wns, ws):  # w.shape = [c_w, c_h, c_in, nb_conv]
 res = tsne(np.array(new_ws).transpose((1, 2, 0)).reshape(len(new_ws), -1))  # e.g. (3, 3, 1000) --> (9, 1000)
 
 # imshow
-tsne_on_weights(res, new_wn)
+# tsne_on_weights(res, new_wn)
+tsne_on_weights_bis(res, new_wn, grps)
 
