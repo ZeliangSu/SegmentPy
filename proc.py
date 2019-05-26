@@ -54,13 +54,10 @@ def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True
             raise NotImplementedError
 
 
-
-
 def _shuffle(tensor_a, tensor_b, random_state=42):
     # shuffle two tensors in unison
     idx = np.random.permutation(tensor_a.shape[0]) #artifacts
     return tensor_a[idx], tensor_b[idx]
-
 
 
 def _stride(tensor, stride, patch_size):

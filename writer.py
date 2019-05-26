@@ -157,7 +157,7 @@ def _tfrecordWriter(X_patches, y_patches, id_length, rest, outdir, patch_size, b
                 writer.write(example.SerializeToString())
 
 
-def _tifsWriter(tensor, layer_name='', path='./result/test/'):
+def _resultWriter(tensor, layer_name='', path='./result/test/'):
     '''
     tensor: images(numpy array or list of image) to save of (Height, Width, nth_Conv)
     path: path(string)

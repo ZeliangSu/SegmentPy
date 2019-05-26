@@ -44,24 +44,6 @@ def tsne_on_weights(embedded_tensor, labels, figsize=(90, 90), suffix='step0'):
         dpi=50  # 2048 pixel divided by 45 = 45
     )
 
-def tsne_on_weights_bis(embedded_tensor, labels, grps, figsize=(90, 90), suffix='step0'):
-    assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
-    plt.figure(figsize=figsize)
-    for i, label in enumerate(labels):
-        x, y = embedded_tensor[i, ]
-        plt.scatter(x, y)
-        plt.annotate(
-            label,
-            xy=(x, y),
-            xytext=(5, 2),
-            textcoords='offset points',
-            ha='right',
-            va='bottom'
-        )
-    plt.savefig(
-        fname='./dummy/tsne_kernel{}.png'.format(suffix),  #fixme: change here
-        dpi=50  # 2048 pixel divided by 45 = 45
-    )
 
 # t-SNE on kernel weights
 def tsne_on_weights_bis(embedded_tensor, labels, grps, figsize=(90, 90), suffix='step0'):
