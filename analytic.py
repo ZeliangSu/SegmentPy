@@ -1,5 +1,5 @@
 import tensorflow as tf
-from visualize import convert_ckpt2pb, built_diff_block, join_diff_to_mainGraph, run_nodes_and_save
+from visualize import convert_ckpt2pb, built_diff_block, join_diff_to_mainGraph, run_nodes_and_save_partial_res
 from util import get_all_trainable_variables
 from tsne import tsne, tsne_on_weights, tsne_on_weights_bis
 import numpy as np
@@ -43,7 +43,7 @@ diff_block_gdef = built_diff_block()
 g_combined, ops_dict = join_diff_to_mainGraph(diff_block_gdef, conserve_nodes)
 
 # run nodes and save results
-run_nodes_and_save(g_combined, ops_dict, conserve_nodes)
+run_nodes_and_save_partial_res(g_combined, ops_dict, conserve_nodes)
 
 # run tsne on wieghts
 # get weights from checkpoint

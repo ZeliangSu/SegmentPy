@@ -20,7 +20,7 @@ def print_nodes_name_shape(graph):
         graph = tf.import_graph_def(graph)
 
     for i in graph.get_operations():
-        if len(i.outputs) is not 0:  #eliminate nodes like 'initializer' without tensoroutput
+        if len(i.outputs) is not 0:  #eliminate nodes like 'initializer' without tensor output
             for j in i.outputs:
                 print('{}: {}'.format(i.name, j.get_shape()))
 

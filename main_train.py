@@ -4,13 +4,13 @@ import datetime
 import os
 
 from input import inputpipeline
-from model import model
+from model import model, model_lite
 from train import train
 
 # params
 hyperparams = {
     'patch_size': 72,
-    'batch_size': 300,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
+    'batch_size': 3200,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
     'nb_epoch': 10,
     'nb_batch': None,
     'conv_size': 5,
@@ -19,7 +19,7 @@ hyperparams = {
     'dropout': 0.5,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
-    'device_option': 'specific_gpu:1'
+    'device_option': 'specific_gpu:0'
 }
 
 
@@ -34,14 +34,15 @@ train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train')
 test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test')
 
 # init model
-nodes = model(train_inputs,
-              test_inputs,
-              hyperparams['patch_size'],
-              hyperparams['batch_size'],
-              hyperparams['conv_size'],
-              hyperparams['nb_conv'],
-              learning_rate=hyperparams['learning_rate'],
-              )
+nodes = model_lite(train_inputs,
+                   test_inputs,
+                   hyperparams['patch_size'],
+                   hyperparams['batch_size'],
+                   hyperparams['conv_size'],
+                   hyperparams['nb_conv'],
+                   learning_rate=hyperparams['learning_rate'],
+                   )
+
 
 # print number of params
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))

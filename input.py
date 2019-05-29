@@ -5,7 +5,6 @@ import multiprocessing as mp
 import warnings
 
 
-
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
     '''
     tensorflow tf.data input pipeline based helper that return image and label at once
@@ -23,13 +22,14 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
 
     warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
 
+
     # placeholder for list fo files
     with tf.name_scope('input_pipeline_' + suffix):
         fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
         patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
 
         # init list of files
-        batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))  #fixme: shuffle list of fnames
+        batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
         batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
         batch = batch.map(_pyfn_wrapper, num_parallel_calls=ncores)
         batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
@@ -47,7 +47,8 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
                   'iterator_init_op': iter_init_op,
                   'fnames_ph': fnames_ph,
                   'patch_size_ph': patch_size_ph}
-        return inputs
+
+    return inputs
 
 
 def _pyfn_wrapper(fname, patch_size):
