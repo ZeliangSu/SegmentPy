@@ -24,7 +24,6 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
 
     warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
 
-
     # placeholder for list fo files
     with tf.name_scope('input_pipeline_' + suffix):
         fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
@@ -38,9 +37,9 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
         #todo: prefetch_to_device
         # batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
 
-            # construct iterator
-            it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
-            iter_init_op = it.make_initializer(batch, name='iter_init_op')
+        # construct iterator
+        it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+        iter_init_op = it.make_initializer(batch, name='iter_init_op')
 
         # get next img and label
         X_it, y_it = it.get_next()
@@ -67,23 +66,6 @@ def _pyfn_wrapper(fname, patch_size):
                       [fname, patch_size],
                       [tf.float32, tf.float32]  #[output, output] dtype
                       )
-
-
-def _pyfn_wrapper_bis(fname, patch_size):
-    '''
-    input:
-    -------
-    filename: (tf.data.Dataset)  Tensors of strings
-
-    output:
-    -------
-    function: (function) tensorflow's pythonic function with its arguements
-    '''
-    return tf.py_func(parse_tif,  #wrapped pythonic function
-                      [fname, patch_size],
-                      [tf.float32]  #[output, output] dtype
-                      )
-
 
 
 def parse_h5(fname, patch_size):
