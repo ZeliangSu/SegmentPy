@@ -4,9 +4,46 @@ from util import get_all_trainable_variables
 from tsne import tsne, tsne_on_weights, tsne_on_weights_bis
 import numpy as np
 
-# load ckpt
-new_ph = tf.placeholder(tf.float32, shape=[200, 72, 72, 1], name='new_ph')
-bs_ph = tf.placeholder(tf.int32, shape=None, name='bs_ph')
+# # load ckpt
+# new_ph = tf.placeholder(tf.float32, shape=[200, 72, 72, 1], name='new_ph')
+# bs_ph = tf.placeholder(tf.int32, shape=None, name='bs_ph')
+#
+# # define nodes to conserve
+# conserve_nodes = [
+#             'model/encoder/conv1/relu',
+#             'model/encoder/conv1bis/relu',
+#             'model/encoder/conv2/relu',
+#             'model/encoder/conv2bis/relu',
+#             'model/encoder/conv3/relu',
+#             'model/encoder/conv3bis/relu',
+#             'model/encoder/conv4/relu',
+#             'model/encoder/conv4bis/relu',
+#             'model/encoder/conv4bisbis/relu',
+#             'model/dnn/dnn1/relu',
+#             'model/dnn/dnn2/relu',
+#             'model/dnn/dnn3/relu',
+#             'model/decoder/deconv5/relu',
+#             'model/decoder/deconv5bis/relu',
+#             'model/decoder/deconv6/relu',
+#             'model/decoder/deconv6bis/relu',
+#             'model/decoder/deconv7bis/relu',
+#             'model/decoder/deconv7bis/relu',
+#             'model/decoder/deconv8/relu',
+#             'model/decoder/deconv8bis/relu',
+#             'model/decoder/deconv8bisbis/relu',
+#         ]
+#
+# # convert ckpt to pb
+# convert_ckpt2pb(input=new_ph, conserve_nodes=conserve_nodes)
+#
+# # beforhand build diff block
+# diff_block_gdef = built_diff_block()
+#
+# # graft diff block to main graph
+# g_combined, ops_dict = join_diff_to_mainGraph(diff_block_gdef, conserve_nodes)
+#
+# # run nodes and save results
+# run_nodes_and_save(g_combined, ops_dict, conserve_nodes)
 
 # define nodes to conserve
 conserve_nodes = [

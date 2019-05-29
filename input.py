@@ -3,6 +3,8 @@ import h5py
 import tensorflow as tf
 import multiprocessing as mp
 import warnings
+from PIL import Image
+from proc import _stride
 
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
@@ -36,9 +38,9 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
         #todo: prefetch_to_device
         # batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
 
-        # construct iterator
-        it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
-        iter_init_op = it.make_initializer(batch, name='iter_init_op')
+            # construct iterator
+            it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+            iter_init_op = it.make_initializer(batch, name='iter_init_op')
 
         # get next img and label
         X_it, y_it = it.get_next()
@@ -67,6 +69,23 @@ def _pyfn_wrapper(fname, patch_size):
                       )
 
 
+def _pyfn_wrapper_bis(fname, patch_size):
+    '''
+    input:
+    -------
+    filename: (tf.data.Dataset)  Tensors of strings
+
+    output:
+    -------
+    function: (function) tensorflow's pythonic function with its arguements
+    '''
+    return tf.py_func(parse_tif,  #wrapped pythonic function
+                      [fname, patch_size],
+                      [tf.float32]  #[output, output] dtype
+                      )
+
+
+
 def parse_h5(fname, patch_size):
     '''
     parser that return the input images and  output labels
@@ -85,6 +104,12 @@ def parse_h5(fname, patch_size):
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         return _minmaxscalar(X), y  #can't do minmaxscalar for y
+
+
+def parse_tif(fname, patch_size):
+    with Image.open(fname, 'r') as img:
+        np.asarray(img)
+    pass
 
 
 def _minmaxscalar(ndarray, dtype=np.float32):

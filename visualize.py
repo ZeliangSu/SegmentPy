@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from util import print_nodes_name_shape, print_nodes_name
-from writer import _tifsWriter
+from writer import _resultWriter
 import h5py as h5
 import os
 
@@ -134,9 +134,9 @@ def run_nodes_and_save_partial_res(g_combined, ops_dict, conserve_nodes):
 
             # write firstly input and output images
             imgs = [h5.File('./proc/test/72/{}.h5'.format(i))['X'] for i in range(200)]
-            _tifsWriter(imgs, 'input')
+            _resultWriter(imgs, 'input')
             label = [h5.File('./proc/test/72/{}.h5'.format(i))['y'] for i in range(200)]
-            _tifsWriter(label, 'label')
+            _resultWriter(label, 'label')
 
             feed_dict = {
                 new_input: np.array(imgs).reshape(200, 72, 72, 1),
@@ -151,10 +151,10 @@ def run_nodes_and_save_partial_res(g_combined, ops_dict, conserve_nodes):
             for layer_name, tensors in zip(conserve_nodes, res):
                 if tensors.ndim == 4 or 2:
                     tensors = tensors[0]  # todo: should generalize to batch
-                _tifsWriter(tensors, layer_name=layer_name.split('/')[-2], path='./result/test/')  #for cnn outputs shape: [batch, w, h, nb_conv]
+                _resultWriter(tensors, layer_name=layer_name.split('/')[-2], path='./result/test/')  #for cnn outputs shape: [batch, w, h, nb_conv]
 
             # note: save diff of all imgs
-            _tifsWriter(np.transpose(np.squeeze(res_diff), (1, 2, 0)), 'diff')  #for diff output shape: [batch, w, h, 1]
+            _resultWriter(np.transpose(np.squeeze(res_diff), (1, 2, 0)), 'diff')  #for diff output shape: [batch, w, h, 1]
 
 
 
