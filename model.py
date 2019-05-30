@@ -76,7 +76,7 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
 
     with tf.name_scope('summary'):
         merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m4bb, mf1, mf2, mf3,
-                                   m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, grad_sum])  #fixme: withdraw summary of imgs for resource reason
+                                   m5, m5b, m6, m6b, m7, m7b, m8, m8b, m8bb, m_loss, m_acc, grad_sum])  #fixme: withdraw summary of histories for GPU resource reason
     return {
         'y_pred': logits,
         'train_op': train_op,
@@ -159,7 +159,8 @@ def model_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_
         m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
 
     with tf.name_scope('summary'):
-        merged = tf.summary.merge([m_loss, m_acc, grad_sum])  #fixme: withdraw summary of imgs for resource reason
+        merged = tf.summary.merge([m_loss, m_acc, grad_sum])
+
     return {
         'y_pred': logits,
         'train_op': train_op,

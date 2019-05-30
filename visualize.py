@@ -4,38 +4,42 @@ from util import print_nodes_name_shape, print_nodes_name
 from writer import _resultWriter
 import h5py as h5
 import os
+import warnings
 
 if os.name == 'posix':  #to fix MAC openMP bug
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 def convert_ckpt2pb(input=None, ckpt_path='./dummy/ckpt/step5/ckpt', pb_path='./dummy/pb/test.pb', conserve_nodes=None):
-    restorer = tf.train.import_meta_graph(
-        ckpt_path + '.meta',
-        input_map={
-            'input_pipeline/input_cond/Merge_1': input
-        },
-        clear_devices=True
-    )
-
-    input_graph = tf.get_default_graph()
-    input_graph_def = input_graph.as_graph_def()
-
-    # freeze to pb
-    with tf.Session() as sess:
-        restorer.restore(sess, ckpt_path)
-        # print_nodes_name_shape(sess.graph)
-        # tf.summary.FileWriter('./dummy/tensorboard/before_cut', sess.graph)
-        output_graph_def = tf.graph_util.convert_variables_to_constants(
-            sess=sess,  #note: variables are always in a session
-            input_graph_def=input_graph_def,
-            output_node_names=conserve_nodes,
+    if os.path.exists(pb_path):
+        restorer = tf.train.import_meta_graph(
+            ckpt_path + '.meta',
+            input_map={
+                'input_pipeline/input_cond/Merge_1': input
+            },
+            clear_devices=True
         )
-        # print_nodes_name_shape(sess.graph)
 
-        # write pb
-        with tf.gfile.GFile(pb_path, 'wb') as f:  #'wb' stands for write binary
-            f.write(output_graph_def.SerializeToString())
+        input_graph = tf.get_default_graph()
+        input_graph_def = input_graph.as_graph_def()
+
+        # freeze to pb
+        with tf.Session() as sess:
+            restorer.restore(sess, ckpt_path)
+            # print_nodes_name_shape(sess.graph)
+            # tf.summary.FileWriter('./dummy/tensorboard/before_cut', sess.graph)
+            output_graph_def = tf.graph_util.convert_variables_to_constants(
+                sess=sess,  #note: variables are always in a session
+                input_graph_def=input_graph_def,
+                output_node_names=conserve_nodes,
+            )
+            # print_nodes_name_shape(sess.graph)
+
+            # write pb
+            with tf.gfile.GFile(pb_path, 'wb') as f:  #'wb' stands for write binary
+                f.write(output_graph_def.SerializeToString())
+    else:
+        warnings.warn('pb file exists already!')
 
 
 # build different block

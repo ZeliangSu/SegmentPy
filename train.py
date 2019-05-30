@@ -3,6 +3,7 @@ from tqdm import tqdm
 import os
 from tensorflow.python.client import timeline
 
+
 def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None, mode='dev'):
     # begin session
     config_params = {}
