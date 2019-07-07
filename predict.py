@@ -76,7 +76,7 @@ def predict(patch_size, batch_size, predict_dir, res_dir):
                 # stride img to np ndarray
                 patches = _stride(img, 1, patch_size)
                 feed_dict = {
-                    new_input: patches[0].reshape(batch_size, patch_size, patch_size, 1),
+                    new_input: patches[:batch_size].reshape(batch_size, patch_size, patch_size, 1),
                     dropout_input: 1.0,
                 }
                 res = sess.run([ops_dict['ops']], feed_dict=feed_dict)
@@ -84,7 +84,7 @@ def predict(patch_size, batch_size, predict_dir, res_dir):
                 for j in range(1, patches.shape[0]):  #fixme: last batch don't drop the rest
                     # run inference
                     feed_dict = {
-                        new_input: patches[j].reshape(batch_size, patch_size, patch_size, 1),
+                        new_input: patches[j * batch_size : (j + 1) * batch_size].reshape(batch_size, patch_size, patch_size, 1),
                         dropout_input: 1.0,
                     }
                     res = np.vstack((sess.run([ops_dict['ops']], feed_dict=feed_dict), res))
