@@ -4,12 +4,35 @@ from random import choice
 
 
 def random_aug(X_img, y_img):
+    """
+    input:
+    -------
+    X_img: (np.ndarray) image to augment
+    y_img: (np.ndarray) image to augment
+
+    return:
+    -------
+    X_img: (np.ndarray) augmented input image
+    y_img: (np.ndarray) same output image
+    """
     fns = [gaussian_noise, flipping, sp_noise, speckle_noise]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
     return X_img, y_img
 
 
 def gaussian_noise(X_img, y_img, sigma=0.1):
+    """
+    input:
+    -------
+    X_img: (np.ndarray) image to augment
+    y_img: (np.ndarray) image to augment
+    sigma: (float) normal distribution parameter
+
+    return:
+    -------
+    X_img: (np.ndarray) gaussian noise added input image
+    y_img: (np.ndarray) same output image
+    """
     mu = np.mean(X_img)
     noise = np.random.normal(mu, sigma, size=X_img.shape)
     X_img += noise
@@ -17,6 +40,17 @@ def gaussian_noise(X_img, y_img, sigma=0.1):
 
 
 def flipping(X_img, y_img):
+    """
+    input:
+    -------
+        X_img: (np.ndarray) image to augment
+        y_img: (np.ndarray) image to augment
+
+    return:
+    -------
+        X_img: (np.ndarray) flipped input image
+        y_img: (np.ndarray) same output image
+    """
     choice = np.random.choice(['ud', 'lr'])
     if choice == np.array(['ud']):
         X_img, y_img = np.flipud(X_img), np.flipud(y_img)
@@ -28,6 +62,18 @@ def flipping(X_img, y_img):
 
 
 def sp_noise(X_img, y_img, amount=0.005):
+    """
+    input:
+    -------
+        X_img: (np.ndarray) image to augment
+        y_img: (np.ndarray) image to augment
+        amount: (float) probability of adding an S&P noise
+
+    return:
+    -------
+        X_img: (np.ndarray) salt&pepper noise added input image
+        y_img: (np.ndarray) same output image
+    """
     salt = np.max(X_img)
     pepper = np.min(X_img)
     nb = np.ceil(amount * X_img.size * 0.5)
@@ -41,6 +87,17 @@ def sp_noise(X_img, y_img, amount=0.005):
 
 
 def speckle_noise(X_img, y_img):
+    """
+    input:
+    -------
+        X_img: (np.ndarray) image to augment
+        y_img: (np.ndarray) image to augment
+
+    return:
+    -------
+        X_img: (np.ndarray) speckle noise added input image
+        y_img: (np.ndarray) same output image
+    """
     weighting = np.random.randn(X_img.shape)
     X_img = X_img + X_img * weighting
     return X_img, y_img

@@ -6,8 +6,22 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+
 # t-SNE on activation
 def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix='step0'):
+    """
+    inputs:
+    -------
+        embedded_tensor: (numpy ndarray)
+        labels: (numpy ndarray?)
+        figsize: (tuple of int)
+        zoom: (int)
+        suffix: (str)
+
+    return:
+    -------
+        None
+    """
     assert embedded_tensor.shape[0] >= len(labels), 'You should have embeddings then labels'
     fig, ax = plt.subplot(figsize=figsize)
     artists = []
@@ -26,6 +40,18 @@ def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix
 
 # t-SNE on kernel weights
 def tsne_on_weights(embedded_tensor, labels, figsize=(90, 90), suffix='step0'):
+    """
+    inputs:
+    -------
+        embedded_tensor: (numpy ndarray)
+        labels: (numpy ndarray?)
+        figsize: (tuple of int)
+        suffix: (str)
+
+    return:
+    -------
+        None
+    """
     assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
     plt.figure(figsize=figsize)
     for i, label in enumerate(labels):
@@ -47,6 +73,19 @@ def tsne_on_weights(embedded_tensor, labels, figsize=(90, 90), suffix='step0'):
 
 # t-SNE on kernel weights
 def tsne_on_weights_bis(embedded_tensor, labels, grps, figsize=(90, 90), suffix='step0'):
+    """
+    inputs:
+    -------
+        embedded_tensor: (numpy ndarray)
+        labels: (numpy ndarray?)
+        grps: (pandas column)
+        figsize: (tuple of int)
+        suffix: (str)
+
+    return:
+    -------
+        None
+    """
     assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
     plt.figure(figsize=figsize)
     df = pd.DataFrame(zip(embedded_tensor[:, 0], embedded_tensor[:, 1], labels, grps))
@@ -82,7 +121,18 @@ def tsne_on_weights_bis(embedded_tensor, labels, grps, figsize=(90, 90), suffix=
     )
 
 
-def tsne_on_weights_pandas(embedded_tensor, labels, grps, figsize=(90, 90), suffix='step0'):
+def tsne_on_weights_pandas(embedded_tensor, labels, figsize=(90, 90), suffix='step0'):
+    """
+    inputs:
+    -------
+        embedded_tensor: (numpy ndarray)
+        labels: (numpy ndarray?)
+        figsize: (tuple of int)
+        suffix: (str)
+
+    return:
+    -------
+    """
     assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
     plt.figure(figsize=figsize)
     for i, label in enumerate(labels):
@@ -101,12 +151,25 @@ def tsne_on_weights_pandas(embedded_tensor, labels, grps, figsize=(90, 90), suff
         dpi=50  # 2048 pixel divided by 45 = 45
     )
 
+
 def tsne_paper():
     # https://cs.nyu.edu/~fergus/papers/zeilerECCV2014.pdf
     raise NotImplementedError('Please refer to Zeiler et al. 2014')
 
 
 def tsne(tensor, perplexity=30, niter=5000, mode='2D'):
+    """
+    inputs:
+    -------
+        tensor: (numpy ndarray)
+        perplexity: (int)
+        niter: (int)
+        mode: (str)
+
+    return:
+    -------
+        res: (numpy ndarray) reduced n-dimensions array
+    """
     if mode == '2D' or 'sklearn':
         t_sne = TSNE(perplexity=perplexity, n_components=2, init='pca', n_iter=niter)
         res = t_sne.fit_transform(tensor)

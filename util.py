@@ -3,7 +3,14 @@ from tensorflow.core.framework import graph_pb2
 
 
 def print_nodes_name(graph):
-    '''input: (tf.Graph() or tf.GraphDef())'''
+    """
+    input:
+    -------
+        graph: (tf.Graph() or tf.GraphDef()) graph in which prints only the nodes' name
+    return:
+    -------
+        None
+    """
     if isinstance(graph, graph_pb2.GraphDef):
         for n in graph.node:
             print(n.name)
@@ -13,7 +20,14 @@ def print_nodes_name(graph):
 
 
 def print_nodes_name_shape(graph):
-    '''input: (tf.Graph()) or tf.GraphDef())'''
+    """
+    input:
+    -------
+        graph: (tf.Graph()) or tf.GraphDef()) graph in which prints the nodes' name and their shapes
+    return:
+    -------
+        None
+    """
     # fixme: enlarge to GraphDef
     if isinstance(graph, graph_pb2.GraphDef):
         # convert GraphDef to Graph
@@ -26,6 +40,21 @@ def print_nodes_name_shape(graph):
 
 
 def get_all_trainable_variables(metagraph_path):
+    """
+    input:
+    -------
+        metagraph_path: (string) indicate the path to find the metagraph of saved model
+    return:
+    -------
+        wn: (list of string) list of names of weights for all convolution and deconvolution layers
+        bn: (list of string) list of names of bias for all convolution and deconvolution layers
+        ws: (list of np.ndarray) list of weight matrices for all convolution and deconvolution layers
+        bs: (list of np.ndarray) list of bias matrices for all convolution and deconvolution layers
+        dnn_wn: (list of string) list of names of weights for all fully connected layers
+        dnn_bn: (list of string) list of names of bias for all fully connected layers
+        dnn_ws: (list of np.ndarray) list of weight matrices for all fully connected layers
+        dnn_bs:(list of np.ndarray) list of bias matrices for all fully connected layers
+    """
     restorer = tf.train.import_meta_graph(
         metagraph_path + '.meta',
         clear_devices=True

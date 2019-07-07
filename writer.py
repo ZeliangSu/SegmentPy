@@ -5,6 +5,7 @@ import multiprocessing as mp
 from PIL import Image
 import os
 
+
 def _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='onefile'):
     patch_shape = (patch_size, patch_size)
     # fill last .h5
@@ -19,6 +20,7 @@ def _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_s
     else:
         raise ValueError("Please choose a mode from h5, csv or tfrecord!")
 
+
 def _h5Writer_V2(X_patches, y_patches, outdir, patch_size):
     import os
     if not os.path.exists(outdir):
@@ -30,10 +32,12 @@ def _h5Writer_V2(X_patches, y_patches, outdir, patch_size):
     with mp.Pool(processes=mp.cpu_count()) as pool:
         pool.starmap(_writer_V2, ((X_patches[i], y_patches[i], outdir, i, patch_size) for i in range(X_patches.shape[0])))
 
+
 def _writer_V2(X, y, outdir, name, patch_size):
     with h5py.File('{}{}/{}.h5'.format(outdir, patch_size, name), 'w') as f:
         f.create_dataset('X', (patch_size, patch_size), dtype='float32', data=X)
         f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
+
 
 def _csvs_writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId,):
     print('This will generate {} .csv in /proc/ directory'.format(id_length))
@@ -61,6 +65,7 @@ def _csvs_writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batc
                     np.savetxt(f, X_patches[-mod:].ravel(), delimiter=',')
                 with open(outdir + 'y{}_{}_{}.csv'.format(patch_size, batch_size, id), 'wb') as f:
                     np.savetxt(f, y_patches[-mod:].ravel(), delimiter=',')
+
 
 def _h5s_writer(X_patches, y_patches, patch_shape, id_length, rest, outdir, patch_size, batch_size, maxId,):
     print('This will generate {} .h5 in /proc/ directory'.format(id_length))
@@ -104,6 +109,7 @@ def _h5s_writer(X_patches, y_patches, patch_shape, id_length, rest, outdir, patc
                                          dtype='int8')
                     y[mod:] = y_patches[-mod:]
 
+
 def _h5_writer(X_patches, y_patches, patch_shape, outdir, patch_size):
     try:
         with h5py.File(outdir + '{}.h5'.format(patch_size), 'a') as f:
@@ -125,15 +131,18 @@ def _h5_writer(X_patches, y_patches, patch_shape, outdir, patch_size):
             y[:] = y_patches[:y_patches.shape[0], ]
         print('\n***Created new .h5')
 
+
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
     if not isinstance(value, list):
         value = [value]
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
+
 def _bytes_feature(value):
     """Wrapper for inserting bytes features into Example proto."""
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
 
 def _tfrecordWriter(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId):
     #TODO: the tf.io.TFRecordWriter cannot do yet append in tensorflow V1.12, so can only write the multiple

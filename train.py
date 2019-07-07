@@ -5,6 +5,21 @@ from tensorflow.python.client import timeline
 
 
 def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None, mode='dev'):
+    """
+    input:
+    -------
+        nodes: (tf.Graph?) model to train
+        train_inputs: (tf.Iterator?) input of the trainning set inputpipeline
+        test_inputs: (tf.Iterator?) input of the testing set inputpipeline
+        hyperparams: (dictionary) dictionary that regroup all params
+        save_step: (int) every such steps, save the weights, bias of the model
+        device_option: (string) allow to choose on which GPU run the trainning or only on cpu
+        e.g. 'specific_gpu:2' will run training on 3th gpu || 'cpu' will run only on cpu || None run on the 1st GPU
+        mode: #TODO: running this mode will save CPU/GPU profiling into a .jason file. One can use Google Chrome to visualize the timeline occupancy of cpu and gpu
+    return:
+    -------
+        None
+    """
     # begin session
     config_params = {}
     if device_option == 'cpu':

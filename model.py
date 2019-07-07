@@ -4,6 +4,30 @@ up_2by2, concat, optimizer, loss_fn,  metrics
 
 
 def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
+    """
+    xlearn segmentation convolutional neural net model with summary
+
+    input:
+    -------
+        train_inputs: (tf.iterator?)
+        test_inputs: (tf.iterator?)
+        patch_size: (int) height and width (here we assume the same length for both)
+        batch_size: (int) number of images per batch (average the gradient within a batch,
+        the weights and bias upgrade after one batch)
+        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
+        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
+        learning_rate: (float) learning rate for the optimizer
+    return:
+    -------
+    (dictionary) dictionary of nodes in the conv net
+        'y_pred': output of the neural net,
+        'train_op': node of the trainning operation, once called, it will update weights and bias,
+        'drop': dropout layers' probability parameters,
+        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
+        'train_or_test': switch button for a training/testing input pipeline,
+        'loss_update_op': node of updating loss function summary,
+        'acc_update_op': node of updating accuracy summary
+    """
     training_type = tf.placeholder(tf.string, name='training_type')
     drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 
@@ -87,7 +111,34 @@ def model(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv,
         'acc_update_op': acc_up_op
     }
 
+
 def model_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
+    """
+    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
+    saved in
+
+    input:
+    -------
+        train_inputs: (tf.iterator?)
+        test_inputs: (tf.iterator?)
+        patch_size: (int) height and width (here we assume the same length for both)
+        batch_size: (int) number of images per batch (average the gradient within a batch,
+        the weights and bias upgrade after one batch)
+        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
+        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
+        learning_rate: (float) learning rate for the optimizer
+    return:
+    -------
+    (dictionary) dictionary of nodes in the conv net
+        'y_pred': output of the neural net,
+        'train_op': node of the trainning operation, once called, it will update weights and bias,
+        'drop': dropout layers' probability parameters,
+        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
+        which lighten GPU resource occupancy,
+        'train_or_test': switch button for a training/testing input pipeline,
+        'loss_update_op': node of updating loss function summary,
+        'acc_update_op': node of updating accuracy summary
+    """
     training_type = tf.placeholder(tf.string, name='training_type')
     drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 

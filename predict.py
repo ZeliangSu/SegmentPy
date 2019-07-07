@@ -9,6 +9,17 @@ import os
 
 
 def reconstruct(stack, image_size, step):
+    """
+    inputs:
+    -------
+        stack: (np.ndarray) stack of patches to reconstruct
+        image_size: (tuple | list) height and width for the final reconstructed image
+        step: (int) herein should be the SAME stride step that one used for preprocess
+    return:
+    -------
+        img: (np.ndarray) final reconstructed image
+        nb_patches: (int) number of patches need to provide to this function
+    """
     i_h, i_w = image_size[:2]
     p_h, p_w = stack.shape[1:3]
     img = np.zeros(image_size)
@@ -27,60 +38,77 @@ def reconstruct(stack, image_size, step):
                                min(j + step, p_w, i_w - j))
     return img, nb_patches
 
-# params
-patch_size = 72
-batch_size = 200
 
-# predict path
-predict_dir = './raw'
-result_dir = './result/pred/'
-list_fname = []
-for dirpath, _, fnames in os.walk(predict_dir):
-    for fname in fnames:
-        list_fname.append(os.path.abspath(os.path.join(dirpath, fname)))
+def predict(patch_size, batch_size, predict_dir, res_dir):
+    """
+    inputs:
+    -------
+        patch_size: (int)
+        batch_size: (int)
+        predict_dir: (str)
+        res_dir: (str)
+    return:
+    -------
+        None
+    """
+    # determine nodes to conserve and new
+    new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
+    conserve_nodes = [
+                'model/decoder/deconv8bisbis/relu',
+            ]
+    pb_path ='./dummy/pb/test.pb'
 
-# determine nodes to conserve and new
-new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
-conserve_nodes = [
-            'model/decoder/deconv8bisbis/relu',
-        ]
-pb_path ='./dummy/pb/test.pb'
+    # freeze graph to pb
+    convert_ckpt2pb(input=new_ph, conserve_nodes=conserve_nodes, pb_path=pb_path)
 
-# freeze graph to pb
-convert_ckpt2pb(input=new_ph, conserve_nodes=conserve_nodes, pb_path=pb_path)
+    # load graph
+    g_main, ops_dict = load_mainGraph(conserve_nodes, path=pb_path)
 
-# load graph
-g_main, ops_dict = load_mainGraph(conserve_nodes, path=pb_path)
+    # run node and stack results
+    with g_main.as_default() as g_main:
+        new_input = g_main.get_tensor_by_name('new_ph:0')
+        dropout_input = g_main.get_tensor_by_name('input_pipeline/dropout_prob:0')
 
-# stride img to np ndarray
+        with tf.Session(graph=g_main) as sess:
+            for i, img_fname in tqdm(enumerate(list_fname), desc='nth image prediction'):
+                img = np.array(Image.open(img_fname))
 
-
-# run node and stack results
-with g_main.as_default() as g_main:
-    new_input = g_main.get_tensor_by_name('new_ph:0')
-    dropout_input = g_main.get_tensor_by_name('input_pipeline/dropout_prob:0')
-
-    with tf.Session(graph=g_main) as sess:
-        for i, img_fname in tqdm(enumerate(list_fname), desc='nth image prediction'):
-            img = np.array(Image.open(img_fname))
-            patches = _stride(img, 1, patch_size)
-            feed_dict = {
-                new_input: patches[0].reshape(batch_size, patch_size, patch_size, 1),
-                dropout_input: 1.0,
-            }
-            res = sess.run([ops_dict['ops']], feed_dict=feed_dict)
-
-            for j in range(1, patches.shape[0]):  #fixme: last batch don't drop the rest
-                # run inference
+                # stride img to np ndarray
+                patches = _stride(img, 1, patch_size)
                 feed_dict = {
-                    new_input: patches[j].reshape(batch_size, patch_size, patch_size, 1),
+                    new_input: patches[0].reshape(batch_size, patch_size, patch_size, 1),
                     dropout_input: 1.0,
                 }
-                res = np.vstack((sess.run([ops_dict['ops']], feed_dict=feed_dict), res))
+                res = sess.run([ops_dict['ops']], feed_dict=feed_dict)
 
-            # reconstruct to tiff
-            recon = reconstruct(res, img.shape, step=1)
+                for j in range(1, patches.shape[0]):  #fixme: last batch don't drop the rest
+                    # run inference
+                    feed_dict = {
+                        new_input: patches[j].reshape(batch_size, patch_size, patch_size, 1),
+                        dropout_input: 1.0,
+                    }
+                    res = np.vstack((sess.run([ops_dict['ops']], feed_dict=feed_dict), res))
 
-            # write tiff
-            Image.fromarray(recon).save(result_dir + 'predict_{}.tif'.format(i))
+                # reconstruct to tiff
+                recon, _ = reconstruct(res, img.shape, step=1)
+
+                # write tiff
+                Image.fromarray(recon).save(result_dir + 'predict_{}.tif'.format(i))
+
+
+if __name__ == '__main__':
+    # params
+    patch_size = 72
+    batch_size = 200
+
+    # predict path
+    predict_dir = './raw'
+    result_dir = './result/pred/'
+    list_fname = []
+    for dirpath, _, fnames in os.walk(predict_dir):
+        for fname in fnames:
+            list_fname.append(os.path.abspath(os.path.join(dirpath, fname)))
+
+    # predict
+    predict(patch_size, batch_size, predict_dir, result_dir)
 

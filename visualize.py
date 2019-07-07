@@ -11,6 +11,17 @@ if os.name == 'posix':  #to fix MAC openMP bug
 
 
 def convert_ckpt2pb(input=None, ckpt_path='./dummy/ckpt/step5/ckpt', pb_path='./dummy/pb/test.pb', conserve_nodes=None):
+    """
+    inputs:
+    -------
+        input: (input pipeline of tf.Graph())
+        ckpt_path: (str)
+        pb_path: (str)
+        conserve_nodes: (list of string)
+
+    return:
+    -------
+    """
     if os.path.exists(pb_path):
         restorer = tf.train.import_meta_graph(
             ckpt_path + '.meta',
@@ -44,6 +55,15 @@ def convert_ckpt2pb(input=None, ckpt_path='./dummy/ckpt/step5/ckpt', pb_path='./
 
 # build different block
 def built_diff_block(patch_size=72):
+    """
+    inputs:
+    -------
+        patch_size: (int) 
+
+    return:
+    -------
+        g_diff_def: (tf.graphdef())
+    """
     # diff node new graph
     with tf.Graph().as_default() as g_diff:
         with tf.name_scope('diff_block'):
@@ -71,6 +91,18 @@ def built_diff_block(patch_size=72):
 
 
 def join_diff_to_mainGraph(g_diff_def, conserve_nodes, path='./dummy/pb/test.pb'):
+    """
+    inputs:
+    -------
+        g_diff_def: (tf.graphdef())
+        conserve_nodes: (list of string)
+        path: (str)
+
+    return:
+    -------
+        g_combined: (tf.Graph())
+        ops_dict: (dictionary of operations)
+    """
     # load main graph pb
     with tf.gfile.GFile(path, mode='rb') as f:
         # init GraphDef()
@@ -104,6 +136,17 @@ def join_diff_to_mainGraph(g_diff_def, conserve_nodes, path='./dummy/pb/test.pb'
 
 
 def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
+    """
+    inputs:
+    -------
+        conserve_nodes: (list of string)
+        path: (str)
+
+    return:
+    -------
+        g_main: (tf.Graph())
+        ops_dict: (dictionary of operations)
+    """
     # import graph def
     with tf.gfile.GFile(path, mode='rb') as f:
         # init GraphDef()
@@ -127,6 +170,19 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
 
 
 def run_nodes_and_save_partial_res(g_combined, ops_dict, conserve_nodes):
+    """
+    
+    Parameters
+    ----------
+    g_combined: (tf.Graph())
+    ops_dict: (list of operations)
+    conserve_nodes: (list of string)
+
+    Returns
+    -------
+        None
+
+    """
     with g_combined.as_default() as g_combined:
         new_input = g_combined.get_tensor_by_name('new_ph:0')
         dropout_input = g_combined.get_tensor_by_name('input_pipeline/dropout_prob:0')

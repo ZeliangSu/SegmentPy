@@ -7,19 +7,18 @@ from augmentation import random_aug
 
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
-    '''
+    """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
     input:
     -------
-    patch_size: (int) pixel length of one small sampling window (patch)
-    batch_size: (int) number of images per batch before update parameters
+        batch_size: (int) number of images per batch before update parameters
 
     output:
     -------
-    inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
-    initialization operation
-    '''
+        inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
+        initialization operation
+    """
 
     warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
 
@@ -58,15 +57,15 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
 
 
 def _pyfn_parser_wrapper(fname, patch_size):
-    '''
+    """
     input:
     -------
-    filename: (tf.data.Dataset)  Tensors of strings
+        filename: (tf.data.Dataset)  Tensors of strings
 
     output:
     -------
-    function: (function) tensorflow's pythonic function with its arguements
-    '''
+        function: (function) tensorflow's pythonic function with its arguements
+    """
     return tf.py_func(parse_h5,  #wrapped pythonic function
                       [fname, patch_size],
                       [tf.float32, tf.float32]  #[output, output] dtype
@@ -74,15 +73,15 @@ def _pyfn_parser_wrapper(fname, patch_size):
 
 
 def _pyfn_aug_wrapper(X_img, y_img):
-    '''
+    """
     input:
     -------
-    filename: (tf.data.Dataset)  Tensors of strings
+        filename: (tf.data.Dataset)  Tensors of strings
 
     output:
     -------
-    function: (function) tensorflow's pythonic function with its arguements
-    '''
+        function: (function) tensorflow's pythonic function with its arguements
+    """
     return tf.py_func(random_aug,
                       [X_img, y_img],
                       [tf.float32, tf.float32]  #[output, output] dtype
@@ -90,18 +89,18 @@ def _pyfn_aug_wrapper(X_img, y_img):
 
 
 def parse_h5(fname, patch_size):
-    '''
+    """
     parser that return the input images and  output labels
 
     input:
     -------
-    name: (bytes literal) file name
+        name: (bytes literal) file name
 
     output:
     -------
-    X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
-    y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
-    '''
+        X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
+        y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
+    """
 
     with h5py.File(fname.decode('utf-8'), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
@@ -110,18 +109,18 @@ def parse_h5(fname, patch_size):
 
 
 def _minmaxscalar(ndarray, dtype=np.float32):
-    '''
+    """
     func normalize values of a ndarray into interval of 0 to 1
 
     input:
     -------
-    ndarray: (numpy ndarray) input array to be normalized
-    dtype: (dtype of numpy) data type of the output of this function
+        ndarray: (numpy ndarray) input array to be normalized
+        dtype: (dtype of numpy) data type of the output of this function
 
     output:
     -------
-    scaled: (numpy ndarray) output normalized array
-    '''
+        scaled: (numpy ndarray) output normalized array
+    """
     scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
     return scaled
 

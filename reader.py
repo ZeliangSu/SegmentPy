@@ -3,9 +3,10 @@ import os
 import numpy as np
 import tensorflow as tf
 
-def _tifReader(dir):
+
+def _tifReader(path):
     l_X = []
-    for dirpath, _, fnames in os.walk(dir):
+    for dirpath, _, fnames in os.walk(path):
         for fname in fnames:
             if 'label' not in fname:
                 l_X.append(os.path.abspath(os.path.join(dirpath, fname)))
@@ -24,6 +25,7 @@ def _tifReader(dir):
         shapes.append(X_img.shape)
     return X_stack, y_stack, shapes #lists
 
+
 def tfrecordReader(filename_queue):
     reader = tf.TFRecordReader()
     _, serialized_example = reader.read(filename_queue)
@@ -37,3 +39,4 @@ def tfrecordReader(filename_queue):
     X = tf.decode_raw(img_features['X'], tf.float32)
     y = tf.decode_raw(img_features['y'], tf.float32)
     return X, y
+

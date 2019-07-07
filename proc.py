@@ -8,9 +8,21 @@ from writer import _h5Writer, _tfrecordWriter, _h5Writer_V2
 from reader import _tifReader
 
 
-
-
 def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True, traintest_split_rate=0.9):
+    """
+    input:
+    -------
+        indir: (string)
+        stride: (int) step of pixel
+        patch_size: (int) height and width of
+        mode: (string) file type of to save the preprocessed images. #TODO: .csv .tiff
+        shuffle: (boolean) if True, preprocessed images will be shuffled before saving
+        evaluate: (boolean) if True, preprocessed images will be saved into two directories for training set and test set
+        traintest_split_rate: (float) the ratio for splitting trainning/test set
+    return:
+    -------
+        None
+    """
     # import data
     X_stack, y_stack, _ = _tifReader(indir)
     outdir = './proc/'
@@ -55,12 +67,32 @@ def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True
 
 
 def _shuffle(tensor_a, tensor_b, random_state=42):
+    """
+    input:
+    -------
+        tensor_a: (np.ndarray) input tensor
+        tensor_b: (np.ndarray) input tensor
+    return:
+    -------
+        tensor_a: (np.ndarray) shuffled tensor_a at the same way as tensor_b
+        tensor_b: (np.ndarray) shuffled tensor_b at the same way as tensor_a
+    """
     # shuffle two tensors in unison
     idx = np.random.permutation(tensor_a.shape[0]) #artifacts
     return tensor_a[idx], tensor_b[idx]
 
 
 def _stride(tensor, stride, patch_size):
+    """
+    input:
+    -------
+        tensor: (np.ndarray) images to stride
+        stride: (int) pixel step that the window of patch jump for sampling
+        patch_size: (int) height and weight (here we assume the same) of the sampling image
+    return:
+    -------
+        patches: (np.ndarray) strided and restacked patches
+    """
     p_h = (tensor.shape[0] - patch_size) // stride + 1
     p_w = (tensor.shape[1] - patch_size) // stride + 1
     # (4bytes * step * dim0, 4bytes * step, 4bytes * dim0, 4bytes)
@@ -71,11 +103,22 @@ def _stride(tensor, stride, patch_size):
     return patches
 
 
-def _idParser(dir, patch_size, batch_size, mode='h5'):
+def _idParser(directory, patch_size, batch_size, mode='h5'):
+    """
+    input:
+    -------
+        directory: (string) path to be parsed
+        patch_size: (int) height and weight (here we assume the same)
+        batch_size: (int) number of images per batch
+        mode: (string) file type to be parsed
+    return:
+    -------
+        None
+    """
     l_f = []
     max_id = 0
     # check if the .h5 with the same patch_size and batch_size exist
-    for dirpath, _, fnames in os.walk(dir):
+    for dirpath, _, fnames in os.walk(directory):
         for fname in fnames:
             if fname.split('_')[0] == patch_size and fname.split('_')[1] == batch_size and fname.endswith(mode):
                 l_f.append(os.path.abspath(os.path.join(dirpath, fname)))
@@ -83,14 +126,14 @@ def _idParser(dir, patch_size, batch_size, mode='h5'):
 
     if mode == 'h5':
         try:
-            with h5py.File(dir + '{}.'.format(patch_size) + mode, 'r') as f:
+            with h5py.File(directory + '{}.'.format(patch_size) + mode, 'r') as f:
                 rest = batch_size - f['X'].shape[0]
                 return max_id, rest
         except:
             return 0, 0
     elif mode == 'csv':
         try:
-            with open(dir + '{}_{}_{}.csv'.format(patch_size, batch_size, max_id) + mode, 'r') as f:
+            with open(directory + '{}_{}_{}.csv'.format(patch_size, batch_size, max_id) + mode, 'r') as f:
                 rest = batch_size - f['X'].shape[0]
                 return max_id, rest
         except:

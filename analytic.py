@@ -7,8 +7,15 @@ from tsne import tsne, tsne_on_weights, tsne_on_weights_bis
 from visualize import convert_ckpt2pb, built_diff_block, join_diff_to_mainGraph, run_nodes_and_save_partial_res
 
 
-
 def tsne_partialRes_weights(*args, **kwargs):
+    """
+    input:
+    -------
+        None
+    return:
+    -------
+        None
+    """
     # load ckpt
     new_ph = tf.placeholder(tf.float32, shape=[200, 72, 72, 1], name='new_ph')
 
@@ -75,25 +82,34 @@ def tsne_partialRes_weights(*args, **kwargs):
     tsne_on_weights_bis(res, new_wn, grps)
 
 
-def weights_hists_2csv():
-    pass
+def weights_hists_2excel(path='./dummy/ckpt/'):
+    """
+    inputs:
+    -------
+        path: (string) path to get the checkpoint
+    return:
+    -------
+        None
+    """
+
+    # note
+    # construct dataframe
+    # header sheet_name conv1: [step0, step20, ...]
+    # header sheet_name conv1bis: [step0, step20, ...]
+    for step in os.listdir(path):
+        # get weights-bias names and values
+        wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables('./dummy/ckpt/' + step + '/ckpt')
+
+        # construct a dict of key: layer_name, value: flattened kernels
+        dfs = {sheet_name.split(':')[0].replace('/', '_'): pd.DataFrame({step: params.flatten()})
+               for sheet_name, params in zip(wn + bn + dnn_wn + dnn_bn, ws + bs + dnn_ws + dnn_bs)}
+
+        # write into excel
+        with pd.ExcelWriter('./result/params.xlsx', engine='xlsxwriter') as writer:
+            for sheet_name in dfs.keys():
+                dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-#note
-# construct dataframe
-# header sheet_name conv1: [step0, step20, ...]
-# header sheet_name conv1bis: [step0, step20, ...]
-for step in os.listdir('./dummy/ckpt/'):
-    # get weights-bias names and values
-    wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables('./dummy/ckpt/' + step + '/ckpt')
-
-    # construct a dict of key: layer_name, value: flattened kernels
-    dfs = {sheet_name.split(':')[0].replace('/', '_'): pd.DataFrame({step: params.flatten()})
-           for sheet_name, params in zip(wn + bn + dnn_wn + dnn_bn, ws + bs + dnn_ws + dnn_bs)}
-
-    # write into excel
-    with pd.ExcelWriter('./result/params.xlsx', engine='xlsxwriter') as writer:
-        for sheet_name in dfs.keys():
-            dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
-
-
+if __name__ == '__main__':
+    tsne_partialRes_weights()
+    weights_hists_2excel()
