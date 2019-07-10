@@ -27,7 +27,7 @@ def convert_ckpt2pb(input=None, ckpt_path='./dummy/ckpt/step5/ckpt', pb_path='./
         restorer = tf.train.import_meta_graph(
             ckpt_path + '.meta',
             input_map={
-                'input_pipeline/input_cond/Merge_1': input
+                'input_pipeline/input_cond/Merge_1': tf.convert_to_tensor(input),
             },
             clear_devices=True
         )

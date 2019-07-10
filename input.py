@@ -85,8 +85,8 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
             # dict
             inputs = {'batch': X_it,
                       'iterator_init_op': iter_init_op,
-                      #'fnames_ph': fnames_ph,
-                      #'ps_ph': patch_size_ph,
+                      'fnames_ph': fnames_ph,
+                      'ps_ph': patch_size_ph,
                       }
 
     return inputs

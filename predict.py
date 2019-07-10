@@ -11,6 +11,46 @@ import os
 import timeit
 
 
+def greff_pipeline_to_mainGraph(pipeline, path='./dummy/pb/test.pb'):
+    """
+    inputs:
+    -------
+        g_diff_def: (tf.graphdef())
+        conserve_nodes: (list of string)
+        path: (str)
+
+    return:
+    -------
+        g_combined: (tf.Graph())
+        ops_dict: (dictionary of operations)
+    """
+    # load main graph pb
+    with tf.gfile.GFile(path, mode='rb') as f:
+        # init GraphDef()
+        restored_graph_def = tf.GraphDef()
+        # parse saved .pb to GraphDef()
+        restored_graph_def.ParseFromString(f.read())
+
+    with tf.Graph().as_default() as g_combined:
+        # join pipeline to main graph
+        pred = tf.import_graph_def(
+            graph_def=restored_graph_def,
+            input_map={
+                'input_pipeline/input_cond/Merge_1':tf.convert_to_tensor(pipeline),
+            },
+            return_elements=['model/decoder/deconv8bisbis/relu:0'],
+            name=''  #note: '' so that won't have import/ prefix
+        )
+
+
+        # prepare feed_dict for inference
+        ops_dict = {
+            'pred': g_combined.get_tensor_by_name('model/decoder/deconv8bisbis/relu:0'),
+        }
+
+        return g_combined, ops_dict
+
+
 def reconstruct(stack, image_size, step):
     """
     inputs:
@@ -124,26 +164,30 @@ def predict_tfDataset(patch_size, batch_size, list_fname, res_dir, pb_path='./du
     # determine nodes to conserve and new
     inputs = inputpipeline(batch_size, suffix='inference')
     conserve_nodes = [
+                'input_pipeline / input_cond / Merge_1',
                 'model/decoder/deconv8bisbis/relu',
             ]
 
     # join new pipeline and model / freeze graph to pb
-    convert_ckpt2pb(input=tf.convert_to_tensor(inputs['batch']), conserve_nodes=conserve_nodes, pb_path=pb_path)
+    convert_ckpt2pb(conserve_nodes=conserve_nodes, pb_path=pb_path)
 
     # load graph
     g_main, ops_dict = load_mainGraph(conserve_nodes, path=pb_path)
 
+    # join pipeline to main graph
+    g_combined, opts = greff_pipeline_to_mainGraph(inputs['batch'], path=pb_path)
+
     # run node and stack results
-    with g_main.as_default() as g_main:
+    with g_combined.as_default() as g_combined:
         # print nodes name
-        print_nodes_name(g_main)
+        print_nodes_name(g_combined)
 
         # feed dropout ph
-        dropout_input = g_main.get_tensor_by_name('input_pipeline/dropout_prob:0')  #??
-        img_fname_ph = g_main.get_tensor_by_name('input_pipeline/fnames_ph:0')  #??
-        patch_size_ph = g_main.get_tensor_by_name('input_pipeline/patch_size_ph:0')
+        dropout_input = g_combined.get_tensor_by_name('input_pipeline_inference/dropout_prob:0')  #??
+        img_fname_ph = g_combined.get_tensor_by_name('input_pipeline_inference/fnames_ph:0')  #??
+        patch_size_ph = g_combined.get_tensor_by_name('input_pipeline_inference/patch_size_ph:0')
         tmp = np.array(Image.open(list_fname[0]))
-        with tf.Session(graph=g_main) as sess:
+        with tf.Session(graph=g_combined) as sess:
             # init iterator
             sess.run(inputs['iter_init_op'])
 
