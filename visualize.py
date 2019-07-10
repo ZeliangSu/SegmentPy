@@ -21,6 +21,7 @@ def convert_ckpt2pb(input=None, ckpt_path='./dummy/ckpt/step5/ckpt', pb_path='./
 
     return:
     -------
+        None
     """
     if os.path.exists(pb_path):
         restorer = tf.train.import_meta_graph(
