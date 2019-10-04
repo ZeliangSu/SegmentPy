@@ -8,7 +8,7 @@ from augmentation import random_aug
 from proc import _stride
 
 
-def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
+def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False):
     """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -38,7 +38,8 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix=''):
             # read data
             batch = batch.map(_pyfn_parser_wrapper, num_parallel_calls=ncores)
             # random augment data
-            # batch = batch.map(_pyfn_aug_wrapper, num_parallel_calls=ncores)
+            if augmentation:
+                batch = batch.map(_pyfn_aug_wrapper, num_parallel_calls=ncores)
             # shuffle and prefetch batch
             batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
 
