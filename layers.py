@@ -54,7 +54,21 @@ def up_2by2(input_layer, name=''):
         (tf.Tensor) row-by-row column-by-column copied tensor
     """
     with tf.name_scope(name):
-        return tf.image.resize_nearest_neighbor(input_layer, [2 * input_layer.shape[1], 2 * input_layer.shape[2]], name='up')
+        return tf.image.resize_nearest_neighbor(input_layer, size=[2 * input_layer.shape[1], 2 * input_layer.shape[2]], name='up')
+
+
+def up_2by2_U(input_layer, dim, name=''):
+    """
+    input:
+    -------
+        input_layer: (tf.Tensor) tensor from the previous layer
+        name: (string) name of the node
+    return:
+    -------
+        (tf.Tensor) row-by-row column-by-column copied tensor
+    """
+    with tf.name_scope(name):
+        return tf.image.resize_nearest_neighbor(input_layer, size=[2 * dim, 2 * dim], name='up')
 
 
 def placeholder(tensor_shape, name=''):
@@ -99,7 +113,7 @@ def conv2d_layer(input_layer, shape, stride=1, name=''):
                                                    ])
 
 
-def conv2d_transpose_layer(input_layer, shape, dyn_batch_size, stride=1, name=''):
+def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, name=''):
     """
     input:
     -------
@@ -117,10 +131,11 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size, stride=1, name=''
         shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name)
         b = init_bias([shape[2]], name)
-        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=(dyn_batch_size,
-                                                                        int(input_layer.shape[1]),
-                                                                        int(input_layer.shape[2]),
-                                                                        int(W.shape[2])),
+        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=(dyn_batch_size[0],
+                                                                         dyn_batch_size[1] * stride,  #note: should * stride
+                                                                         dyn_batch_size[1] * stride,  #note: should * stride
+                                                                         int(W.shape[2])
+                                                                         ),
                                            strides=[1, stride, stride, 1], padding='SAME', name='deconv')
         output = transpose + b
         output_activation = tf.nn.relu(output, name='relu')
@@ -199,7 +214,7 @@ def concat(list_tensors, name=''):
     """
     with tf.name_scope(name):
         output = tf.concat(values=list_tensors, axis=-1, name='concat')
-        return output, output.shape
+        return output
 
 
 def loss_fn(y_true, output_layer, name='loss_fn'):

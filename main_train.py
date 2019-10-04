@@ -4,17 +4,17 @@ import datetime
 import os
 
 from input import inputpipeline
-from model import model, model_lite
+from model import *
 from train import train
 
 # params
 hyperparams = {
-    'patch_size': 72,
-    'batch_size': 3200,  # ps40:>1500 GPU allocation warning ps96:>200 GPU allocation warning
+    'patch_size': 256,
+    'batch_size': 10,  # > 20 saturate GPU memory
     'nb_epoch': 10,
     'nb_batch': None,
-    'conv_size': 5,
-    'nb_conv': 48,
+    'conv_size': 3,
+    'nb_conv': 64,
     'learning_rate': 0.000001,  #should use smaller learning rate when decrease batch size
     'dropout': 0.5,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
@@ -34,7 +34,7 @@ train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train')
 test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test')
 
 # init model
-nodes = model_lite(train_inputs,
+nodes = model_Unet(train_inputs,
                    test_inputs,
                    hyperparams['patch_size'],
                    hyperparams['batch_size'],
@@ -47,14 +47,15 @@ nodes = model_lite(train_inputs,
 # print number of params
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
-
-if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour'])):
-    try:
-        os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
-    except:
-        if not os.path.exists('./logs/{}/'.format(hyperparams['date'])):
-            os.mkdir('./logs/{}/'.format(hyperparams['date']))
-        os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
+if not os.path.exists('./logs'):
+    os.mkdir('./logs')
+    if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour'])):
+        try:
+            os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
+        except:
+            if not os.path.exists('./logs/{}/'.format(hyperparams['date'])):
+                os.mkdir('./logs/{}/'.format(hyperparams['date']))
+            os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
 
 hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 

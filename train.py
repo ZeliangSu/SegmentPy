@@ -75,7 +75,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
             # begin training
             for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
                 try:
-                    # 80%train 10%cross-validation 10%test
+                    #note: 80%train 10%cross-validation 10%test
                     if step % 9 == 8:
                         # 10 percent of the data will be use to cross-validation
                         summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
