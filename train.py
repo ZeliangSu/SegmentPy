@@ -25,7 +25,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
     if device_option == 'cpu':
         config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
     elif 'specific' in device_option:
-        print(device_option.split(':')[-1])
+        print('using GPU:{}'.format(device_option.split(':')[-1]))
         config_params['config'] = tf.ConfigProto(gpu_options=tf.GPUOptions(visible_device_list=device_option.split(':')[-1]),
                                                  allow_soft_placement=True,
                                                  log_device_placement=False,
@@ -36,30 +36,22 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
         # init summary
-        train_writer = tf.summary.FileWriter('./logs/{}/hour{}/train/bs{}_ps{}_lr{}_cs{}'.format(hyperparams['date'],
-                                                                                                 hyperparams['hour'],
-                                                                                                 hyperparams['batch_size'],
-                                                                                                 hyperparams['patch_size'],
-                                                                                                 hyperparams['learning_rate'],
-                                                                                                 hyperparams['conv_size']),
-                                             sess.graph)
-        cv_writer = tf.summary.FileWriter('./logs/{}/hour{}/cv/bs{}_ps{}_lr{}_cs{}'.format(hyperparams['date'],
-                                                                                                 hyperparams['hour'],
-                                                                                                 hyperparams['batch_size'],
-                                                                                                 hyperparams['patch_size'],
-                                                                                                 hyperparams['learning_rate'],
-                                                                                                 hyperparams['conv_size']),
-                                          sess.graph)
-        test_writer = tf.summary.FileWriter('./logs/{}/hour{}/test/bs{}_ps{}_lr{}_cs{}'.format(hyperparams['date'],
-                                                                                                 hyperparams['hour'],
-                                                                                                 hyperparams['batch_size'],
-                                                                                                 hyperparams['patch_size'],
-                                                                                                 hyperparams['learning_rate'],
-                                                                                                 hyperparams['conv_size']),
-                                            sess.graph)
+        folder = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_act_' \
+                 '{}/hour{}/'.format(hyperparams['date'],
+                                                                           hyperparams['batch_size'],
+                                                                           hyperparams['patch_size'],
+                                                                           hyperparams['learning_rate'],
+                                                                           hyperparams['conv_size'],
+                                                                           hyperparams['nb_conv'],
+                                                                           hyperparams['activation'],
+                                                                           hyperparams['hour'],
+                                                                           )
+        train_writer = tf.summary.FileWriter(folder + 'train/', sess.graph)
+        cv_writer = tf.summary.FileWriter(folder + 'cv/', sess.graph)
+        test_writer = tf.summary.FileWriter(folder + 'test/', sess.graph)
 
-        if not os.path.exists('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour'])):
-            os.mkdir('./logs/{}/hour{}/ckpt/'.format(hyperparams['date'], hyperparams['hour']))
+        if not os.path.exists(folder + 'ckpt/'):
+            os.mkdir(folder + 'ckpt/')
 
         saver = tf.train.Saver(max_to_keep=100000000)
         run_metadata = tf.RunMetadata()
@@ -116,21 +108,19 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                         # 'label': nodes['label']
                     }
                     #builder
-                    tf.saved_model.simple_save(sess, './logs/{}/hour{}/savedmodel/step{}/'.format(hyperparams['date'],
-                                                                                                  hyperparams['hour'],
-                                                                                                  step + ep * hyperparams['nb_batch']), in_dict, out_dict)
+                    tf.saved_model.simple_save(sess,
+                                               folder + 'savedmodel/step{}'.format(step + ep * hyperparams['nb_batch']),
+                                               in_dict, out_dict)
 
-                    saver.save(sess, './logs/{}/hour{}/ckpt/step{}'.format(hyperparams['date'],
-                                                                            hyperparams['hour'],
-                                                                            step + ep * hyperparams['nb_batch']))
+                    saver.save(sess, folder + 'ckpt/step{}'.format(step + ep * hyperparams['nb_batch']))
             # create json to store profiler
-            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-            chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            if not os.path.exists('./logs/{}/hour{}/profiler'.format(hyperparams['date'], hyperparams['hour'])):
-                os.mkdir('./logs/{}/hour{}/profiler'.format(hyperparams['date'], hyperparams['hour']))
-                
-            with open('./logs/{}/hour{}/profiler/ep{}.json'.format(hyperparams['date'],
-                                                                  hyperparams['hour'],
-                                                                  ep), 'w') as f:
-                f.write(chrome_trace)
+            # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            # chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            # if not os.path.exists('./logs/{}/hour{}/profiler'.format(hyperparams['date'], hyperparams['hour'])):
+            #     os.mkdir('./logs/{}/hour{}/profiler'.format(hyperparams['date'], hyperparams['hour']))
+            #
+            # with open('./logs/{}/hour{}/profiler/ep{}.json'.format(hyperparams['date'],
+            #                                                       hyperparams['hour'],
+            #                                                       ep), 'w') as f:
+            #     f.write(chrome_trace)
 

@@ -94,6 +94,7 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
 
 
 def _pyfn_stride_wrapper(fname, patch_size):
+    '''designed for inference'''
     return tf.py_func(
         stride,
         [fname, patch_size],
@@ -102,6 +103,7 @@ def _pyfn_stride_wrapper(fname, patch_size):
 
 
 def stride(fname, patch_size):
+    '''designed for inference'''
     # stride outside name_scope
     with Image.open(fname) as img:
         patches = _stride(np.array(img), 1, patch_size)

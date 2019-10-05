@@ -87,7 +87,7 @@ def placeholder(tensor_shape, name=''):
         return tensor_ph, tf.shape(tensor_ph)[0]
 
 
-def conv2d_layer(input_layer, shape, stride=1, name=''):
+def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
     """
     input:
     -------
@@ -105,7 +105,16 @@ def conv2d_layer(input_layer, shape, stride=1, name=''):
         W = init_weights(shape, name)  # [conv_height, conv_width, in_channels, output_channels]
         b = init_bias([shape[3]], name)
         output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
-        output_activation = tf.nn.relu(output, name='relu')
+        if activation == 'relu':
+            output_activation = tf.nn.relu(output, name='relu')
+        elif activation == 'sigmoid':
+            output_activation = tf.nn.sigmoid(output, name='sigmoid')
+        elif activation == 'tanh':
+            output_activation = tf.nn.tanh(output, name='tanh')
+        elif activation == 'leaky':
+            output_activation = tf.nn.leaky_relu(output, name='leaky')
+        else:
+            raise NotImplementedError('Activation function not found!')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
                                                    tf.summary.histogram("layer", output),
@@ -113,7 +122,7 @@ def conv2d_layer(input_layer, shape, stride=1, name=''):
                                                    ])
 
 
-def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, name=''):
+def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, activation='relu', name=''):
     """
     input:
     -------
@@ -138,7 +147,16 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, na
                                                                          ),
                                            strides=[1, stride, stride, 1], padding='SAME', name='deconv')
         output = transpose + b
-        output_activation = tf.nn.relu(output, name='relu')
+        if activation == 'relu':
+            output_activation = tf.nn.relu(output, name='relu')
+        elif activation == 'sigmoid':
+            output_activation = tf.nn.sigmoid(output, name='sigmoid')
+        elif activation == 'tanh':
+            output_activation = tf.nn.tanh(output, name='tanh')
+        elif activation == 'leaky':
+            output_activation = tf.nn.leaky_relu(output, name='leaky')
+        else:
+            raise NotImplementedError('Activation function not found!')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
                                                    tf.summary.histogram("layer", output),
@@ -146,7 +164,7 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, na
                                                    ])
 
 
-def normal_full_layer(input_layer, size, name=''):
+def normal_full_layer(input_layer, size, activation='relu', name=''):
     """
     input:
     -------
@@ -163,7 +181,16 @@ def normal_full_layer(input_layer, size, name=''):
         W = init_weights([input_size, size], name)
         b = init_bias([size], name)
         output = tf.matmul(input_layer, W) + b
-        output_activation = tf.nn.relu(output, name='relu')
+        if activation == 'relu':
+            output_activation = tf.nn.relu(output, name='relu')
+        elif activation == 'sigmoid':
+            output_activation = tf.nn.sigmoid(output, name='sigmoid')
+        elif activation == 'tanh':
+            output_activation = tf.nn.tanh(output, name='tanh')
+        elif activation == 'leaky':
+            output_activation = tf.nn.leaky_relu(output, name='leaky')
+        else:
+            raise NotImplementedError('Activation function not found!')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
                                                    tf.summary.histogram("layer", output),
