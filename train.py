@@ -36,16 +36,17 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
         # init summary
-        folder = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_act_' \
-                 '{}/hour{}/'.format(hyperparams['date'],
-                                                                           hyperparams['batch_size'],
-                                                                           hyperparams['patch_size'],
-                                                                           hyperparams['learning_rate'],
-                                                                           hyperparams['conv_size'],
-                                                                           hyperparams['nb_conv'],
-                                                                           hyperparams['activation'],
-                                                                           hyperparams['hour'],
-                                                                           )
+        folder = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}{}/hour{}/'.format(hyperparams['date'],
+                                                                                   hyperparams['batch_size'],
+                                                                                   hyperparams['patch_size'],
+                                                                                   hyperparams['learning_rate'],
+                                                                                   hyperparams['conv_size'],
+                                                                                   hyperparams['nb_conv'],
+                                                                                   hyperparams['dropout'],
+                                                                                   hyperparams['activation'],
+                                                                                   '_aug_' + str(hyperparams['augmentation']),
+                                                                                   hyperparams['hour'],
+                                                                                   )
         train_writer = tf.summary.FileWriter(folder + 'train/', sess.graph)
         cv_writer = tf.summary.FileWriter(folder + 'cv/', sess.graph)
         test_writer = tf.summary.FileWriter(folder + 'test/', sess.graph)

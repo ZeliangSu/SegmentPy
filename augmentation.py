@@ -79,10 +79,10 @@ def sp_noise(X_img, y_img, amount=0.005):
     nb = int(amount * X_img.size * 0.5)
     # salt
     coords = [np.random.randint(0, i, nb) for i in X_img.shape]
-    X_img[coords] = salt
+    X_img[tuple(coords)] = salt
     # pepper
     coords = [np.random.randint(0, i, nb) for i in X_img.shape]
-    X_img[coords] = pepper
+    X_img[tuple(coords)] = pepper
     return _minmaxscalar(X_img), y_img
 
 

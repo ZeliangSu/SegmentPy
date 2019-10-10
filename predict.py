@@ -36,7 +36,7 @@ def greff_pipeline_to_mainGraph(pipeline, path='./dummy/pb/test.pb'):
         pred = tf.import_graph_def(
             graph_def=restored_graph_def,
             input_map={
-                'input_pipeline/input_cond/Merge_1':tf.convert_to_tensor(pipeline),
+                'input_pipeline/input_cond/Merge_1': tf.convert_to_tensor(pipeline),
             },
             return_elements=['model/decoder/deconv8bisbis/relu:0'],
             name=''  #note: '' so that won't have import/ prefix

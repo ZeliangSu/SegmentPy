@@ -21,7 +21,6 @@ hyperparams = {
     'hour': '{}'.format(datetime.datetime.now().hour),
     'device_option': 'specific_gpu:1',
     'augmentation': True,
-    'save_step': 1000,
     'activation': 'leaky',
 }
 
@@ -44,7 +43,7 @@ nodes = model_xlearn(train_inputs,
                    hyperparams['conv_size'],
                    hyperparams['nb_conv'],
                    learning_rate=hyperparams['learning_rate'],
-                     activation=hyperparams['activation'],
+                   activation=hyperparams['activation'],
                    )
 
 

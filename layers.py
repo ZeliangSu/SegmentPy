@@ -87,7 +87,7 @@ def placeholder(tensor_shape, name=''):
         return tensor_ph, tf.shape(tensor_ph)[0]
 
 
-def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
+def conv2d_layer(input_layer, shape, stride=1, activation='relu', dropout=1, name=''):
     """
     input:
     -------
@@ -105,6 +105,8 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
         W = init_weights(shape, name)  # [conv_height, conv_width, in_channels, output_channels]
         b = init_bias([shape[3]], name)
         output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
+        if dropout != 1:
+            output = tf.nn.dropout(output, keep_prob=dropout)
         if activation == 'relu':
             output_activation = tf.nn.relu(output, name='relu')
         elif activation == 'sigmoid':
@@ -122,7 +124,7 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
                                                    ])
 
 
-def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, activation='relu', name=''):
+def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, activation='relu', dropout=1, name=''):
     """
     input:
     -------
@@ -146,6 +148,8 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, ac
                                                                          int(W.shape[2])
                                                                          ),
                                            strides=[1, stride, stride, 1], padding='SAME', name='deconv')
+        if dropout != 1:
+            transpose = tf.nn.dropout(transpose, keep_prob=dropout)
         output = transpose + b
         if activation == 'relu':
             output_activation = tf.nn.relu(output, name='relu')

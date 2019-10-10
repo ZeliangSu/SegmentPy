@@ -222,7 +222,7 @@ def model_xlearn_lite(train_inputs, test_inputs, patch_size, batch_size, conv_si
     }
 
 
-def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001):
+def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001, activation='relu'):
     """
     xlearn segmentation convolutional neural net model with summary
 
@@ -259,47 +259,47 @@ def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_
     with tf.name_scope('model'):
 
         with tf.name_scope('contractor'):
-            conv1, m1 = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], name='conv1')#[height, width, in_channels, output_channels]
-            conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], name='conv1bis')
+            conv1, m1 = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], activation=activation, dropout=drop_prob, name='conv1')#[height, width, in_channels, output_channels]
+            conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], activation=activation, dropout=drop_prob, name='conv1bis')
             conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
 
-            conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], name='conv2')
-            conv2bis, m2b = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], name='conv2bis')
+            conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv2')
+            conv2bis, m2b = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv2bis')
             conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
 
-            conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], name='conv3')
-            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], name='conv3bis')
+            conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv3')
+            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv3bis')
             conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
 
-            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8], name='conv4')
-            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8], name='conv4bis')
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv4')
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv4bis')
             conv4_pooling = max_pool_2by2(conv4bis, name='maxp4')
 
         with tf.name_scope('bottom'):
-            conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], name='bot5')
-            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], name='bot5bis')
-            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 16], stride=2, name='deconv1')
+            conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], activation=activation, name='bot5')
+            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], activation=activation, name='bot5bis')
+            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 16], stride=2, activation=activation, name='deconv1')
 
         with tf.name_scope('decontractor'):
             concat1 = concat([deconv1, conv4bis], name='concat1')
-            conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], name='conv6')  #[height, width, in_channels, output_channels]
-            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], name='conv6bis')
-            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 8], stride=2, name='deconv2')
+            conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6')  #[height, width, in_channels, output_channels]
+            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6bis')
+            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 8], stride=2, activation=activation, dropout=drop_prob, name='deconv2')
 
             concat2 = concat([deconv2, conv3bis], name='concat2')
-            conv_7, m7 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], name='conv7')
-            conv_7bis, m7b = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], name='conv7bis')
-            deconv3, m7u = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 4], stride=2, name='deconv3')
+            conv_7, m7 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7')
+            conv_7bis, m7b = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7bis')
+            deconv3, m7u = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 4], stride=2, activation=activation, dropout=drop_prob, name='deconv3')
 
             concat3 = concat([deconv3, conv2bis], name='concat3')
-            conv_8, m8 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], name='conv8')
-            conv_8bis, m8b = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], name='conv8bis')
-            deconv4, m8u = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size // 2], stride=2, name='deconv4')
+            conv_8, m8 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8')
+            conv_8bis, m8b = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8bis')
+            deconv4, m8u = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size // 2], stride=2, activation=activation, dropout=drop_prob, name='deconv4')
 
             concat4 = concat([deconv4, conv1bis], name='concat4')
-            deconv_9, m9 = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], name='conv9')
-            deconv_9bis, m9b = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv], name='conv9bis')
-            logits, m9b = conv2d_layer(deconv_9bis, [conv_size, conv_size, nb_conv, 1], name='logits')
+            deconv_9, m9 = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], activation=activation, dropout=drop_prob, name='conv9')
+            deconv_9bis, m9b = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv], activation=activation, dropout=drop_prob, name='conv9bis')
+            logits, m9b = conv2d_layer(deconv_9bis, [conv_size, conv_size, nb_conv, 1], activation=activation, name='logits')
 
     with tf.name_scope('operation'):
         # optimizer/train operation
@@ -319,6 +319,114 @@ def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_
     with tf.name_scope('summary'):
         merged = tf.summary.merge([m1, m1b, m2, m2b, m3, m3b, m4, m4b, m5, m5b, m5u,
                                    m6, m6b, m6u, m7, m7b, m7u, m8, m8b, m8u, m9, m9b, m_loss, m_acc, grad_sum])  #fixme: withdraw summary of histories for GPU resource reason
+    return {
+        'y_pred': logits,
+        'train_op': train_op,
+        'drop': drop_prob,
+        'summary': merged,
+        'train_or_test': training_type,
+        'loss_update_op': loss_up_op,
+        'acc_update_op': acc_up_op
+    }
+
+
+def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_conv, learning_rate=0.0001, activation='relu'):
+    """
+    xlearn segmentation convolutional neural net model with summary
+
+    input:
+    -------
+        train_inputs: (tf.iterator?)
+        test_inputs: (tf.iterator?)
+        patch_size: (int) height and width (here we assume the same length for both)
+        batch_size: (int) number of images per batch (average the gradient within a batch,
+        the weights and bias upgrade after one batch)
+        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
+        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
+        learning_rate: (float) learning rate for the optimizer
+    return:
+    -------
+    (dictionary) dictionary of nodes in the conv net
+        'y_pred': output of the neural net,
+        'train_op': node of the trainning operation, once called, it will update weights and bias,
+        'drop': dropout layers' probability parameters,
+        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
+        'train_or_test': switch button for a training/testing input pipeline,
+        'loss_update_op': node of updating loss function summary,
+        'acc_update_op': node of updating accuracy summary
+    """
+    training_type = tf.placeholder(tf.string, name='training_type')
+    drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
+
+    with tf.name_scope('input_pipeline'):
+        X_dyn_batsize = batch_size
+        def f1(): return train_inputs
+        def f2(): return test_inputs
+        inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
+
+    with tf.name_scope('model'):
+
+        with tf.name_scope('contractor'):
+            conv1, _ = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], activation=activation, dropout=drop_prob, name='conv1')#[height, width, in_channels, output_channels]
+            conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], activation=activation, dropout=drop_prob, name='conv1bis')
+            conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
+
+            conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv2')
+            conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv2bis')
+            conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
+
+            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv3')
+            conv3bis, _ = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv3bis')
+            conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
+
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv4')
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv4bis')
+            conv4_pooling = max_pool_2by2(conv4bis, name='maxp4')
+
+        with tf.name_scope('bottom'):
+            conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], activation=activation, name='bot5')
+            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], activation=activation, name='bot5bis')
+            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 16], stride=2, activation=activation, name='deconv1')
+
+        with tf.name_scope('decontractor'):
+            concat1 = concat([deconv1, conv4bis], name='concat1')
+            conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6')  #[height, width, in_channels, output_channels]
+            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6bis')
+            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 8], stride=2, activation=activation, dropout=drop_prob, name='deconv2')
+
+            concat2 = concat([deconv2, conv3bis], name='concat2')
+            conv_7, _ = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7')
+            conv_7bis, _ = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7bis')
+            deconv3, _ = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 4], stride=2, activation=activation, dropout=drop_prob, name='deconv3')
+
+            concat3 = concat([deconv3, conv2bis], name='concat3')
+            conv_8, _ = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8')
+            conv_8bis, _ = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8bis')
+            deconv4, _ = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size // 2], stride=2, activation=activation, dropout=drop_prob, name='deconv4')
+
+            concat4 = concat([deconv4, conv1bis], name='concat4')
+            deconv_9, _ = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], activation=activation, dropout=drop_prob, name='conv9')
+            deconv_9bis, _ = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv], activation=activation, dropout=drop_prob, name='conv9bis')
+            logits, m9b = conv2d_layer(deconv_9bis, [conv_size, conv_size, nb_conv, 1], activation=activation, name='logits')
+
+    with tf.name_scope('operation'):
+        # optimizer/train operation
+        mse = loss_fn(inputs['label'], logits, name='loss_fn')
+        opt = optimizer(learning_rate, name='optimizeR')
+
+        # program gradients
+        grads = opt.compute_gradients(mse)
+        grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
+
+        # train operation
+        train_op = opt.apply_gradients(grads, name='train_op')
+
+    with tf.name_scope('metrics'):
+        m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
+
+    with tf.name_scope('summary'):
+        merged = tf.summary.merge([m4, m4b, m5, m5b, m5u,
+                                   m6, m6b, m6u, m9b, m_loss, m_acc, grad_sum])  #fixme: withdraw summary of histories for GPU resource reason
     return {
         'y_pred': logits,
         'train_op': train_op,
