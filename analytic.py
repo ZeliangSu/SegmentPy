@@ -3,62 +3,32 @@ import numpy as np
 import pandas as pd
 import os
 from util import get_all_trainable_variables
-from tsne import tsne, tsne_on_weights, tsne_on_weights_bis
-from visualize import convert_ckpt2pb, built_diff_block, join_diff_to_mainGraph, run_nodes_and_save_partial_res
+from tsne import tsne, tsne_on_weights_2D, tsne_on_weights_3D
+from visualize import *
 
 
-def tsne_partialRes_weights(*args, **kwargs):
+def tsne_partialRes_weights(paths=None, conserve_nodes=None, mode='2D'):
     """
     input:
     -------
-        None
+        ckptpath: (string) path to the checkpoint that we convert to .pb. e.g. './logs/YYYY_MM_DD_.../hourHH/ckpt/step{}'
     return:
     -------
         None
     """
+    assert paths!=None, 'please define the dictionary of paths'
+    assert conserve_nodes!=None, 'please define the list of nodes that you conserve'
+    assert isinstance(paths, dict), 'paths should be a dictionary containning path'
+    assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
     # load ckpt
     new_ph = tf.placeholder(tf.float32, shape=[200, 72, 72, 1], name='new_ph')
 
-    # define nodes to conserve
-    conserve_nodes = [
-                'model/encoder/conv1/relu',
-                'model/encoder/conv1bis/relu',
-                'model/encoder/conv2/relu',
-                'model/encoder/conv2bis/relu',
-                'model/encoder/conv3/relu',
-                'model/encoder/conv3bis/relu',
-                'model/encoder/conv4/relu',
-                'model/encoder/conv4bis/relu',
-                'model/encoder/conv4bisbis/relu',
-                'model/dnn/dnn1/relu',
-                'model/dnn/dnn2/relu',
-                'model/dnn/dnn3/relu',
-                'model/decoder/deconv5/relu',
-                'model/decoder/deconv5bis/relu',
-                'model/decoder/deconv6/relu',
-                'model/decoder/deconv6bis/relu',
-                'model/decoder/deconv7bis/relu',
-                'model/decoder/deconv7bis/relu',
-                'model/decoder/deconv8/relu',
-                'model/decoder/deconv8bis/relu',
-                'model/decoder/deconv8bisbis/relu',
-            ]
-
     # convert ckpt to pb
-    convert_ckpt2pb(input=new_ph, conserve_nodes=conserve_nodes)
-
-    # beforhand build diff block
-    diff_block_gdef = built_diff_block()
-
-    # graft diff block to main graph
-    g_combined, ops_dict = join_diff_to_mainGraph(diff_block_gdef, conserve_nodes)
-
-    # run nodes and save results
-    run_nodes_and_save_partial_res(g_combined, ops_dict, conserve_nodes)
+    convert_ckpt2pb(input=new_ph, paths=paths, conserve_nodes=conserve_nodes)
 
     # run tsne on wieghts
     # get weights from checkpoint
-    wns, _, ws, _, _, _, _, _ = get_all_trainable_variables('./dummy/ckpt/step5/ckpt')
+    wns, _, ws, _, _, _, _, _ = get_all_trainable_variables(paths['ckpt_path'])
 
     # arange label and kernel
     new_wn = []
@@ -75,18 +45,24 @@ def tsne_partialRes_weights(*args, **kwargs):
             new_ws.append(np.sum(w[:, :, :, i], axis=2))  # e.g. (3, 3, 12, 24) [w, h, in, nb_conv] --> (3, 3, 24)
 
     # inject into t-SNE
-    res = tsne(np.array(new_ws).transpose((1, 2, 0)).reshape(len(new_ws), -1))  # e.g. (3, 3, 1000) --> (9, 1000)
+    res = tsne(np.array(new_ws).transpose((1, 2, 0)).reshape(len(new_ws), -1), mode=mode)  # e.g. (3, 3, x) --> (9, x) --> (x, 2) or (x, 3)
 
-    # imshow
-    # tsne_on_weights(res, new_wn)
-    tsne_on_weights_bis(res, new_wn, grps)
+    # mkdir
+
+    # visualize the tsne
+    if mode == '2D':
+        tsne_on_weights_2D(res, new_wn, grps, rlt_dir=['tsne_dir'])
+    elif mode == '3D':
+        tsne_on_weights_3D(res, new_wn, grps, rlt_dir=['tsne_dir'])
+    else:
+        raise NotImplementedError('please choose 2D or 3D mode')
 
 
-def weights_hists_2excel(path='./dummy/ckpt/'):
+def weights_hists_2excel(ckpt_dir=None):
     """
     inputs:
     -------
-        path: (string) path to get the checkpoint
+        path: (string) path to get the checkpoint e.g. './logs/YYYY_MM_DD_.../hourHH/ckpt/'
     return:
     -------
         None
@@ -96,9 +72,18 @@ def weights_hists_2excel(path='./dummy/ckpt/'):
     # construct dataframe
     # header sheet_name conv1: [step0, step20, ...]
     # header sheet_name conv1bis: [step0, step20, ...]
-    for step in os.listdir(path):
+
+    #construct list [step0, step100, step200...]
+    #ckpt name convention: step{}.meta
+    lnames = []
+    for step in os.listdir(ckpt_dir):
+        if step.endswith('.meta'):
+            lnames.append(step.split('.')[0])
+
+    # add histograms and save in excel
+    for step in lnames:
         # get weights-bias names and values
-        wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables('./dummy/ckpt/' + step + '/ckpt')
+        wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(ckpt_dir + step)
 
         # construct a dict of key: layer_name, value: flattened kernels
         dfs = {sheet_name.split(':')[0].replace('/', '_'): pd.DataFrame({step: params.flatten()})
@@ -110,6 +95,74 @@ def weights_hists_2excel(path='./dummy/ckpt/'):
                 dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
 
 
+def partialRlt_and_diff(paths=None, conserve_nodes=None):
+    """
+    input:
+    -------
+        paths: (dict) paths of the checkpoint that we convert to .pb. e.g. './logs/YYYY_MM_DD_.../hourHH/ckpt/step{}'
+    return:
+    -------
+        None
+    """
+    assert paths!=None, 'please define the dictionary of paths'
+    assert conserve_nodes!=None, 'please define the list of nodes that you conserve'
+    assert isinstance(paths, dict), 'paths should be a dictionary containning path'
+    assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
+
+    # load ckpt
+    patch_size = int(paths['data_dir'].split('/')[-2])
+    batch_size = int(paths['working_dir'].split('bs')[1].split('_')[0])
+    new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
+
+    # define nodes to conserve
+
+    # convert ckpt to pb
+    convert_ckpt2pb(input=new_ph, paths=paths, conserve_nodes=conserve_nodes)
+
+    # load main graph
+    g_main, ops_dict = load_mainGraph(conserve_nodes, path=paths['save_pb_path'])
+
+    # run nodes and save results
+    inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'])
+
+
 if __name__ == '__main__':
-    tsne_partialRes_weights()
-    weights_hists_2excel()
+    # Xlearn
+    conserve_nodes = [
+        'model/encoder/conv1/relu',
+        'model/encoder/conv1bis/relu',
+        'model/encoder/conv2/relu',
+        'model/encoder/conv2bis/relu',
+        'model/encoder/conv3/relu',
+        'model/encoder/conv3bis/relu',
+        'model/encoder/conv4/relu',
+        'model/encoder/conv4bis/relu',
+        'model/encoder/conv4bisbis/relu',
+        'model/dnn/dnn1/leaky',
+        'model/dnn/dnn2/leaky',
+        'model/dnn/dnn3/leaky',
+        'model/decoder/deconv5/relu',
+        'model/decoder/deconv5bis/relu',
+        'model/decoder/deconv6/relu',
+        'model/decoder/deconv6bis/relu',
+        'model/decoder/deconv7bis/relu',
+        'model/decoder/deconv7bis/relu',
+        'model/decoder/deconv8/relu',
+        'model/decoder/deconv8bis/relu',
+        'model/decoder/logits/relu',
+    ]
+    graph_def_dir = './logs/2019_10_8_bs300_ps72_lr0.0001_cs5_nc80_DNNact_leaky_aug_True/hour9_1st_try_end1epBUG/'
+    paths = {
+        'working_dir': graph_def_dir,
+        'ckpt_dir': graph_def_dir + 'ckpt/',
+        'ckpt_path': graph_def_dir + 'ckpt/step2000',
+        'save_pb_dir': graph_def_dir + 'pb/',
+        'save_pb_path': graph_def_dir + 'pb/step2000.pb',
+        'data_dir': './dummy/72/',
+        'rlt_dir':  graph_def_dir + 'rlt/',
+        'tsne_dir':  graph_def_dir + 'tsne/',
+    }
+
+    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    tsne_partialRes_weights(paths=paths, conserve_nodes=conserve_nodes, mode='3D')
+    # weights_hists_2excel(path=ckpt_dir)

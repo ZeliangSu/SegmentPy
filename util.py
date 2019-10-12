@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.core.framework import graph_pb2
+import os
 
 
 def print_nodes_name(graph):
@@ -74,4 +75,10 @@ def get_all_trainable_variables(metagraph_path):
         dnn_bs = [sess.run(v) for v in all_vars if v.name.endswith('b:0') and v.name.startswith('dnn')]
 
     return wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs
+
+
+def check_N_mkdir(path_to_dir):
+    if not os.path.exists(path_to_dir):
+        os.makedirs(path_to_dir, exist_ok=True)
+
 
