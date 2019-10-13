@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import multiprocessing as mp
 from PIL import Image
+from util import check_N_mkdir
 import os
 
 
@@ -166,18 +167,14 @@ def _tfrecordWriter(X_patches, y_patches, id_length, rest, outdir, patch_size, b
                 writer.write(example.SerializeToString())
 
 
-def _resultWriter(tensor, layer_name='', path='./result/test/'):
+def _resultWriter(tensor, layer_name='', path=None):
     '''
     tensor: images(numpy array or list of image) to save of (Height, Width, nth_Conv)
     path: path(string)
     layer_name: name of the layer(string)
     '''
-    if not os.path.exists(path + layer_name):
-        if not os.path.exists('./result'):
-            os.mkdir('./result')
-        if not os.path.exists('./result/test'):
-            os.mkdir('./result/test')
-        os.mkdir(path + layer_name)
+    # mkdir
+    check_N_mkdir(path + layer_name)
 
     if isinstance(tensor, list):
         for i, elt in enumerate(tensor):
@@ -189,5 +186,5 @@ def _resultWriter(tensor, layer_name='', path='./result/test/'):
         #  for cnn
         else:
             for i in range(tensor.shape[2]):
-                Image.fromarray(tensor[:, :, i]).save(path + '{}/{}.tif'.format(layer_name, i))
+                Image.fromarray(np.asarray(tensor[:, :, i], dtype=np.float)).save(path + '{}/{}.tif'.format(layer_name, i))
 

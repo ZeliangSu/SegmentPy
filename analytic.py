@@ -20,12 +20,6 @@ def tsne_partialRes_weights(paths=None, conserve_nodes=None, mode='2D'):
     assert conserve_nodes!=None, 'please define the list of nodes that you conserve'
     assert isinstance(paths, dict), 'paths should be a dictionary containning path'
     assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
-    # load ckpt
-    new_ph = tf.placeholder(tf.float32, shape=[200, 72, 72, 1], name='new_ph')
-
-    # convert ckpt to pb
-    convert_ckpt2pb(input=new_ph, paths=paths, conserve_nodes=conserve_nodes)
-
     # run tsne on wieghts
     # get weights from checkpoint
     wns, _, ws, _, _, _, _, _ = get_all_trainable_variables(paths['ckpt_path'])
@@ -45,15 +39,17 @@ def tsne_partialRes_weights(paths=None, conserve_nodes=None, mode='2D'):
             new_ws.append(np.sum(w[:, :, :, i], axis=2))  # e.g. (3, 3, 12, 24) [w, h, in, nb_conv] --> (3, 3, 24)
 
     # inject into t-SNE
-    res = tsne(np.array(new_ws).transpose((1, 2, 0)).reshape(len(new_ws), -1), mode=mode)  # e.g. (3, 3, x) --> (9, x) --> (x, 2) or (x, 3)
+    res = tsne(np.array(new_ws).transpose((1, 2, 0)).reshape(len(new_ws), -1),
+               perplexity=paths['perplexity'],
+               niter=paths['niter'], mode=mode)  # e.g. (3, 3, x) --> (9, x) --> (x, 2) or (x, 3)
 
     # mkdir
 
     # visualize the tsne
     if mode == '2D':
-        tsne_on_weights_2D(res, new_wn, grps, rlt_dir=['tsne_dir'])
+        tsne_on_weights_2D(res, new_wn, grps, rlt_dir=paths['tsne_dir'], suffix=paths['step'])
     elif mode == '3D':
-        tsne_on_weights_3D(res, new_wn, grps, rlt_dir=['tsne_dir'])
+        tsne_on_weights_3D(res, new_wn, grps, rlt_dir=paths['tsne_dir'], suffix=paths['step'])
     else:
         raise NotImplementedError('please choose 2D or 3D mode')
 
@@ -151,18 +147,24 @@ if __name__ == '__main__':
         'model/decoder/deconv8bis/relu',
         'model/decoder/logits/relu',
     ]
-    graph_def_dir = './logs/2019_10_8_bs300_ps72_lr0.0001_cs5_nc80_DNNact_leaky_aug_True/hour9_1st_try_end1epBUG/'
+    graph_def_dir = './logs/(valuable)2019_10_10_bs300_ps72_lr0.0001_cs5_nc80_DNNact_leaky_aug_True/hour9/'
+    step = 14495
     paths = {
+        'step': step,
+        'perplexity': 5,  #default 30 usual range 5-50
+        'niter': 5000,  #default 5000
         'working_dir': graph_def_dir,
         'ckpt_dir': graph_def_dir + 'ckpt/',
-        'ckpt_path': graph_def_dir + 'ckpt/step2000',
+        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
         'save_pb_dir': graph_def_dir + 'pb/',
-        'save_pb_path': graph_def_dir + 'pb/step2000.pb',
+        'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
         'data_dir': './dummy/72/',
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
+        'tsne_path':  graph_def_dir + 'tsne/',
     }
 
     # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    # tsne_partialRes_weights(paths=paths, conserve_nodes=conserve_nodes, mode='2D')
     tsne_partialRes_weights(paths=paths, conserve_nodes=conserve_nodes, mode='3D')
     # weights_hists_2excel(path=ckpt_dir)

@@ -86,7 +86,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     else:
                         summary, _, _, _ = sess.run([nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'train',
-                                                         nodes['drop']: 0.5})
+                                                         nodes['drop']: hyperparams['dropout']})
                         train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                 except tf.errors.OutOfRangeError as e:

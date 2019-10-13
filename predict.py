@@ -149,7 +149,7 @@ def predict_ph(patch_size, batch_size, list_fname, res_dir, pb_path='./dummy/pb/
                 Image.fromarray(recon).save(res_dir + 'predict_{}.tif'.format(i))
 
 
-def predict_tfDataset(patch_size, batch_size, list_fname, res_dir, pb_path='./dummy/pb/test.pb'):
+def predict_tfDataset(patch_size, batch_size, list_fname, res_dir, path='./dummy/pb/test.pb'):
     """
     inputs:
     -------
@@ -164,18 +164,18 @@ def predict_tfDataset(patch_size, batch_size, list_fname, res_dir, pb_path='./du
     # determine nodes to conserve and new
     inputs = inputpipeline(batch_size, suffix='inference')
     conserve_nodes = [
-                'input_pipeline / input_cond / Merge_1',
+                'input_pipeline/input_cond/Merge_1',
                 'model/decoder/deconv8bisbis/relu',
             ]
 
     # join new pipeline and model / freeze graph to pb
-    convert_ckpt2pb(conserve_nodes=conserve_nodes, pb_path=pb_path)
+    convert_ckpt2pb(input=inputs, conserve_nodes=conserve_nodes, pb_path=path)
 
     # load graph
-    g_main, ops_dict = load_mainGraph(conserve_nodes, path=pb_path)
+    g_main, ops_dict = load_mainGraph(conserve_nodes, path=path)
 
     # join pipeline to main graph
-    g_combined, opts = greff_pipeline_to_mainGraph(inputs['batch'], path=pb_path)
+    g_combined, opts = greff_pipeline_to_mainGraph(inputs['batch'], path=path)
 
     # run node and stack results
     with g_combined.as_default() as g_combined:
@@ -209,19 +209,23 @@ def predict_tfDataset(patch_size, batch_size, list_fname, res_dir, pb_path='./du
 
 
 if __name__ == '__main__':
-    # params
-    patch_size = 72
-    batch_size = 200
-
-    # predict path
-    predict_dir = './raw'
-    result_dir = './result/pred/'
-    list_fname = []
-    for dirpath, _, fnames in os.walk(predict_dir):
-        for fname in fnames:
-            list_fname.append(os.path.abspath(os.path.join(dirpath, fname)))
-
-    # predict
-    timeit.timeit(predict_tfDataset(patch_size, batch_size, list_fname, result_dir))
-    timeit.timeit(predict_ph(patch_size, batch_size, list_fname, result_dir))
+    # # params
+    # patch_size = 72
+    # batch_size = 300
+    #
+    # # predict path
+    # predict_dir = './proc/{}/test/'.format(patch_size)
+    # result_dir = './result/pred/'
+    # model_dir = './logs/2019_10_8_bs300_ps72_lr0.0001_cs5_nc80_act_leaky_aug_True/hour9_1st_try_end1epBUG/savedmodel/step2000/'
+    # model_path = model_dir + 'saved_model.pb'
+    #
+    # list_fname = []
+    # for dirpath, _, fnames in os.walk(predict_dir):
+    #     for fname in fnames:
+    #         list_fname.append(os.path.abspath(os.path.join(dirpath, fname)))
+    #
+    # # predict
+    # timeit.timeit(predict_tfDataset(patch_size, batch_size, list_fname, result_dir, mdl_dir=model_dir))
+    # timeit.timeit(predict_ph(patch_size, batch_size, list_fname, result_dir, pb_path=model_path))
+    pass
 

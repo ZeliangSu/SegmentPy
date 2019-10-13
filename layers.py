@@ -108,13 +108,13 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', dropout=1, nam
         if dropout != 1:
             output = tf.nn.dropout(output, keep_prob=dropout)
         if activation == 'relu':
-            output_activation = tf.nn.relu(output, name='relu')
+            output_activation = tf.nn.relu(output, name='relu')  #note: if this line activated, mysterious gradient vanishing problem
         elif activation == 'sigmoid':
             output_activation = tf.nn.sigmoid(output, name='sigmoid')
         elif activation == 'tanh':
-            output_activation = tf.nn.tanh(output, name='tanh')
+            output_activation = tf.nn.tanh(output, name='tanh')  #note: mysterious gradient vanishing problem
         elif activation == 'leaky':
-            output_activation = tf.nn.leaky_relu(output, name='leaky')
+            output_activation = tf.nn.leaky_relu(output, name='leaky')  #note: mysterious gradient vanishing problem
         else:
             raise NotImplementedError('Activation function not found!')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),

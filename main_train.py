@@ -6,6 +6,7 @@ import os
 from input import inputpipeline
 from model import *
 from train import train
+from util import check_N_mkdir
 
 # params
 hyperparams = {
@@ -22,6 +23,7 @@ hyperparams = {
     'device_option': 'specific_gpu:1',
     'augmentation': True,
     'activation': 'leaky',
+    'save_step': 1000,
 }
 
 
@@ -50,16 +52,10 @@ nodes = model_xlearn(train_inputs,
 # print number of params
 print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
-if not os.path.exists('./logs'):
-    os.mkdir('./logs')
-    if not os.path.exists('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour'])):
-        try:
-            os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
-        except:
-            if not os.path.exists('./logs/{}/'.format(hyperparams['date'])):
-                os.mkdir('./logs/{}/'.format(hyperparams['date']))
-            os.mkdir('./logs/{}/hour{}/'.format(hyperparams['date'], hyperparams['hour']))
+# create logs folder
+check_N_mkdir('./logs/')
 
+# calculate nb_batch
 hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
 # start training
