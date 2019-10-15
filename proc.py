@@ -50,7 +50,7 @@ def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True
                          y_patches[:np.int(X_patches.shape[0] * traintest_split_rate)],
                          outdir + 'train/', patch_size)
             _h5Writer_V2(X_patches[np.int(X_patches.shape[0] * traintest_split_rate):],
-                         y_patches[:np.int(X_patches.shape[0] * traintest_split_rate)],
+                         y_patches[np.int(X_patches.shape[0] * traintest_split_rate):],
                          outdir + 'test/', patch_size)
         elif mode == 'csv':
             raise NotImplementedError
