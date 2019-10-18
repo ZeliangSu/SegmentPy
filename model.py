@@ -35,6 +35,7 @@ def model_xlearn(train_inputs, test_inputs, patch_size, batch_size, conv_size, n
         def f1(): return train_inputs
         def f2(): return test_inputs
         inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
+        # inputs = tf.identity(inputs, name='identity')  #note: fix a bug of dimension in tflite inference
 
     with tf.name_scope('model'):
 
@@ -51,9 +52,9 @@ def model_xlearn(train_inputs, test_inputs, patch_size, batch_size, conv_size, n
             conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], name='conv3bis')
             conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
 
-            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], name='conv4')
-            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], name='conv4bis')
-            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], name='conv4bisbis')
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], activation='relu', name='conv4')
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation='relu', name='conv4bis')
+            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='relu', name='conv4bisbis')
 
         with tf.name_scope('dnn'):
             conv4_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')

@@ -7,6 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 from util import check_N_mkdir
 
+
 # t-SNE on activation
 def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix='step0'):
     """
@@ -153,7 +154,7 @@ def tsne_on_weights_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=
     fig = plt.figure(figsize=figsize)
     ax = Axes3D(fig)
     ax.set_title('Weights from encoder')
-    ax.scatter(df_conv['coordX'], df_conv['coordX'], df_conv['coordX'], c=df_conv['colors'], marker='o')
+    ax.scatter(df_conv['coordX'], df_conv['coordY'], df_conv['coordZ'], c=df_conv['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -164,7 +165,7 @@ def tsne_on_weights_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=
     fig2 = plt.figure(figsize=figsize)
     ax2 = Axes3D(fig2)
     ax2.set_title('Weights from decoder')
-    ax2.scatter(df_deconv['coordX'], df_deconv['coordX'], df_deconv['coordX'], c=df_deconv['colors'], marker='o')
+    ax2.scatter(df_deconv['coordX'], df_deconv['coordY'], df_deconv['coordZ'], c=df_deconv['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
     ax2.set_zlabel('Z')
@@ -173,7 +174,7 @@ def tsne_on_weights_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=
     fig3 = plt.figure(figsize=figsize)
     ax3 = Axes3D(fig3)
     ax3.set_title('Weights from all layers')
-    ax3.scatter(df['coordX'], df['coordX'], df['coordX'], c=df['colors'], marker='o')
+    ax3.scatter(df['coordX'], df['coordY'], df['coordZ'], c=df['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
     ax3.set_xlabel('X')
     ax3.set_ylabel('Y')
     ax3.set_zlabel('Z')

@@ -7,7 +7,7 @@ from tsne import tsne, tsne_on_weights_2D, tsne_on_weights_3D
 from visualize import *
 
 
-def tsne_partialRes_weights(paths=None, conserve_nodes=None, mode='2D'):
+def tsne_partialRes_weights(params=None, conserve_nodes=None, mode='2D'):
     """
     input:
     -------
@@ -16,13 +16,13 @@ def tsne_partialRes_weights(paths=None, conserve_nodes=None, mode='2D'):
     -------
         None
     """
-    assert paths!=None, 'please define the dictionary of paths'
+    assert params!=None, 'please define the dictionary of paths'
     assert conserve_nodes!=None, 'please define the list of nodes that you conserve'
-    assert isinstance(paths, dict), 'paths should be a dictionary containning path'
+    assert isinstance(params, dict), 'paths should be a dictionary containning path'
     assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
     # run tsne on wieghts
     # get weights from checkpoint
-    wns, _, ws, _, _, _, _, _ = get_all_trainable_variables(paths['ckpt_path'])
+    wns, _, ws, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path'])
 
     # arange label and kernel
     new_wn = []
@@ -40,16 +40,16 @@ def tsne_partialRes_weights(paths=None, conserve_nodes=None, mode='2D'):
 
     # inject into t-SNE
     res = tsne(np.array(new_ws).transpose((1, 2, 0)).reshape(len(new_ws), -1),
-               perplexity=paths['perplexity'],
-               niter=paths['niter'], mode=mode)  # e.g. (3, 3, x) --> (9, x) --> (x, 2) or (x, 3)
+               perplexity=params['perplexity'],
+               niter=params['niter'], mode=mode)  # e.g. (3, 3, x) --> (9, x) --> (x, 2) or (x, 3)
 
     # mkdir
 
     # visualize the tsne
     if mode == '2D':
-        tsne_on_weights_2D(res, new_wn, grps, rlt_dir=paths['tsne_dir'], suffix=paths['step'])
+        tsne_on_weights_2D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
     elif mode == '3D':
-        tsne_on_weights_3D(res, new_wn, grps, rlt_dir=paths['tsne_dir'], suffix=paths['step'])
+        tsne_on_weights_3D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
     else:
         raise NotImplementedError('please choose 2D or 3D mode')
 
@@ -107,7 +107,12 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None):
 
     # load ckpt
     patch_size = int(paths['data_dir'].split('/')[-2])
-    batch_size = int(paths['working_dir'].split('bs')[1].split('_')[0])
+
+    try:
+        batch_size = int(paths['working_dir'].split('bs')[1].split('_')[0])
+    except:
+        batch_size = 100
+
     new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
 
     # define nodes to conserve
@@ -124,47 +129,73 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None):
 
 if __name__ == '__main__':
     # Xlearn
+    # conserve_nodes = [
+    #     'model/encoder/conv1/relu',
+    #     'model/encoder/conv1bis/relu',
+    #     'model/encoder/conv2/relu',
+    #     'model/encoder/conv2bis/relu',
+    #     'model/encoder/conv3/relu',
+    #     'model/encoder/conv3bis/relu',
+    #     'model/encoder/conv4/relu',
+    #     'model/encoder/conv4bis/relu',
+    #     'model/encoder/conv4bisbis/relu',
+    #     'model/dnn/dnn1/leaky',
+    #     'model/dnn/dnn2/leaky',
+    #     'model/dnn/dnn3/leaky',
+    #     'model/decoder/deconv5/relu',
+    #     'model/decoder/deconv5bis/relu',
+    #     'model/decoder/deconv6/relu',
+    #     'model/decoder/deconv6bis/relu',
+    #     'model/decoder/deconv7bis/relu',
+    #     'model/decoder/deconv7bis/relu',
+    #     'model/decoder/deconv8/relu',
+    #     'model/decoder/deconv8bis/relu',
+    #     'model/decoder/logits/relu',
+    # ]
+    # U-Net
     conserve_nodes = [
-        'model/encoder/conv1/relu',
-        'model/encoder/conv1bis/relu',
-        'model/encoder/conv2/relu',
-        'model/encoder/conv2bis/relu',
-        'model/encoder/conv3/relu',
-        'model/encoder/conv3bis/relu',
-        'model/encoder/conv4/relu',
-        'model/encoder/conv4bis/relu',
-        'model/encoder/conv4bisbis/relu',
-        'model/dnn/dnn1/leaky',
-        'model/dnn/dnn2/leaky',
-        'model/dnn/dnn3/leaky',
-        'model/decoder/deconv5/relu',
-        'model/decoder/deconv5bis/relu',
-        'model/decoder/deconv6/relu',
-        'model/decoder/deconv6bis/relu',
-        'model/decoder/deconv7bis/relu',
-        'model/decoder/deconv7bis/relu',
-        'model/decoder/deconv8/relu',
-        'model/decoder/deconv8bis/relu',
-        'model/decoder/logits/relu',
+        'model/contractor/conv1/sigmoid',
+        'model/contractor/conv1bis/sigmoid',
+        'model/contractor/conv2/sigmoid',
+        'model/contractor/conv2bis/sigmoid',
+        'model/contractor/conv3/sigmoid',
+        'model/contractor/conv3bis/sigmoid',
+        'model/contractor/conv4/sigmoid',
+        'model/contractor/conv4bis/sigmoid',
+        'model/bottom/bot5/sigmoid',
+        'model/bottom/bot5bis/sigmoid',
+        'model/bottom/deconv1/sigmoid',
+        'model/decontractor/conv6/sigmoid',
+        'model/decontractor/conv6bis/sigmoid',
+        'model/decontractor/deconv2/sigmoid',
+        'model/decontractor/conv7/sigmoid',
+        'model/decontractor/conv7bis/sigmoid',
+        'model/decontractor/deconv3/sigmoid',
+        'model/decontractor/conv8/sigmoid',
+        'model/decontractor/conv8bis/sigmoid',
+        'model/decontractor/deconv4/sigmoid',
+        'model/decontractor/conv9/sigmoid',
+        'model/decontractor/conv9bis/sigmoid',
+        'model/decontractor/logits/relu',
     ]
-    graph_def_dir = './logs/(valuable)2019_10_10_bs300_ps72_lr0.0001_cs5_nc80_DNNact_leaky_aug_True/hour9/'
-    step = 14495
+    graph_def_dir = '/media/tomoserver/ZELIANG/20191015/'
+    step = 29447
     paths = {
         'step': step,
-        'perplexity': 5,  #default 30 usual range 5-50
+        'perplexity': 10,  #default 30 usual range 5-50
         'niter': 5000,  #default 5000
         'working_dir': graph_def_dir,
         'ckpt_dir': graph_def_dir + 'ckpt/',
         'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
         'save_pb_dir': graph_def_dir + 'pb/',
         'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
-        'data_dir': './dummy/72/',
+        'data_dir': './dummy/80/',
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
     }
 
-    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
-    # tsne_partialRes_weights(paths=paths, conserve_nodes=conserve_nodes, mode='2D')
-    tsne_partialRes_weights(paths=paths, conserve_nodes=conserve_nodes, mode='3D')
+    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
+    # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
     # weights_hists_2excel(path=ckpt_dir)

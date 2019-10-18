@@ -125,3 +125,6 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
             #                                                       ep), 'w') as f:
             #     f.write(chrome_trace)
 
+
+def retrain_from_ckpt(paths=None, input_pipeline=None, hyperparams=None):
+    pass
