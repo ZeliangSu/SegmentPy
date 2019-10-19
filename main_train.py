@@ -10,13 +10,13 @@ from util import check_N_mkdir
 
 # params
 hyperparams = {
-    'patch_size': 72,
+    'patch_size': 80,
     'batch_size': 300,  #Xlearn < 20, Unet < 20 saturate GPU memory
     'nb_epoch': 100,
     'nb_batch': None,
     'conv_size': 5,
     'nb_conv': 80,
-    'learning_rate': 1e-4,  #should use smaller learning rate when decrease batch size
+    'learning_rate': 1e-4,  #float or np.array of programmed learning rate
     'dropout': 0.1,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
@@ -44,7 +44,6 @@ nodes = model_xlearn(train_inputs,
                    hyperparams['batch_size'],
                    hyperparams['conv_size'],
                    hyperparams['nb_conv'],
-                   learning_rate=hyperparams['learning_rate'],
                    activation=hyperparams['activation'],
                    )
 
