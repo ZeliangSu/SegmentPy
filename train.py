@@ -2,6 +2,7 @@ import tensorflow as tf
 from tqdm import tqdm
 import os
 from tensorflow.python.client import timeline
+import numpy as np
 
 
 def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None, mode='dev'):
@@ -39,7 +40,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
         folder = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}{}/hour{}/'.format(hyperparams['date'],
                                                                                    hyperparams['batch_size'],
                                                                                    hyperparams['patch_size'],
-                                                                                   hyperparams['learning_rate'],
+                                                                                   hyperparams['learning_rate'] if not isinstance(hyperparams['learning_rate'], np.ndarray) else 'programmed',
                                                                                    hyperparams['conv_size'],
                                                                                    hyperparams['nb_conv'],
                                                                                    hyperparams['dropout'],
@@ -67,26 +68,33 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                                  test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totest_files'])})
             # begin training
             for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
+                if isinstance(hyperparams['learning_rate'], np.ndarray):
+                    learning_rate = hyperparams['learning_rate'][ep * hyperparams['nb_batch'] + step]
+                else:
+                    learning_rate = hyperparams['learning_rate']
                 try:
                     #note: 80%train 10%cross-validation 10%test
                     if step % 9 == 8:
                         # 10 percent of the data will be use to cross-validation
-                        summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
+                        summary_, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'cv',
-                                                         nodes['drop']: 1})
+                                                         nodes['drop']: 1
+                                                         nodes['learning_rate']: learning_rate})
                         cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                         # in situ testing without loading weights like cs-230-stanford
                         summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'test',
-                                                         nodes['drop']: 1})
+                                                         nodes['drop']: 1,
+                                                         nodes['learning_rate']: learning_rate})
                         test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                     # 80 percent of the data will be use for training
                     else:
                         summary, _, _, _ = sess.run([nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
                                               feed_dict={nodes['train_or_test']: 'train',
-                                                         nodes['drop']: hyperparams['dropout']})
+                                                         nodes['drop']: hyperparams['dropout'],
+                                                         nodes['learning_rate']: learning_rate})
                         train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                 except tf.errors.OutOfRangeError as e:
@@ -94,26 +102,24 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     break
 
                 if step % save_step == 0:
+
                     #prepare input dict and out dict
-                    in_dict = {
-                        'train_files_ph': train_inputs['fnames_ph'],
-                        'train_ps_ph': train_inputs['patch_size_ph'],
-                        'test_files_ph': test_inputs['fnames_ph'],
-                        'test_ps_ph': test_inputs['patch_size_ph'],
-                    }
-                    out_dict = {
-                        'prediction': nodes['y_pred'],
-                        # 'tot_op': nodes['train_op'],  #AttributeError: 'Operation' object has no attribute 'dtype'
-                        # 'summary': nodes['summary'],
-                        # 'img': nodes['img'],
-                        # 'label': nodes['label']
-                    }
+                    # in_dict = {
+                    #     'train_files_ph': train_inputs['fnames_ph'],
+                    #     'train_ps_ph': train_inputs['patch_size_ph'],
+                    #     'test_files_ph': test_inputs['fnames_ph'],
+                    #     'test_ps_ph': test_inputs['patch_size_ph'],
+                    # }
+                    # out_dict = {
+                    #     'prediction': nodes['y_pred'],
+                    # }
                     #builder
-                    tf.saved_model.simple_save(sess,
-                                               folder + 'savedmodel/step{}'.format(step + ep * hyperparams['nb_batch']),
-                                               in_dict, out_dict)
+                    # tf.saved_model.simple_save(sess,
+                    #                            folder + 'savedmodel/step{}'.format(step + ep * hyperparams['nb_batch']),
+                    #                            in_dict, out_dict)
 
                     saver.save(sess, folder + 'ckpt/step{}'.format(step + ep * hyperparams['nb_batch']))
+
             # create json to store profiler
             # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
             # chrome_trace = fetched_timeline.generate_chrome_trace_format()
