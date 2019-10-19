@@ -67,21 +67,21 @@ def model_xlearn(train_inputs, test_inputs, patch_size, batch_size, conv_size, n
             dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')
 
         with tf.name_scope('decoder'):
-            deconv_5, m5 = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 4], [X_dyn_batsize, patch_size // 8], name='deconv5')  #[height, width, in_channels, output_channels]
-            deconv_5bis, m5b = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 8], [X_dyn_batsize, patch_size // 8],name='deconv5bis')  #fixme: strides should be 2
+            deconv_5, m5 = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 4], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4], name='deconv5')  #[height, width, in_channels, output_channels]
+            deconv_5bis, m5b = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 8], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8],name='deconv5bis')  #fixme: strides should be 2
             concat1 = concat([up_2by2(deconv_5bis, name='up1'), conv3bis], name='concat1')  #note: up_2by2 slowing than conv2d_transpose2x2
 
-            deconv_6, m6 = conv2d_transpose_layer(concat1, [conv_size, conv_size, nb_conv * 10, nb_conv * 2], [X_dyn_batsize, patch_size // 4], name='deconv6')
-            deconv_6bis, m6b = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], [X_dyn_batsize, patch_size // 4], name='deconv6bis')  #fixme: strides should be 2
+            deconv_6, m6 = conv2d_transpose_layer(concat1, [conv_size, conv_size, nb_conv * 10, nb_conv * 2], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2], name='deconv6')
+            deconv_6bis, m6b = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2], name='deconv6bis')  #fixme: strides should be 2
             concat2 = concat([up_2by2(deconv_6bis, name='up2'), conv2bis], name='concat2')  #note: up_2by2 slowing than conv2d_transpose2x2
 
-            deconv_7, m7 = conv2d_transpose_layer(concat2, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2], name='deconv7')
-            deconv_7bis, m7b = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], [X_dyn_batsize, patch_size // 2], name='deconv7bis')  #fixme: strides should be 2
+            deconv_7, m7 = conv2d_transpose_layer(concat2, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], name='deconv7')
+            deconv_7bis, m7b = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size //2, nb_conv * 2], name='deconv7bis')  #fixme: strides should be 2
             concat3 = concat([up_2by2(deconv_7bis, name='up3'), conv1bis], name='concat3')  #note: up_2by2 slowing than conv2d_transpose2x2
 
-            deconv_8, m8 = conv2d_transpose_layer(concat3, [conv_size, conv_size, nb_conv * 3, nb_conv], [X_dyn_batsize, patch_size], name='deconv8')
-            deconv_8bis, m8b = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], [X_dyn_batsize, patch_size], name='deconv8bis')
-            logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], [X_dyn_batsize, patch_size], name='logits')  #fixme: change activation function. 0 everywhere prediction?
+            deconv_8, m8 = conv2d_transpose_layer(concat3, [conv_size, conv_size, nb_conv * 3, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], name='deconv8')
+            deconv_8bis, m8b = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], name='deconv8bis')
+            logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], [X_dyn_batsize, patch_size, patch_size, 1], name='logits')  #fixme: change activation function. 0 everywhere prediction?
 
     with tf.name_scope('operation'):
         # optimizer/train operation
@@ -178,21 +178,21 @@ def model_xlearn_lite(train_inputs, test_inputs, patch_size, batch_size, conv_si
             dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')
 
         with tf.name_scope('decoder'):
-            deconv_5, _ = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 4], X_dyn_batsize, name='deconv5')  #[height, width, in_channels, output_channels]
-            deconv_5bis, _ = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 8], X_dyn_batsize, stride=1, name='deconv5bis')  #fixme: strides should be 2
-            concat1, outshape5 = concat([up_2by2(deconv_5bis, name='up1'), conv3bis], name='concat1')
+            deconv_5, _ = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 4], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4], name='deconv5')  #[height, width, in_channels, output_channels]
+            deconv_5bis, _ = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 8], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], stride=1, name='deconv5bis')  #fixme: strides should be 2
+            concat1 = concat([up_2by2(deconv_5bis, name='up1'), conv3bis], name='concat1')
 
-            deconv_6, _ = conv2d_transpose_layer(concat1, [conv_size, conv_size, int(outshape5[3]), nb_conv * 2], X_dyn_batsize, name='deconv6')
-            deconv_6bis, _ = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], X_dyn_batsize, stride=1, name='deconv6bis')  #fixme: strides should be 2
-            concat2, outshape6 = concat([up_2by2(deconv_6bis, name='up2'), conv2bis], name='concat2')
+            deconv_6, _ = conv2d_transpose_layer(concat1, [conv_size, conv_size, nb_conv * 10, nb_conv * 2], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2], name='deconv6')
+            deconv_6bis, _ = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2], stride=1, name='deconv6bis')  #fixme: strides should be 2
+            concat2 = concat([up_2by2(deconv_6bis, name='up2'), conv2bis], name='concat2')
 
-            deconv_7, _ = conv2d_transpose_layer(concat2, [conv_size, conv_size, int(outshape6[3]), nb_conv * 2], X_dyn_batsize, name='deconv7')
-            deconv_7bis, _ = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], X_dyn_batsize, stride=1, name='deconv7bis')  #fixme: strides should be 2
-            concat3, outshape7 = concat([up_2by2(deconv_7bis, name='up3'), conv1bis], name='concat3')
+            deconv_7, _ = conv2d_transpose_layer(concat2, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], name='deconv7')
+            deconv_7bis, _ = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], stride=1, name='deconv7bis')  #fixme: strides should be 2
+            concat3 = concat([up_2by2(deconv_7bis, name='up3'), conv1bis], name='concat3')
 
-            deconv_8, _ = conv2d_transpose_layer(concat3, [conv_size, conv_size, int(outshape7[3]), nb_conv], X_dyn_batsize, name='deconv8')
-            deconv_8bis, _ = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], X_dyn_batsize, name='deconv8bis')
-            logits, _ = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], X_dyn_batsize, name='deconv8bisbis')  #fixme: change activation function. 0 everywhere prediction?
+            deconv_8, _ = conv2d_transpose_layer(concat3, [conv_size, conv_size, nb_conv * 3, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], name='deconv8')
+            deconv_8bis, _ = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], name='deconv8bis')
+            logits, _ = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1], [X_dyn_batsize, patch_size, patch_size, 1], name='deconv8bisbis')  #fixme: change activation function. 0 everywhere prediction?
 
     with tf.name_scope('operation'):
         # optimizer/train operation
@@ -279,23 +279,23 @@ def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_
         with tf.name_scope('bottom'):
             conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], activation=activation, name='bot5')
             conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], activation=activation, name='bot5bis')
-            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 16], stride=2, activation=activation, name='deconv1')
+            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], stride=2, activation=activation, name='deconv1')
 
         with tf.name_scope('decontractor'):
             concat1 = concat([deconv1, conv4bis], name='concat1')
             conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6')  #[height, width, in_channels, output_channels]
             conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6bis')
-            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 8], stride=2, activation=activation, dropout=drop_prob, name='deconv2')
+            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 4, patch_size //4, nb_conv * 4], stride=2, activation=activation, dropout=drop_prob, name='deconv2')
 
             concat2 = concat([deconv2, conv3bis], name='concat2')
             conv_7, m7 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7')
             conv_7bis, m7b = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7bis')
-            deconv3, m7u = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 4], stride=2, activation=activation, dropout=drop_prob, name='deconv3')
+            deconv3, m7u = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], stride=2, activation=activation, dropout=drop_prob, name='deconv3')
 
             concat3 = concat([deconv3, conv2bis], name='concat3')
             conv_8, m8 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8')
             conv_8bis, m8b = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8bis')
-            deconv4, m8u = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size // 2], stride=2, activation=activation, dropout=drop_prob, name='deconv4')
+            deconv4, m8u = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], stride=2, activation=activation, dropout=drop_prob, name='deconv4')
 
             concat4 = concat([deconv4, conv1bis], name='concat4')
             deconv_9, m9 = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], activation=activation, dropout=drop_prob, name='conv9')
@@ -387,23 +387,23 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
         with tf.name_scope('bottom'):
             conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], activation=activation, name='bot5')
             conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], activation=activation, name='bot5bis')
-            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 16], stride=2, activation=activation, name='deconv1')
+            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], stride=2, activation=activation, name='deconv1')
 
         with tf.name_scope('decontractor'):
             concat1 = concat([deconv1, conv4bis], name='concat1')
             conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6')  #[height, width, in_channels, output_channels]
             conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, dropout=drop_prob, name='conv6bis')
-            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 8], stride=2, activation=activation, dropout=drop_prob, name='deconv2')
+            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 4], stride=2, activation=activation, dropout=drop_prob, name='deconv2')
 
             concat2 = concat([deconv2, conv3bis], name='concat2')
             conv_7, _ = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7')
             conv_7bis, _ = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, dropout=drop_prob, name='conv7bis')
-            deconv3, _ = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 4], stride=2, activation=activation, dropout=drop_prob, name='deconv3')
+            deconv3, _ = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], stride=2, activation=activation, dropout=drop_prob, name='deconv3')
 
             concat3 = concat([deconv3, conv2bis], name='concat3')
             conv_8, _ = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8')
             conv_8bis, _ = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, dropout=drop_prob, name='conv8bis')
-            deconv4, _ = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size // 2], stride=2, activation=activation, dropout=drop_prob, name='deconv4')
+            deconv4, _ = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], stride=2, activation=activation, dropout=drop_prob, name='deconv4')
 
             concat4 = concat([deconv4, conv1bis], name='concat4')
             deconv_9, _ = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], activation=activation, dropout=drop_prob, name='conv9')

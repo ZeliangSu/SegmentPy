@@ -124,13 +124,13 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', dropout=1, nam
                                                    ])
 
 
-def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, activation='relu', dropout=1, name=''):
+def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, activation='relu', dropout=1, name=''):
     """
     input:
     -------
         input_layer: (tf.Tensor or tf.placeholder) tensor from the previous layer
         shape: (list) shape of the convolution layer e.g.[conv_size, conv_size, out_chan, in_chan]
-        dyn_batch_size: (int) dynamic batch size that retrieve from the encoder. In tf V12, this is not automated yet
+        output_shape: (int) dynamic batch size that retrieve from the encoder. In tf V12, this is not automated yet
         name: (string) name of the node
     return:
     -------
@@ -142,12 +142,11 @@ def conv2d_transpose_layer(input_layer, shape, dyn_batch_size=None, stride=1, ac
         shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name)
         b = init_bias([shape[2]], name)
-        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=(dyn_batch_size[0],
-                                                                         dyn_batch_size[1] * stride,  #note: should * stride
-                                                                         dyn_batch_size[1] * stride,  #note: should * stride
-                                                                         int(W.shape[2])
-                                                                         ),
-                                           strides=[1, stride, stride, 1], padding='SAME', name='deconv')
+        dyn_input_shape = tf.shape(input_layer)
+        batch_size = dyn_input_shape[0]
+        output_shape = tf.stack([batch_size, output_shape[1], output_shape[2], output_shape[3]])
+        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=output_shape,
+                                           strides=[1, stride, stride, 1], padding='SAME', name=name)
         if dropout != 1:
             transpose = tf.nn.dropout(transpose, keep_prob=dropout)
         output = transpose + b
