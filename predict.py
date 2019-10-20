@@ -51,35 +51,7 @@ def greff_pipeline_to_mainGraph(pipeline, path='./dummy/pb/test.pb'):
         return g_combined, ops_dict
 
 
-def reconstruct(stack, image_size, step):
-    """
-    inputs:
-    -------
-        stack: (np.ndarray) stack of patches to reconstruct
-        image_size: (tuple | list) height and width for the final reconstructed image
-        step: (int) herein should be the SAME stride step that one used for preprocess
-    return:
-    -------
-        img: (np.ndarray) final reconstructed image
-        nb_patches: (int) number of patches need to provide to this function
-    """
-    i_h, i_w = image_size[:2]
-    p_h, p_w = stack.shape[1:3]
-    img = np.zeros(image_size)
 
-    # compute the dimensions of the patches array
-    n_h = (i_h - p_h) // step + 1
-    n_w = (i_w - p_w) // step + 1
-    nb_patches = n_h * n_w
-
-    for p, (i, j) in zip(stack, product(range(n_h), range(n_w))):
-        img[i * step:i * step + p_h, j * step:j * step + p_w] += p
-
-    for i in range(i_h):
-        for j in range(i_w):
-            img[i, j] /= float(min(i + step, p_h, i_h - i) *
-                               min(j + step, p_w, i_w - j))
-    return img, nb_patches
 
 
 def predict_ph(patch_size, batch_size, list_fname, res_dir, pb_path='./dummy/pb/test.pb'):

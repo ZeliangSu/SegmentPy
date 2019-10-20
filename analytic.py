@@ -54,6 +54,10 @@ def tsne_partialRes_weights(params=None, conserve_nodes=None, mode='2D'):
         raise NotImplementedError('please choose 2D or 3D mode')
 
 
+def change_hist_bins():
+    pass
+
+
 def weights_hists_2excel(ckpt_dir=None, rlt_dir=None):
     """
     inputs:
@@ -75,27 +79,118 @@ def weights_hists_2excel(ckpt_dir=None, rlt_dir=None):
     lnames = []
     for step in os.listdir(ckpt_dir):
         if step.endswith('.meta'):
-            lnames.append(step.split('.')[0])
+            lnames.append(ckpt_dir + step.split('.')[0])
+    assert len(lnames) > 1, 'The ckpt directory should have at least 2 ckpts!'
+    lnames = sorted(lnames)
+    # fixme: ValueError: This sheet is too large! Your sheet size is: 1280000, 1 Max sheet size is: 1048576, 16384
 
-    assert len(lnames) != 0, 'The ckpt directory is empty!'
+    bins = 1000
+    step = []
+    _min = {}  # [conv1w, conv1b...]
+    _max = {}  # [conv1w, conv1b...]
+    df_w = {}  # {conv1_w: pd.DataFrame({0:..., 1000:...}), conv1bis_w: pd.DataFrame({0:..., 1000:..., ...})}
+    df_b = {}  # {conv1_b: pd.DataFrame({0:..., 1000:...}), conv1bis_b: pd.DataFrame({0:..., 1000:..., ...})}
+    hist_w = {}  # {conv1_w: pd.DataFrame({x:..., 0:..., 1000:...}), conv1bis_w: pd.DataFrame({x:..., 0:..., 1000:..., ...})}
+    hist_b = {}  # {conv1_b: pd.DataFrame({x:..., 0:..., 1000:...}), conv1bis_b: pd.DataFrame({x:..., 0:..., 1000:..., ...})}
 
-    # add histograms and save in excel
-    for step in lnames:
+    # step 0
+    wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(lnames[0])
+    _ws = ws + dnn_ws
+    _bs = bs + dnn_bs
+    step.append(lnames[0].split('step')[1].split('.')[0])
+
+    # init dataframes
+    for j, layer_name in enumerate(wn + dnn_wn):
+        df_w[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'0': _ws[j].flatten()})
+    for j, layer_name in enumerate(bn + dnn_bn):
+        df_b[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'0': _bs[j].flatten()})
+
+    # add more step to layers params
+    for i, ckpt_path in enumerate(lnames[1:]):
+        step.append(ckpt_path.split('step')[1].split('.')[0])
+
         # get weights-bias names and values
-        wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(ckpt_dir + step)
+        wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(ckpt_path)
+        _ws = ws + dnn_ws
+        _bs = bs + dnn_bs
 
-        # construct a dict of key: layer_name, value: flattened kernels
-        # fixme: ValueError: This sheet is too large! Your sheet size is: 1280000, 1 Max sheet size is: 1048576, 16384
-        dfs = {sheet_name.split(':')[0].replace('/', '_'): pd.DataFrame({step: params.flatten()})
-               for sheet_name, params in zip(wn + bn + dnn_wn + dnn_bn, ws + bs + dnn_ws + dnn_bs)}
+        # insert values
+        for j, layer_name in enumerate(wn + dnn_wn):
+            df_w[layer_name.split(':')[0].replace('/', '_')].insert(i + 1, step[i + 1], _ws[j].flatten())
+        for j, layer_name in enumerate(bn + dnn_bn):
+            df_b[layer_name.split(':')[0].replace('/', '_')].insert(i + 1, step[i + 1], _bs[j].flatten())
 
-        # write into excel
-        with pd.ExcelWriter(rlt_dir + 'weight_hist.xlsx', engine='xlsxwriter') as writer:
-            for sheet_name in dfs.keys():
-                dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
+    # calculate histogram
+    # find min and max of w/b of each layer
+    for j, layer_name in enumerate(wn + dnn_wn):
+        _min[layer_name.split(':')[0].replace('/', '_')] = df_w[layer_name.split(':')[0].replace('/', '_')].min()
+        _max[layer_name.split(':')[0].replace('/', '_')] = df_w[layer_name.split(':')[0].replace('/', '_')].max()
+
+    for j, layer_name in enumerate(bn + dnn_bn):
+        _min[layer_name.split(':')[0].replace('/', '_')] = df_b[layer_name.split(':')[0].replace('/', '_')].min()
+        _max[layer_name.split(':')[0].replace('/', '_')] = df_b[layer_name.split(':')[0].replace('/', '_')].max()
+
+    # get histogram of W
+    for layer_name in wn + dnn_wn:
+        _, _edge = np.histogram(
+            np.asarray(df_w[layer_name.split(':')[0].replace('/', '_')]),
+            bins=np.linspace(
+                _min[layer_name.split(':')[0].replace('/', '_')][0],
+                _max[layer_name.split(':')[0].replace('/', '_')][0],
+                bins
+            )
+        )
+        hist_w[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'x': _edge[1:]})
+        i = 0
+        for _step, params in df_w[layer_name.split(':')[0].replace('/', '_')].iteritems():
+            _hist, _ = np.histogram(
+                np.asarray(params),
+                bins=np.linspace(_min[layer_name.split(':')[0].replace('/', '_')][_step],
+                                 _max[layer_name.split(':')[0].replace('/', '_')][_step],
+                                 num=bins
+                                 )
+            )
+            hist_w[layer_name.split(':')[0].replace('/', '_')].insert(i + 1, _step, _hist)
+            i += 1
+    # clean instance
+    del df_w
+
+    # get histogram of b
+    for layer_name in bn + dnn_bn:
+        _hist, _edge = np.histogram(
+            np.asarray(df_b[layer_name.split(':')[0].replace('/', '_')]),
+            bins=np.linspace(
+                _min[layer_name.split(':')[0].replace('/', '_')][0],
+                _max[layer_name.split(':')[0].replace('/', '_')][0],
+                bins
+            )
+        )
+        hist_b[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'x': _edge[1:]})
+        i = 0
+        for _step, params in df_b[layer_name.split(':')[0].replace('/', '_')].iteritems():
+            _hist, _edge = np.histogram(
+                np.asarray(params),
+                bins=np.linspace(
+                    _min[layer_name.split(':')[0].replace('/', '_')][_step],
+                    _max[layer_name.split(':')[0].replace('/', '_')][_step],
+                    bins)
+            )
+            hist_b[layer_name.split(':')[0].replace('/', '_')].insert(i + 1, _step, _hist)
+            i += 1
+    # clean instance
+    del df_b
+
+    # write into excel
+    check_N_mkdir(rlt_dir + 'weight_hist/')
+    for xlsx_name in hist_w.keys():
+        with pd.ExcelWriter(rlt_dir + 'weight_hist/{}.xlsx'.format(xlsx_name), engine='xlsxwriter') as writer:
+            hist_w[xlsx_name].to_excel(writer, index=False)
+    for xlsx_name in hist_b.keys():
+        with pd.ExcelWriter(rlt_dir + 'weight_hist/{}.xlsx'.format(xlsx_name), engine='xlsxwriter') as writer:
+            hist_b[xlsx_name].to_excel(writer, index=False)
 
 
-def weights_euclidean_distance(ckpt_dir, rlt_dir=None):
+def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
     """
     inputs:
     -------
@@ -164,9 +259,8 @@ def weights_euclidean_distance(ckpt_dir, rlt_dir=None):
 
     }
 
-    check_N_mkdir(rlt_dir + 'euclidean_dist/')
     # write into excel
-    with pd.ExcelWriter(rlt_dir + 'euclidean_dist/euclidean_dist.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(rlt_dir + 'euclidean_dist.xlsx', engine='xlsxwriter') as writer:
         for sheet_name in dfs.keys():
             dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -278,5 +372,5 @@ if __name__ == '__main__':
     # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
-    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
