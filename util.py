@@ -44,7 +44,7 @@ def get_all_trainable_variables(metagraph_path):
     """
     input:
     -------
-        metagraph_path: (string) indicate the path to find the metagraph of saved model
+        metagraph_path: (string) indicate the path to find the metagraph of ckpt
     return:
     -------
         wn: (list of string) list of names of weights for all convolution and deconvolution layers
@@ -56,6 +56,7 @@ def get_all_trainable_variables(metagraph_path):
         dnn_ws: (list of np.ndarray) list of weight matrices for all fully connected layers
         dnn_bs:(list of np.ndarray) list of bias matrices for all fully connected layers
     """
+    tf.reset_default_graph()
     restorer = tf.train.import_meta_graph(
         metagraph_path + '.meta',
         clear_devices=True

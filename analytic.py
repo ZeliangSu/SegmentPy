@@ -54,7 +54,7 @@ def tsne_partialRes_weights(params=None, conserve_nodes=None, mode='2D'):
         raise NotImplementedError('please choose 2D or 3D mode')
 
 
-def weights_hists_2excel(ckpt_dir=None):
+def weights_hists_2excel(ckpt_dir=None, rlt_dir=None):
     """
     inputs:
     -------
@@ -71,10 +71,13 @@ def weights_hists_2excel(ckpt_dir=None):
 
     #construct list [step0, step100, step200...]
     #ckpt name convention: step{}.meta
+    check_N_mkdir(rlt_dir)
     lnames = []
     for step in os.listdir(ckpt_dir):
         if step.endswith('.meta'):
             lnames.append(step.split('.')[0])
+
+    assert len(lnames) != 0, 'The ckpt directory is empty!'
 
     # add histograms and save in excel
     for step in lnames:
@@ -82,13 +85,90 @@ def weights_hists_2excel(ckpt_dir=None):
         wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(ckpt_dir + step)
 
         # construct a dict of key: layer_name, value: flattened kernels
+        # fixme: ValueError: This sheet is too large! Your sheet size is: 1280000, 1 Max sheet size is: 1048576, 16384
         dfs = {sheet_name.split(':')[0].replace('/', '_'): pd.DataFrame({step: params.flatten()})
                for sheet_name, params in zip(wn + bn + dnn_wn + dnn_bn, ws + bs + dnn_ws + dnn_bs)}
 
         # write into excel
-        with pd.ExcelWriter('./result/params.xlsx', engine='xlsxwriter') as writer:
+        with pd.ExcelWriter(rlt_dir + 'weight_hist.xlsx', engine='xlsxwriter') as writer:
             for sheet_name in dfs.keys():
                 dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
+
+
+def weights_euclidean_distance(ckpt_dir, rlt_dir=None):
+    """
+    inputs:
+    -------
+        path: (string) path to get the checkpoint e.g. './logs/YYYY_MM_DD_.../hourHH/ckpt/'
+    return:
+    -------
+        None
+    """
+    # construct dataframe
+    # header sheet_name weight: [step0, step20, ...]
+    # header sheet_name bias: [step0, step20, ...]
+    check_N_mkdir(rlt_dir)
+    lnames = []
+    for step in os.listdir(ckpt_dir):
+        if step.endswith('.meta'):
+            lnames.append(ckpt_dir + step.split('.')[0])
+    lnames = sorted(lnames)
+
+    # get weights-bias values at step0
+    wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(lnames[0])
+    step = [0]
+    w_avg = [0]
+    b_avg = [0]
+    w_std = [0]
+    b_std = [0]
+    for ckpt_path in lnames[1:]:
+        step.append(int(ckpt_path.split('step')[1].split('.')[0]))
+        # get ws values at stepX
+        wn_, bn_, ws_, bs_, dnn_wn_, dnn_bn_, dnn_ws_, dnn_bs_ = get_all_trainable_variables(ckpt_path)
+        # program euclidean distance
+        dis_w = []
+        dis_b = []
+        for w, w_ in zip(ws + dnn_ws, ws_ + dnn_ws_):
+            try:
+                # for CNN
+                w, w_ = w.reshape((w.shape[0], w.shape[1], w.shape[2] * w.shape[3])), \
+                        w_.reshape((w_.shape[0], w_.shape[1], w_.shape[2] * w_.shape[3]))
+                for _w, _w_ in zip(w, w_):
+                    dis_w.append(np.sqrt(np.sum(_w - _w_) ** 2))
+            except:
+                # for DNN
+                dis_w.append(np.sqrt(np.sum(w - w_) ** 2))
+
+        for b, b_ in zip(bs + dnn_bs, bs_ + dnn_bs_):
+            dis_b.append(np.sqrt(np.sum(b - b_) ** 2))
+
+        dis_w = np.asarray(dis_w)
+        dis_b = np.asarray(dis_b)
+        w_avg.append(dis_w.mean())
+        w_std.append(dis_w.std())
+        b_avg.append(dis_b.mean())
+        b_std.append(dis_b.std())
+
+    # create df
+    dfs = {
+        'weight': pd.DataFrame({
+            'step': step,
+            'avg': w_avg,
+            'std': w_std,
+        }),
+        'bias': pd.DataFrame({
+            'step': step,
+            'avg': b_avg,
+            'std': b_std,
+        })
+
+    }
+
+    check_N_mkdir(rlt_dir + 'euclidean_dist/')
+    # write into excel
+    with pd.ExcelWriter(rlt_dir + 'euclidean_dist/euclidean_dist.xlsx', engine='xlsxwriter') as writer:
+        for sheet_name in dfs.keys():
+            dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
 
 
 def partialRlt_and_diff(paths=None, conserve_nodes=None):
@@ -178,8 +258,8 @@ if __name__ == '__main__':
         'model/decontractor/conv9bis/sigmoid',
         'model/decontractor/logits/relu',
     ]
-    graph_def_dir = '/media/tomoserver/ZELIANG/20191015/'
-    step = 29447
+    graph_def_dir = './dummy/'
+    step = 23192
     paths = {
         'step': step,
         'perplexity': 10,  #default 30 usual range 5-50
@@ -195,7 +275,8 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
 
-    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
-    # weights_hists_2excel(path=ckpt_dir)
+    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
