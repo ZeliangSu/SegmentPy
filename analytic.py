@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-import os
 from util import get_all_trainable_variables
 from tsne import tsne, tsne_on_weights_2D, tsne_on_weights_3D
 from visualize import *
