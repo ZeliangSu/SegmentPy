@@ -5,7 +5,7 @@ from tensorflow.python.client import timeline
 import numpy as np
 
 
-def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None, mode='dev'):
+def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_option=None):
     """
     input:
     -------
@@ -46,17 +46,19 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
             os.mkdir(folder + 'ckpt/')
 
         saver = tf.train.Saver(max_to_keep=100000000)
-        run_metadata = tf.RunMetadata()
         _globalStep = None
         try:
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
-                sess.run(train_inputs['iterator_init_op'], feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
-                                                                      train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totrain_files'])},
-                         options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE) if mode == 'dev' else None,
-                         run_metadata=run_metadata if mode == 'dev' else None)
+                # init ops
+                sess.run(train_inputs['iterator_init_op'],
+                         feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
+                                    train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(
+                                        hyperparams['totrain_files'])})
+                sess.run(test_inputs['iterator_init_op'],
+                         feed_dict={test_inputs['fnames_ph']: hyperparams['totest_files'],
+                                    test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(
+                                        hyperparams['totest_files'])})
 
-                sess.run(test_inputs['iterator_init_op'], feed_dict={test_inputs['fnames_ph']: hyperparams['totest_files'],
-                                                                     test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(hyperparams['totest_files'])})
                 # begin training
                 for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
                     if isinstance(hyperparams['learning_rate'], np.ndarray):
@@ -67,27 +69,25 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                         #note: 80%train 10%cross-validation 10%test
                         if step % 9 == 8:
                             # 10 percent of the data will be use to cross-validation
-                            summary_, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
-                                                         feed_dict={nodes['train_or_test']: 'cv',
-                                                                    nodes['drop']: 1,
-                                                                    nodes['learning_rate']: learning_rate})
+                            summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
+                                                  feed_dict={nodes['train_or_test']: 'cv',
+                                                             nodes['drop']: 1,
+                                                             nodes['learning_rate']: learning_rate})
                             cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                             # in situ testing without loading weights like cs-230-stanford
                             summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
-                                                        feed_dict={nodes['train_or_test']: 'test',
-                                                                   nodes['drop']: 1,
-                                                                   nodes['learning_rate']: learning_rate})
+                                                  feed_dict={nodes['train_or_test']: 'test',
+                                                             nodes['drop']: 1,
+                                                             nodes['learning_rate']: learning_rate})
                             test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
-
-                        # 80 percent of the data will be use for training
                         else:
-                            summary, _, _, _ = sess.run([nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
-                                                        feed_dict={nodes['train_or_test']: 'train',
-                                                                   nodes['drop']: hyperparams['dropout'],
-                                                                   nodes['learning_rate']: learning_rate})
+                            summary, _, _, _ = sess.run(
+                                [nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
+                                feed_dict={nodes['train_or_test']: 'train',
+                                           nodes['drop']: hyperparams['dropout'],
+                                           nodes['learning_rate']: learning_rate})
                             train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
-
                     except tf.errors.OutOfRangeError as e:
                         print(e)
                         break

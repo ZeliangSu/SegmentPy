@@ -113,18 +113,17 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=N
 
         # run inference
         with tf.Session(graph=g_main) as sess:
-            # tf.summary.FileWriter('./dummy/tensorboard/after_combine', sess.graph)
             print_nodes_name_shape(sess.graph)
 
             # write firstly input and output images
-            imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(100)]
+            imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(300)]  #generalize here
             _resultWriter(imgs, 'input', path=rlt_dir)
-            label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(100)]
+            label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(300)]  #generalize here
             _resultWriter(label, 'label', path=rlt_dir)
             img_size = np.array(imgs[0]).shape[1]
 
             feed_dict = {
-                new_input: np.array(imgs).reshape((100, img_size, img_size, 1)),
+                new_input: np.array(imgs).reshape((300, img_size, img_size, 1)),  #generalize here
                 dropout_input: 1.0,
             }
 
