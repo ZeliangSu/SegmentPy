@@ -1,41 +1,42 @@
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 import os
+import time
 from util import check_N_mkdir
-from tensorflow.core.framework import graph_pb2
 from itertools import product
-import copy
+from PIL import Image
+from proc import _stride
 
 
-def reconstruct(stack, image_size, step):
+def reconstruct(stack, image_size=None, stride=None):
     """
     inputs:
     -------
         stack: (np.ndarray) stack of patches to reconstruct
         image_size: (tuple | list) height and width for the final reconstructed image
-        step: (int) herein should be the SAME stride step that one used for preprocess
+        stride: (int) herein should be the SAME stride step that one used for preprocess
     return:
     -------
         img: (np.ndarray) final reconstructed image
         nb_patches: (int) number of patches need to provide to this function
     """
     i_h, i_w = image_size[:2]
-    p_h, p_w = stack.shape[1:3]
+    p_h, p_w = stack.shape[1:]
     img = np.zeros(image_size)
 
     # compute the dimensions of the patches array
-    n_h = (i_h - p_h) // step + 1
-    n_w = (i_w - p_w) // step + 1
-    nb_patches = n_h * n_w
+    n_h = (i_h - p_h) // stride + 1
+    n_w = (i_w - p_w) // stride + 1
 
     for p, (i, j) in zip(stack, product(range(n_h), range(n_w))):
-        img[i * step:i * step + p_h, j * step:j * step + p_w] += p
+        img[i * stride:i * stride + p_h, j * stride:j * stride + p_w] += p
 
     for i in range(i_h):
         for j in range(i_w):
-            img[i, j] /= float(min(i + step, p_h, i_h - i) *
-                               min(j + step, p_w, i_w - j))
-    return img, nb_patches
+            img[i, j] /= float(min(i + stride, p_h, i_h - i) *
+                               min(j + stride, p_w, i_w - j))
+    return img
 
 
 def freeze_ckpt_for_inference(paths=None, hyper=None):
@@ -90,13 +91,25 @@ def optimize_curve_for_inference(paths=None):
 def inference(inputs=None, paths=None, hyper=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     assert isinstance(hyper, dict), 'The hyper parameter expected a dictionnay but other type is provided'
+    # CPU/GPU
+    config_params = {}
+    if hyper['device_option'] == 'cpu':
+        config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
+    elif 'specific' in hyper['device_option']:
+        print('using GPU:{}'.format(hyper['device_option'].split(':')[-1]))
+        config_params['config'] = tf.ConfigProto(gpu_options=tf.GPUOptions(visible_device_list=hyper['device_option'].split(':')[-1]),
+                                                 allow_soft_placement=True,
+                                                 log_device_placement=False,
+                                                 )
+
     tf.reset_default_graph()
     with tf.gfile.GFile(paths['optimized_pb_path'], 'rb') as f:
         graph_def_optimized = tf.GraphDef()
         graph_def_optimized.ParseFromString(f.read())
     G = tf.Graph()
+    output = np.empty((hyper['nb_patch'], hyper['patch_size'], hyper['patch_size']))
 
-    with tf.Session(graph=G) as sess:
+    with tf.Session(graph=G, **config_params) as sess:
         _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[0]])  # note: this line can really clean all input_pipeline/or input what only is necessary
         print('Operations in Optimized Graph:')
         print([op.name for op in G.get_operations()])
@@ -104,52 +117,94 @@ def inference(inputs=None, paths=None, hyper=None):
         y = G.get_tensor_by_name('import/' + 'model/decoder/logits/relu:0')
         do = G.get_tensor_by_name('import/' + 'dropout_ph:0')
         tf.summary.FileWriter(paths['working_dir'] + 'tb/after_optimize', sess.graph)
-        y = sess.run(y, feed_dict={X: inputs, do: 1})
         # note: 1.throw up OpenMP error on Mac.
-        print(y.shape)
+        for i in range(hyper['nb_batch']):
+            try:
+                _out = sess.run(y, feed_dict={X: inputs[i * hyper['batch_size']: (i + 1) * hyper['batch_size']], do: 1})
+                output[i * hyper['batch_size']: (i + 1) * hyper['batch_size']] = np.squeeze(_out)
+            except Exception as e:
+                print(e)
+                _out = sess.run(y, feed_dict={X: inputs[i * hyper['batch_size']:], do: 1})
+                output[i * hyper['batch_size']:] = np.squeeze(_out)
+
+    return output
 
 
 if __name__ == '__main__':
     conserve_nodes = [
             'model/decoder/logits/relu',
         ]
-    graph_def_dir = './logs/2019_10_13_bs300_ps72_lr0.0001_cs5_nc80_do0.1_act_leaky_aug_True/hour15/'
+    graph_def_dir = './logs/2019_10_19_bs300_ps80_lr0.0001_cs5_nc80_do0.1_act_leaky_aug_True/hour22/'
 
-    paths = {
-        'working_dir': graph_def_dir,
-        'ckpt_dir': graph_def_dir + 'ckpt/',
-        'ckpt_path': graph_def_dir + 'ckpt/step23192',
-        'save_pb_dir': graph_def_dir + 'pb/',
-        'save_pb_path': graph_def_dir + 'pb/frozen_step23192.pb',
-        'optimized_pb_dir': graph_def_dir + 'optimize/',
-        'optimized_pb_path': graph_def_dir + 'optimize/optimized.pb',
-        'tflite_pb_dir': graph_def_dir + 'tflite/',
-        'data_dir': './data/72/',
-        'rlt_dir': graph_def_dir + 'rlt/',
-        'GPU': 0,
-    }
+    # segment raw img per raw img
+    l_bs = [800, 700, 600, 500, 400, 300, 200, 100]
+    l_time = []
+    l_inf = []
+    l_step = [13580]
+    step = l_step[0]
+    for bs in l_bs:
+        paths = {
+            'working_dir': graph_def_dir,
+            'ckpt_dir': graph_def_dir + 'ckpt/',
+            'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
+            'save_pb_dir': graph_def_dir + 'pb/',
+            'save_pb_path': graph_def_dir + 'pb/frozen_step{}.pb'.format(step),
+            'optimized_pb_dir': graph_def_dir + 'optimize/',
+            'optimized_pb_path': graph_def_dir + 'optimize/optimized_{}.pb'.format(step),
+            'tflite_pb_dir': graph_def_dir + 'tflite/',
+            'data_dir': './data/72/',
+            'rlt_dir': graph_def_dir + 'rlt/',
+            'GPU': 0,
+            'inference_dir': './result/',
+        }
 
-    hyperparams = {
-        'patch_size': 72,
-        'batch_size': 300,  # Xlearn < 20, Unet < 20 saturate GPU memory
-        'nb_epoch': 100,
-        'nb_batch': None,
-        'conv_size': 5,
-        'nb_conv': 80,
-        'learning_rate': 1e-4,  # should use smaller learning rate when decrease batch size
-        'dropout': 0.1,
-        'device_option': 'specific_gpu:1',
-        'augmentation': True,
-        'activation': 'leaky',
-        'save_step': 1000,
-    }
+        hyperparams = {
+            'patch_size': 80,
+            'batch_size': None,
+            'nb_batch': None,
+            'nb_patch': None,
+            'stride': 1,
+            'device_option': 'cpu',
+        }
 
-    freeze_ckpt_for_inference(paths=paths, hyper=hyperparams)  #there's still some residual nodes
-    optimize_curve_for_inference(paths=paths)  #clean residual nodes
-    inputs = np.zeros((hyperparams['batch_size'], hyperparams['patch_size'], hyperparams['patch_size'], 1))
-    inference(inputs=inputs, paths=paths, hyper=hyperparams)
+        freeze_ckpt_for_inference(paths=paths, hyper=hyperparams)  #there's still some residual nodes
+        optimize_curve_for_inference(paths=paths)  #clean residual nodes: gradients, td.data.pipeline...
+        inputs = np.asarray(Image.open('./raw/1.tif'))
+
+        # calculate nb of patch per img
+        img_size = inputs.shape
+        i_h, i_w = img_size
+
+        # compute the dimensions of the patches array
+        n_h = (i_h - hyperparams['patch_size']) // hyperparams['stride'] + 1
+        n_w = (i_w - hyperparams['patch_size']) // hyperparams['stride'] + 1
+        hyperparams['nb_patch'] = n_h * n_w
+        hyperparams['batch_size'] = bs  #note: maximize here to improve the inference speed
+        hyperparams['nb_batch'] = hyperparams['nb_patch'] // hyperparams['batch_size'] + 1  #note: arbitrary nb
+        #
+        # if n_h >= n_w:
+        #     hyperparams['nb_batch'] = n_h
+        #     hyperparams['batch_size'] = n_w
+        # else:
+        #     hyperparams['nb_batch'] = n_w
+        #     hyperparams['batch_size'] = n_h
 
 
+        # construct the patches
+        inputs = _stride(inputs, stride=1, patch_size=hyperparams['patch_size'])
+        inputs = np.expand_dims(inputs, axis=3)
+        start_time = time.time()
+        print('Starting time {}s'.format(start_time))
+        outputs = inference(inputs=inputs, paths=paths, hyper=hyperparams)
+        print('Intermediate time {}s'.format(time.time() - start_time))
+        l_inf.append((time.time() - start_time))
+        outputs = reconstruct(outputs, image_size=img_size, stride=hyperparams['stride'])  #outputs.shape should be [x, :, :]
+        l_time.append((time.time() - start_time))
+        print('Segment an image in {}s'.format((time.time() - start_time)))
+        check_N_mkdir('./result/')
+        outputs = np.squeeze(outputs)
+        Image.fromarray(outputs).save('./result/step{}_1.tif'.format(step))
+    pd.DataFrame({'batch_size': l_bs, 'infer time': l_inf, 'recon time': l_time}).to_csv('./result/bs_time.csv')
 
 
 

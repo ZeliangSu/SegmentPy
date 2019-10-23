@@ -284,7 +284,7 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None):
     try:
         batch_size = int(paths['working_dir'].split('bs')[1].split('_')[0])
     except:
-        batch_size = 100
+        batch_size = 300
 
     new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
 
@@ -302,57 +302,57 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None):
 
 if __name__ == '__main__':
     # Xlearn
-    # conserve_nodes = [
-    #     'model/encoder/conv1/relu',
-    #     'model/encoder/conv1bis/relu',
-    #     'model/encoder/conv2/relu',
-    #     'model/encoder/conv2bis/relu',
-    #     'model/encoder/conv3/relu',
-    #     'model/encoder/conv3bis/relu',
-    #     'model/encoder/conv4/relu',
-    #     'model/encoder/conv4bis/relu',
-    #     'model/encoder/conv4bisbis/relu',
-    #     'model/dnn/dnn1/leaky',
-    #     'model/dnn/dnn2/leaky',
-    #     'model/dnn/dnn3/leaky',
-    #     'model/decoder/deconv5/relu',
-    #     'model/decoder/deconv5bis/relu',
-    #     'model/decoder/deconv6/relu',
-    #     'model/decoder/deconv6bis/relu',
-    #     'model/decoder/deconv7bis/relu',
-    #     'model/decoder/deconv7bis/relu',
-    #     'model/decoder/deconv8/relu',
-    #     'model/decoder/deconv8bis/relu',
-    #     'model/decoder/logits/relu',
-    # ]
-    # U-Net
     conserve_nodes = [
-        'model/contractor/conv1/sigmoid',
-        'model/contractor/conv1bis/sigmoid',
-        'model/contractor/conv2/sigmoid',
-        'model/contractor/conv2bis/sigmoid',
-        'model/contractor/conv3/sigmoid',
-        'model/contractor/conv3bis/sigmoid',
-        'model/contractor/conv4/sigmoid',
-        'model/contractor/conv4bis/sigmoid',
-        'model/bottom/bot5/sigmoid',
-        'model/bottom/bot5bis/sigmoid',
-        'model/bottom/deconv1/sigmoid',
-        'model/decontractor/conv6/sigmoid',
-        'model/decontractor/conv6bis/sigmoid',
-        'model/decontractor/deconv2/sigmoid',
-        'model/decontractor/conv7/sigmoid',
-        'model/decontractor/conv7bis/sigmoid',
-        'model/decontractor/deconv3/sigmoid',
-        'model/decontractor/conv8/sigmoid',
-        'model/decontractor/conv8bis/sigmoid',
-        'model/decontractor/deconv4/sigmoid',
-        'model/decontractor/conv9/sigmoid',
-        'model/decontractor/conv9bis/sigmoid',
-        'model/decontractor/logits/relu',
+        'model/encoder/conv1/relu',
+        'model/encoder/conv1bis/relu',
+        'model/encoder/conv2/relu',
+        'model/encoder/conv2bis/relu',
+        'model/encoder/conv3/relu',
+        'model/encoder/conv3bis/relu',
+        'model/encoder/conv4/relu',
+        'model/encoder/conv4bis/relu',
+        'model/encoder/conv4bisbis/relu',
+        'model/dnn/dnn1/leaky',
+        'model/dnn/dnn2/leaky',
+        'model/dnn/dnn3/leaky',
+        'model/decoder/deconv5/relu',
+        'model/decoder/deconv5bis/relu',
+        'model/decoder/deconv6/relu',
+        'model/decoder/deconv6bis/relu',
+        'model/decoder/deconv7bis/relu',
+        'model/decoder/deconv7bis/relu',
+        'model/decoder/deconv8/relu',
+        'model/decoder/deconv8bis/relu',
+        'model/decoder/logits/relu',
     ]
-    graph_def_dir = './dummy/'
-    step = 23192
+    # U-Net
+    # conserve_nodes = [
+    #     'model/contractor/conv1/sigmoid',
+    #     'model/contractor/conv1bis/sigmoid',
+    #     'model/contractor/conv2/sigmoid',
+    #     'model/contractor/conv2bis/sigmoid',
+    #     'model/contractor/conv3/sigmoid',
+    #     'model/contractor/conv3bis/sigmoid',
+    #     'model/contractor/conv4/sigmoid',
+    #     'model/contractor/conv4bis/sigmoid',
+    #     'model/bottom/bot5/sigmoid',
+    #     'model/bottom/bot5bis/sigmoid',
+    #     'model/bottom/deconv1/sigmoid',
+    #     'model/decontractor/conv6/sigmoid',
+    #     'model/decontractor/conv6bis/sigmoid',
+    #     'model/decontractor/deconv2/sigmoid',
+    #     'model/decontractor/conv7/sigmoid',
+    #     'model/decontractor/conv7bis/sigmoid',
+    #     'model/decontractor/deconv3/sigmoid',
+    #     'model/decontractor/conv8/sigmoid',
+    #     'model/decontractor/conv8bis/sigmoid',
+    #     'model/decontractor/deconv4/sigmoid',
+    #     'model/decontractor/conv9/sigmoid',
+    #     'model/decontractor/conv9bis/sigmoid',
+    #     'model/decontractor/logits/relu',
+    # ]
+    graph_def_dir = './logs/2019_10_19_bs300_ps80_lr0.0001_cs5_nc80_do0.1_act_leaky_aug_True/hour22/'
+    step = 14580
     paths = {
         'step': step,
         'perplexity': 10,  #default 30 usual range 5-50
@@ -362,7 +362,7 @@ if __name__ == '__main__':
         'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
         'save_pb_dir': graph_def_dir + 'pb/',
         'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
-        'data_dir': './dummy/80/',
+        'data_dir': './proc/test/80/',
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
@@ -370,6 +370,6 @@ if __name__ == '__main__':
 
     # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
-    # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
-    weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
+    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])

@@ -99,7 +99,7 @@ def _stride(tensor, stride, patch_size):
     # stride the tensor
     _strides = tuple([i * stride for i in tensor.strides]) + tuple(tensor.strides)
     patches = as_strided(tensor, shape=(p_h, p_w, patch_size, patch_size), strides=_strides)\
-        .reshape(-1, patch_size, patch_size)
+        .reshape((-1, patch_size, patch_size))
     return patches
 
 
