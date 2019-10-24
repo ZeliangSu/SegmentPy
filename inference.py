@@ -7,6 +7,7 @@ from util import check_N_mkdir
 from itertools import product
 from PIL import Image
 from proc import _stride
+from tqdm import tqdm
 
 
 def reconstruct(stack, image_size=None, stride=None):
@@ -21,9 +22,9 @@ def reconstruct(stack, image_size=None, stride=None):
         img: (np.ndarray) final reconstructed image
         nb_patches: (int) number of patches need to provide to this function
     """
-    i_h, i_w = image_size[:2]
-    p_h, p_w = stack.shape[1:]
-    img = np.zeros(image_size)
+    i_h, i_w = image_size[:2]  #e.g. (a, b)
+    p_h, p_w = stack.shape[1:3]  #e.g. (x, h, w, 1)
+    img = np.zeros((i_h, i_w))
 
     # compute the dimensions of the patches array
     n_h = (i_h - p_h) // stride + 1
@@ -39,7 +40,7 @@ def reconstruct(stack, image_size=None, stride=None):
     return img
 
 
-def freeze_ckpt_for_inference(paths=None, hyper=None):
+def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     assert isinstance(hyper, dict), 'The hyper parameter expected a dictionnay but other type is provided'
     # clean graph first
@@ -77,7 +78,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None):
             f.write(output_graph_def.SerializeToString())
 
 
-def optimize_curve_for_inference(paths=None):
+def optimize_curve_for_inference(paths=None, conserve_nodes=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     tf.reset_default_graph()
     with tf.Session() as sess:
@@ -88,7 +89,7 @@ def optimize_curve_for_inference(paths=None):
             paths['save_pb_path'], paths['optimized_pb_path'], conserve_nodes[0]))
 
 
-def inference(inputs=None, paths=None, hyper=None):
+def inference(inputs=None, conserve_nodes=None, paths=None, hyper=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     assert isinstance(hyper, dict), 'The hyper parameter expected a dictionnay but other type is provided'
     # CPU/GPU
@@ -130,8 +131,97 @@ def inference(inputs=None, paths=None, hyper=None):
     return output
 
 
+def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None):
+    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
+    assert isinstance(inputs, list), 'inputs is expected to be a list of images for heterogeneous image size!'
+    assert isinstance(paths, dict), 'paths should be a dict'
+    assert isinstance(hyper, dict), 'hyper should be a dict'
+    check_N_mkdir(paths['out_dir'])
+    freeze_ckpt_for_inference(paths=paths, hyper=hyper, conserve_nodes=conserve_nodes)  # there's still some residual nodes
+    optimize_curve_for_inference(paths=paths, conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
+
+    # calculate nb of patch per img
+    img_shape = [i_sz.shape for i_sz in inputs]
+    n_h=[]
+    n_w=[]
+    for i_h, i_w in img_shape:
+        n_h.append((i_h - hyper['patch_size']) // hyper['stride'] + 1)
+        n_w.append((i_w - hyper['patch_size']) // hyper['stride'] + 1)
+
+    # set device
+    config_params = {}
+    if hyper['device_option'] == 'cpu':
+        config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
+    elif 'specific' in hyper['device_option']:
+        print('using GPU:{}'.format(hyper['device_option'].split(':')[-1]))
+        config_params['config'] = tf.ConfigProto(
+            gpu_options=tf.GPUOptions(visible_device_list=hyper['device_option'].split(':')[-1]),
+            allow_soft_placement=True,
+            log_device_placement=False,
+            )
+
+    # load graph
+    tf.reset_default_graph()
+    with tf.gfile.GFile(paths['optimized_pb_path'], 'rb') as f:
+        graph_def_optimized = tf.GraphDef()
+        graph_def_optimized.ParseFromString(f.read())
+    G = tf.Graph()
+    l_out = []
+
+    with tf.Session(graph=G, **config_params) as sess:
+        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[0]])
+        X = G.get_tensor_by_name('import/' + 'input_ph:0')
+        y = G.get_tensor_by_name('import/' + 'model/decoder/logits/relu:0')
+        do = G.get_tensor_by_name('import/' + 'dropout_ph:0')
+        # compute the dimensions of the patches array
+
+        for i, _input in tqdm(enumerate(inputs), desc='image'):
+            # define batsh size
+            if n_h[i] >= n_w[i]:  #note: could throw Resource_exhaustedError if batch_size >> 500
+                hyper['nb_batch'] = n_h[i]
+                hyper['batch_size'] = n_w[i]
+            else:
+                hyper['nb_batch'] = n_w[i]
+                hyper['batch_size'] = n_h[i]
+            print('\nbatch size:{}, nb_batch:{}'.format(hyper['batch_size'], hyper['nb_batch']))
+            hyper['nb_patch'] = n_h[i] * n_w[i]
+
+            # define output shape
+            output = np.empty((hyper['nb_patch'], hyper['patch_size'], hyper['patch_size']))
+
+            # construct the patches
+            _input = _stride(_input, stride=1, patch_size=hyper['patch_size'])
+            _input = np.expand_dims(_input, axis=3)
+
+            # inference
+            for j in tqdm(range(hyper['nb_batch']), desc='batch'):
+                try:
+                    _out = sess.run(y, feed_dict={
+                        X: _input[j * hyper['batch_size']: (j + 1) * hyper['batch_size']],
+                        do: 1
+                    })
+                    output[j * hyper['batch_size']: (j + 1) * hyper['batch_size']] = np.squeeze(_out)
+                except Exception as e:
+                    print(e)
+                    _out = sess.run(y, feed_dict={
+                        X: _input[j * hyper['batch_size']:],
+                        do: 1
+                    })
+                    output[j * hyper['batch_size']:] = np.squeeze(_out)
+
+            # recon
+            output = reconstruct(output, image_size=img_shape[i], stride=hyper['stride'])  # outputs.shape should be [x, :, :]
+
+            # save
+            check_N_mkdir(paths['out_dir'])
+            output = np.squeeze(output)
+            Image.fromarray(output).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
+            l_out.append(output)
+    return l_out
+
+
 if __name__ == '__main__':
-    conserve_nodes = [
+    c_nodes = [
             'model/decoder/logits/relu',
         ]
     graph_def_dir = './logs/2019_10_19_bs300_ps80_lr0.0001_cs5_nc80_do0.1_act_leaky_aug_True/hour22/'
@@ -144,6 +234,7 @@ if __name__ == '__main__':
     step = l_step[0]
     for bs in l_bs:
         paths = {
+            'step': None,
             'working_dir': graph_def_dir,
             'ckpt_dir': graph_def_dir + 'ckpt/',
             'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
@@ -152,7 +243,8 @@ if __name__ == '__main__':
             'optimized_pb_dir': graph_def_dir + 'optimize/',
             'optimized_pb_path': graph_def_dir + 'optimize/optimized_{}.pb'.format(step),
             'tflite_pb_dir': graph_def_dir + 'tflite/',
-            'data_dir': './data/72/',
+            'in_dir': './result/in/',
+            'out_dir': './result/out/',
             'rlt_dir': graph_def_dir + 'rlt/',
             'GPU': 0,
             'inference_dir': './result/',
@@ -167,8 +259,8 @@ if __name__ == '__main__':
             'device_option': 'cpu',
         }
 
-        freeze_ckpt_for_inference(paths=paths, hyper=hyperparams)  #there's still some residual nodes
-        optimize_curve_for_inference(paths=paths)  #clean residual nodes: gradients, td.data.pipeline...
+        freeze_ckpt_for_inference(paths=paths, hyper=hyperparams, conserve_nodes=c_nodes)  #there's still some residual nodes
+        optimize_curve_for_inference(paths=paths, conserve_nodes=c_nodes)  #clean residual nodes: gradients, td.data.pipeline...
         inputs = np.asarray(Image.open('./raw/1.tif'))
 
         # calculate nb of patch per img

@@ -319,7 +319,7 @@ def model_xlearn_custom(train_inputs, test_inputs, patch_size, batch_size, conv_
                                      activation='leaky', name='conv4')
             conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                          activation='leaky', name='conv4bis')
-            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='leaky',
+            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='1-leaky',
                                              name='conv4bisbis')
 
         with tf.name_scope('dnn'):

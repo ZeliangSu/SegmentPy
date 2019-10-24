@@ -3,10 +3,12 @@ from sklearn.tree import export_graphviz
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.externals import joblib
 from subprocess import call
+from PIL import Image
 from util import check_N_mkdir
 from itertools import repeat
 from reader import _tifReader
 from filter import *
+
 
 
 def train(X, y, params=None):
@@ -38,7 +40,7 @@ def train_auto_optimized_model(X, y, param_grid=None):
 
 def save_model(model, model_dir=None):
     check_N_mkdir(model_dir)
-    joblib.dump(model, model_dir + 'rf/model.sav')
+    joblib.dump(model, model_dir + 'model.sav')
 
 
 def load_model(model_path=None):
@@ -51,18 +53,43 @@ def test(X, y, model):
     return score
 
 
-def predict(X, model):
-    rlt = model.predict(X)
-    return rlt
+def predict(stackImg, model, rlt_dir=None, filt_names=None):
+    assert isinstance(stackImg, list), 'stackImg should be a list of image for ignoring different input images size'
+    check_N_mkdir(rlt_dir)
+    shapes = [img.shape for img in stackImg]
+    sizes = [img.size for img in stackImg]
+
+    # compute featuremaps
+    inf_features = get_featureMaps(stackImg, filter_names=filt_names)
+    inf_input = make_input(inf_features)
+
+    # predict
+    rlt = model.predict(inf_input)
+
+    # reshape result to list of img
+    pointer = 0
+    i = 0
+    out = []
+    for shp, siz in zip(shapes, sizes):
+        _rlt = rlt[pointer: pointer + siz].reshape(shp)
+        Image.fromarray(_rlt).save(rlt_dir + '{}.tif'.format(i))
+        out.append(_rlt)
+        pointer += siz
+        i += 1
+    return out
 
 
 def export_treeGraph(model, l_filt=None, graph_dir=None):
     check_N_mkdir(graph_dir)
     export_graphviz(model, graph_dir + 'graph.dot', rounded=True,
                     feature_names=l_filt, max_depth=8,
-                    class_names=['poverty', 'no poverty'], filled=True)
-
-    call(['dot', '-Tpng', graph_dir + 'graph.dot', '-o', ''.format(graph_dir + 'graph.png'), '-Gdpi=200'])
+                    class_names=['NMC', 'CBD', 'pore'], filled=True)
+    # should apt graphviz
+    try:
+        call(['dot', '-Tpng', graph_dir + 'graph.dot', '-O', ''.format(graph_dir + 'graph.png'), '-Gdpi=50'])
+    except Exception as e:
+        print('Error msg: {}'.format(e))
+        call(['dot', '-Tpng', graph_dir + 'graph.dot', '-O', ''.format(graph_dir + 'graph.png'), '-Gdpi=40'])
 
 
 def get_featureMaps(stackImg, filter_names=None):
@@ -127,14 +154,35 @@ def get_data(stackFeatures, stackLabels):
         data[place: place + label.size, -1] = label.flatten()
         place += label.size
 
-    return data[:, :-2], data[:, -1]
+    return data[:, :-1], data[:, -1]
+
+
+def make_input(stackFeatures):
+    ''''''
+    # init ndarray of the data
+    nb_filt = len(stackFeatures[0])
+    total_pixel = 0
+    for i, feat in enumerate(stackFeatures):
+        total_pixel += feat[0].size
+    data = np.empty((total_pixel, nb_filt))
+    _data = np.empty(total_pixel)
+
+    # fill data
+    for i in range(nb_filt):
+        place = 0
+        for j, feat in enumerate(stackFeatures):
+            _data[place: place + feat[i].size] = feat[i].flatten()
+            place += feat[i].size
+        data[:, i] = _data
+
+    return data
 
 
 if __name__ == '__main__':
     # inits
     paths = {
         'raw_dir': './raw/',
-        'rlt_dir': './RF_result/',
+        'rlt_dir': './RF_result/rlt/',
         'model_dir': './RF_result/mdl/'
     }
 
@@ -143,17 +191,17 @@ if __name__ == '__main__':
         'sobel',
         'hessian',
         'dog',
-        'membrane_proj',
+        #'membrane_proj',
         'anisotropic_diffusion1',
         'anisotropic_diffusion2',
-        'gabor'
+        'gabor',
         'bilateral',
         'median',
     ]
 
     params = {
         'nb_tree': 200,
-        'depth': 5,
+        'depth': 20,
     }
 
     test_grid = {
@@ -174,10 +222,14 @@ if __name__ == '__main__':
     # clf = train_auto_optimized_model(X_train, y_train, param_grid=test_grid)
 
     # test
+    # todo: should verify the testset
     score = test(X_test, y_test, clf)
     print(score)
-    export_treeGraph(clf, l_filt=filt_names, graph_dir=paths['model_dir'])
+    export_treeGraph(clf.estimators_[0], l_filt=filt_names, graph_dir=paths['model_dir'])
     save_model(clf, model_dir=paths['model_dir'])
+    clf = load_model(model_path=paths['model_dir'] + 'model.sav')
 
     # produce
-    rlt = predict(X_test, clf)
+    inference_stack, _, _ = _tifReader(paths['raw_dir'])
+    vol_RF = predict(inference_stack, clf, rlt_dir=paths['rlt_dir'], filt_names=filt_names)
+

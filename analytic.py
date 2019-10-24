@@ -297,7 +297,7 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None):
     g_main, ops_dict = load_mainGraph(conserve_nodes, path=paths['save_pb_path'])
 
     # run nodes and save results
-    inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'])
+    inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']))
 
 
 if __name__ == '__main__':
@@ -368,7 +368,7 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
 
-    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
     tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
