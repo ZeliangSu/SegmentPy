@@ -13,9 +13,9 @@ from util import check_N_mkdir
 hyperparams = {
     'patch_size': 80,
     'batch_size': 300,  #Xlearn < 20, Unet < 20 saturate GPU memory
-    'nb_epoch': 5,
+    'nb_epoch': 100,
     'nb_batch': None,
-    'conv_size': 7,
+    'conv_size': 9,
     'nb_conv': 80,
     'learning_rate': 1e-4,  #float or np.array of programmed learning rate
     'dropout': 0.1,
@@ -38,7 +38,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}{}_c
     hyperparams['dropout'],
     hyperparams['activation'],
     '_aug_' + str(hyperparams['augmentation']),
-    'None',  #note: here put your special comment
+    'Conv4bb_1-leaky_remove_actOfLogits_add_bridge',  #note: here put your special comment
     hyperparams['hour'],
 )
 

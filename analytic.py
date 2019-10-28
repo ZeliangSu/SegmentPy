@@ -99,10 +99,10 @@ def weights_hists_2excel(ckpt_dir=None, rlt_dir=None):
     step.append(lnames[0].split('step')[1].split('.')[0])
 
     # init dataframes
-    for j, layer_name in enumerate(wn + dnn_wn):
-        df_w[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'0': _ws[j].flatten()})
-    for j, layer_name in enumerate(bn + dnn_bn):
-        df_b[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'0': _bs[j].flatten()})
+    for i, layer_name in enumerate(wn + dnn_wn):
+        df_w[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'0': _ws[i].flatten()})
+    for i, layer_name in enumerate(bn + dnn_bn):
+        df_b[layer_name.split(':')[0].replace('/', '_')] = pd.DataFrame({'0': _bs[i].flatten()})
 
     # add more step to layers params
     for i, ckpt_path in enumerate(lnames[1:]):
@@ -309,9 +309,9 @@ if __name__ == '__main__':
         'model/encoder/conv2bis/relu',
         'model/encoder/conv3/relu',
         'model/encoder/conv3bis/relu',
-        'model/encoder/conv4/relu',
-        'model/encoder/conv4bis/relu',
-        'model/encoder/conv4bisbis/relu',
+        'model/encoder/conv4/leaky',
+        'model/encoder/conv4bis/leaky',
+        'model/encoder/conv4bisbis/x-leaky',
         'model/dnn/dnn1/leaky',
         'model/dnn/dnn2/leaky',
         'model/dnn/dnn3/leaky',
@@ -351,8 +351,8 @@ if __name__ == '__main__':
     #     'model/decontractor/conv9bis/sigmoid',
     #     'model/decontractor/logits/relu',
     # ]
-    graph_def_dir = './logs/2019_10_19_bs300_ps80_lr0.0001_cs5_nc80_do0.1_act_leaky_aug_True/hour22/'
-    step = 14580
+    graph_def_dir = './logs/2019_10_23_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True_commentConv4bb_1-leaky/hour16/'
+    step = 12864
     paths = {
         'step': step,
         'perplexity': 10,  #default 30 usual range 5-50
@@ -368,7 +368,7 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
 
-    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
     # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
     tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])

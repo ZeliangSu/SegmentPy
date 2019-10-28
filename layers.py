@@ -107,18 +107,22 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', dropout=1, nam
         output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
         if dropout != 1:
             output = tf.nn.dropout(output, keep_prob=dropout)
-        if activation == 'relu':
-            output_activation = tf.nn.relu(output, name='relu')  #note: if this line activated, mysterious gradient vanishing problem
-        elif activation == 'sigmoid':
-            output_activation = tf.nn.sigmoid(output, name='sigmoid')
-        elif activation == 'tanh':
-            output_activation = tf.nn.tanh(output, name='tanh')  #note: mysterious gradient vanishing problem
-        elif activation == 'leaky':
-            output_activation = tf.nn.leaky_relu(output, alpha=0.1, name='leaky')  #note: mysterious gradient vanishing problem
-        elif '-leaky' in activation:
-            output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='x-leaky')  #note: mysterious gradient vanishing problem
+
+        if name == 'logits':
+            output_activation = output
         else:
-            raise NotImplementedError('Activation function not found!')
+            if activation == 'relu':
+                output_activation = tf.nn.relu(output, name='relu')
+            elif activation == 'sigmoid':
+                output_activation = tf.nn.sigmoid(output, name='sigmoid')
+            elif activation == 'tanh':
+                output_activation = tf.nn.tanh(output, name='tanh')
+            elif activation == 'leaky':
+                output_activation = tf.nn.leaky_relu(output, name='leaky')
+            elif '-leaky' in activation:
+                output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
+            else:
+                raise NotImplementedError('Activation function not found!')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
                                                    tf.summary.histogram("layer", output),
@@ -152,16 +156,22 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, acti
         if dropout != 1:
             transpose = tf.nn.dropout(transpose, keep_prob=dropout)
         output = transpose + b
-        if activation == 'relu':
-            output_activation = tf.nn.relu(output, name='relu')
-        elif activation == 'sigmoid':
-            output_activation = tf.nn.sigmoid(output, name='sigmoid')
-        elif activation == 'tanh':
-            output_activation = tf.nn.tanh(output, name='tanh')
-        elif activation == 'leaky':
-            output_activation = tf.nn.leaky_relu(output, name='leaky')
+
+        if name == 'logits':
+            output_activation = output
         else:
-            raise NotImplementedError('Activation function not found!')
+            if activation == 'relu':
+                output_activation = tf.nn.relu(output, name='relu')
+            elif activation == 'sigmoid':
+                output_activation = tf.nn.sigmoid(output, name='sigmoid')
+            elif activation == 'tanh':
+                output_activation = tf.nn.tanh(output, name='tanh')
+            elif activation == 'leaky':
+                output_activation = tf.nn.leaky_relu(output, name='leaky')
+            elif '-leaky' in activation:
+                output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
+            else:
+                raise NotImplementedError('Activation function not found!')
         return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
                                                    tf.summary.histogram("bias", b),
                                                    tf.summary.histogram("layer", output),
@@ -277,8 +287,7 @@ def metrics(y_pred, y_true, loss_op, training_type):
     -------
         merged summaries of loss and accuracy
     """
-    y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')
-    # y_pred_bis = tf.cast(y_pred, tf.int32, name='ypredbis')  #fixme: mysterious 0 gradients or 0 accuracy bug by using this line
+    y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')  #fixme: mysterious 0 gradients or 0 accuracy bug by using this line
     def loss_trn(): return tf.metrics.mean(loss_op, name='ls_train')
     def loss_cv(): return tf.metrics.mean(loss_op, name='ls_cv')
     def loss_tst(): return tf.metrics.mean(loss_op, name='ls_test')

@@ -95,8 +95,8 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                         _globalStep = step + ep * hyperparams['nb_batch']
                         saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
         except (KeyboardInterrupt, SystemExit):
-            saver.save(sess, folder + 'ckpt/final_step{}'.format(_globalStep))
-        saver.save(sess, folder + 'ckpt/final_step{}'.format(hyperparams['nb_epoch'] * hyperparams['nb_batch']))
+            saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
+        saver.save(sess, folder + 'ckpt/step{}'.format(hyperparams['nb_epoch'] * hyperparams['nb_batch']))
 
 
 def retrain_from_ckpt(paths=None, input_pipeline=None, hyperparams=None):

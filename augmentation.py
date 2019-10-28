@@ -15,9 +15,9 @@ def random_aug(X_img, y_img):
     X_img: (np.ndarray) augmented input image
     y_img: (np.ndarray) same output image
     """
-    fns = [gaussian_noise, flipping, sp_noise, speckle_noise, non_noise]  #todo: can add probabilities
+    fns = [gaussian_noise, flipping, sp_noise, speckle_noise, non_noise, contrast, grayscale_var]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
-    return _minmaxscalar(X_img), y_img
+    return X_img.astype('float32'), y_img
 
 
 def gaussian_noise(X_img, y_img, sigma=0.1):
@@ -36,7 +36,7 @@ def gaussian_noise(X_img, y_img, sigma=0.1):
     mu = np.mean(X_img)
     noise = np.random.normal(mu, sigma, size=X_img.shape)
     X_img += noise
-    return _minmaxscalar(X_img), y_img
+    return X_img, y_img
 
 
 def flipping(X_img, y_img):
@@ -58,7 +58,7 @@ def flipping(X_img, y_img):
         X_img, y_img = np.fliplr(X_img), np.fliplr(y_img)
     else:
         raise ValueError('please choose between "ud" as up-down or "lr" as left-right!')
-    return _minmaxscalar(X_img), y_img
+    return X_img, y_img
 
 
 def sp_noise(X_img, y_img, amount=0.005):
@@ -83,7 +83,7 @@ def sp_noise(X_img, y_img, amount=0.005):
     # pepper
     coords = [np.random.randint(0, i, nb) for i in X_img.shape]
     X_img[tuple(coords)] = pepper
-    return _minmaxscalar(X_img), y_img
+    return X_img, y_img
 
 
 def speckle_noise(X_img, y_img):
@@ -100,20 +100,25 @@ def speckle_noise(X_img, y_img):
     """
     weighting = np.random.randn(*X_img.shape)
     X_img = X_img + X_img * weighting
-    return _minmaxscalar(X_img), y_img
+    return X_img, y_img
 
 
 def non_noise(X_img, y_img):
     '''Do nothing'''
-    return _minmaxscalar(X_img), y_img
+    return X_img, y_img
 
 
-def poisson_noise():
-    raise NotImplementedError('No poisson noise yet!')
+def grayscale_var(X_img, y_img):
+    std = X_img.std()
+    X_img += std * np.random.uniform(-2, 2)
+    return X_img, y_img
 
 
-def contrast():
-    raise NotImplementedError('No variant intensity augmentation yet!')
+def contrast(X_img, y_img):
+    min = X_img.min()
+    rand = np.random.uniform(0.2, 1)
+    X_img = (X_img - min) * rand + min
+    return X_img, y_img
 
 
 def _minmaxscalar(ndarray, dtype=np.float32):
@@ -131,3 +136,4 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     """
     scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
     return scaled
+

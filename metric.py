@@ -176,13 +176,14 @@ if __name__ == '__main__':
         'stride': 1,
         'device_option': 'specific_gpu:0',
     }
+    _dir = './logs/2019_10_23_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True_commentConv4bb_1-leaky/hour16/'
     paths = {
-        'step': 22728,
+        'step': 12864,
         'in_dir': './result/in/',
         'out_dir': './result/out/',
         'RF_out_dir': './RF_result/out/',
         'RF_model_path': './RF_result/mdl/model.sav',
-        'working_dir': './logs/2019_10_21_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True/hour17/',
+        'working_dir': './logs/2019_10_23_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True_commentConv4bb_1-leaky/hour16/',
         'ckpt_dir': './logs/2019_10_21_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True/hour17/ckpt/',
         'ckpt_path': './logs/2019_10_21_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True/hour17/ckpt/step22728',
         'save_pb_dir': './logs/2019_10_21_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True/hour17/pb/',
@@ -193,32 +194,32 @@ if __name__ == '__main__':
         'GPU': 0,
     }
 
-    # X_stack, y_stack, _ = _tifReader(paths['in_dir'])
+    X_stack, y_stack, _ = _tifReader(paths['in_dir'])
     #
     # # RF inf
-    # clf = load_model(model_path=paths['RF_model_path'])
-    # vol_RF = predict(X_stack, clf, rlt_dir=paths['RF_out_dir'], filt_names=filt_names)
+    clf = load_model(model_path=paths['RF_model_path'])
+    vol_RF = predict(X_stack, clf, rlt_dir=paths['RF_out_dir'], filt_names=filt_names)
     #
     # # NN inf
-    # vol_NN = inference_recursive(inputs=X_stack, conserve_nodes=conserve_nodes, paths=paths, hyper=hyperparams)
+    vol_NN = inference_recursive(inputs=X_stack, conserve_nodes=conserve_nodes, paths=paths, hyper=hyperparams)
     #
     # # compute metrics
-    # vol_RF = np.asarray(vol_RF)
-    # vol_NN = np.asarray(vol_NN)
-
-    # or read from folder
-    vol_RF, _, _ = _tifReader(paths['RF_out_dir'])
-    vol_NN, _, _ = _tifReader(paths['out_dir'])
-    X_stack, y_stack, _ = _tifReader(paths['in_dir'])
     vol_RF = np.asarray(vol_RF)
     vol_NN = np.asarray(vol_NN)
-    y_stack = np.asarray(y_stack)
+
+    # or read from folder
+    # vol_RF, _, _ = _tifReader(paths['RF_out_dir'])
+    # vol_NN, _, _ = _tifReader(paths['out_dir'])
+    # X_stack, y_stack, _ = _tifReader(paths['in_dir'])
+    # vol_RF = np.asarray(vol_RF)
+    # vol_NN = np.asarray(vol_NN)
+    # y_stack = np.asarray(y_stack)
 
     # or load from rlt
-    # print('\nRF:', DSC(vol_RF, y_stack))
-    # print('\nNN:', DSC(vol_NN, y_stack))
-    # print('\nRF:', ACC(vol_RF, y_stack))
-    # print('\nNN:', ACC(vol_NN, y_stack))
+    print('\nRF:', DSC(vol_RF, y_stack))
+    print('\nNN:', DSC(vol_NN, y_stack))
+    print('\nRF:', ACC(vol_RF, y_stack))
+    print('\nNN:', ACC(vol_NN, y_stack))
 
     # plot inverse histogram
     # check path

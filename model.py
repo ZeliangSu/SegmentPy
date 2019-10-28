@@ -36,7 +36,6 @@ def model_xlearn(train_inputs, test_inputs, patch_size, batch_size, conv_size, n
         def f1(): return train_inputs
         def f2(): return test_inputs
         inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
-        # inputs = tf.identity(inputs, name='identity')  #note: fix a bug of dimension in tflite inference
 
     with tf.name_scope('model'):
 
@@ -94,7 +93,11 @@ def model_xlearn(train_inputs, test_inputs, patch_size, batch_size, conv_size, n
         grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
         # train operation
-        train_op = opt.apply_gradients(grads, name='train_op')
+        def f3():
+            return opt.apply_gradients(grads, name='train_op')
+        def f4():
+            return tf.no_op(name='no_op')
+        train_op = tf.cond(tf.equal(training_type, 'train'), lambda: f3(), lambda: f4(), name='train_cond')
 
     with tf.name_scope('metrics'):
         m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
@@ -153,7 +156,6 @@ def model_xlearn_lite(train_inputs, test_inputs, patch_size, batch_size, conv_si
         def f2(): return test_inputs
 
         inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
-        # inputs = tf.identity(inputs, name='identity')  #note: fix a bug of dimension in tflite inference
 
     with tf.name_scope('model'):
         with tf.name_scope('encoder'):
@@ -238,7 +240,11 @@ def model_xlearn_lite(train_inputs, test_inputs, patch_size, batch_size, conv_si
         grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
         # train operation
-        train_op = opt.apply_gradients(grads, name='train_op')
+        def f3():
+            return opt.apply_gradients(grads, name='train_op')
+        def f4():
+            return tf.no_op(name='no_op')
+        train_op = tf.cond(tf.equal(training_type, 'train'), lambda: f3(), lambda: f4(), name='train_cond')
 
     with tf.name_scope('metrics'):
         m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
@@ -297,7 +303,6 @@ def model_xlearn_custom(train_inputs, test_inputs, patch_size, batch_size, conv_
         def f2(): return test_inputs
 
         inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
-        # inputs = tf.identity(inputs, name='identity')  #note: fix a bug of dimension in tflite inference
 
     with tf.name_scope('model'):
         with tf.name_scope('encoder'):
@@ -319,7 +324,7 @@ def model_xlearn_custom(train_inputs, test_inputs, patch_size, batch_size, conv_
                                      activation='leaky', name='conv4')
             conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                          activation='leaky', name='conv4bis')
-            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='1-leaky',
+            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='0.5-leaky',
                                              name='conv4bisbis')
 
         with tf.name_scope('dnn'):
@@ -336,7 +341,8 @@ def model_xlearn_custom(train_inputs, test_inputs, patch_size, batch_size, conv_
             dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')
 
         with tf.name_scope('decoder'):
-            deconv_5, _ = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 4],
+            concat0 = concat([dnn_reshape, conv4bisbis], name='concat0')
+            deconv_5, _ = conv2d_transpose_layer(concat0, [conv_size, conv_size, 2, nb_conv * 4],
                                                   [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4],
                                                   name='deconv5')  # [height, width, in_channels, output_channels]
             deconv_5bis, _ = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 8],
@@ -382,7 +388,11 @@ def model_xlearn_custom(train_inputs, test_inputs, patch_size, batch_size, conv_
         grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
         # train operation
-        train_op = opt.apply_gradients(grads, name='train_op')
+        def f3():
+            return opt.apply_gradients(grads, name='train_op')
+        def f4():
+            return tf.no_op(name='no_op')
+        train_op = tf.cond(tf.equal(training_type, 'train'), lambda: f3(), lambda: f4(), name='train_cond')
 
     with tf.name_scope('metrics'):
         m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
@@ -492,7 +502,11 @@ def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_
         grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
         # train operation
-        train_op = opt.apply_gradients(grads, name='train_op')
+        def f3():
+            return opt.apply_gradients(grads, name='train_op')
+        def f4():
+            return tf.no_op(name='no_op')
+        train_op = tf.cond(tf.equal(training_type, 'train'), lambda: f3(), lambda: f4(), name='train_cond')
 
     with tf.name_scope('metrics'):
         m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
@@ -602,7 +616,11 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
         grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
 
         # train operation
-        train_op = opt.apply_gradients(grads, name='train_op')
+        def f3():
+            return opt.apply_gradients(grads, name='train_op')
+        def f4():
+            return tf.no_op(name='no_op')
+        train_op = tf.cond(tf.equal(training_type, 'train'), lambda: f3(), lambda: f4(), name='train_cond')
 
     with tf.name_scope('metrics'):
         m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, inputs['label'], mse, training_type)
