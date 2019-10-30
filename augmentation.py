@@ -110,7 +110,7 @@ def non_noise(X_img, y_img):
 
 def grayscale_var(X_img, y_img):
     std = X_img.std()
-    X_img += std * np.random.uniform(-2, 2)
+    X_img += std * np.random.uniform(-5, 5)
     return X_img, y_img
 
 
