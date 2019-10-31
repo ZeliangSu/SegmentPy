@@ -24,7 +24,7 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
 
     warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
 
-    is_trainning = (suffix != 'inference')
+    is_trainning = True if suffix in ['train', 'cv', 'test'] else False
 
     if is_trainning:
         # placeholder for list fo files

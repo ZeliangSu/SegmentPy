@@ -35,17 +35,3 @@ def _tifReader(dir):
     return X_stack, y_stack, shapes #lists
 
 
-def tfrecordReader(filename_queue):
-    reader = tf.TFRecordReader()
-    _, serialized_example = reader.read(filename_queue)
-    img_features = tf.parse_single_example(
-        serialized_example,
-        features={
-            'X': tf.FixedLenFeature([], tf.string),
-            'y': tf.FixedLenFeature([], tf.string),
-        })
-
-    X = tf.decode_raw(img_features['X'], tf.float32)
-    y = tf.decode_raw(img_features['y'], tf.float32)
-    return X, y
-

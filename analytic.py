@@ -1,12 +1,79 @@
-import tensorflow as tf
-import numpy as np
 import pandas as pd
 from util import get_all_trainable_variables
-from tsne import tsne, tsne_on_weights_2D, tsne_on_weights_3D
+from tsne import tsne, tsne_2D, tsne_3D
 from visualize import *
+from PIL import Image
+from scipy import interpolate
 
 
-def tsne_partialRes_weights(params=None, conserve_nodes=None, mode='2D'):
+def visualize_weights(params=None, plt=False):
+    assert isinstance(params, dict)
+    dir = params['rlt_dir'] + 'weights/step{}/'.format(params['step'])
+    wn, _, ws, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path'])
+    for _wn, _w in zip(wn, ws):
+        for i in range(_w.shape[3]):
+            # interpolation and enlarge to a bigger matrix (instead of repeating)
+            x = np.linspace(-1, 1, _w.shape[0])
+            y = np.linspace(-1, 1, _w.shape[1])
+            f = interpolate.interp2d(x, y, np.sum(_w[:, :, :, i], axis=2), kind='cubic')
+            x = np.linspace(-1, 1, _w.shape[0] * 30)
+            y = np.linspace(-1, 1, _w.shape[1] * 30)
+            tmp = f(x, y)
+
+            # save
+            check_N_mkdir(dir + '{}/'.format(_wn.split('/')[0]))
+            Image.fromarray(tmp).save(
+                dir + '{}/{}.tif'.format(_wn.split('/')[0], i))
+        if plt:
+            pass
+
+
+def tsne_on_bias(params=None, mode='2D'):
+    assert params != None, 'please define the dictionary of paths'
+    assert isinstance(params, dict), 'paths should be a dictionary containning path'
+
+    # get bias
+    _, bn, _, bs, _, dnn_bn, _, dnn_bs = get_all_trainable_variables(params['ckpt_path'])
+
+    shapes = [b.shape[0] for b in bs]
+    max_shape = 0
+    for _shape in shapes:
+        if _shape >= max_shape:
+            max_shape = _shape
+
+    new_bn = []
+    new_bs = []
+    grps = []
+
+    # preparation: unify the b shape by padding
+    for _bn, _b in zip(bn + dnn_bn, bs + dnn_bs):
+        new_bn.append(_bn.split(':')[0])
+        grps.append(_bn.split('/')[0])
+        if _b.shape[0] < max_shape:
+            _b = np.pad(_b, (0, max_shape - _b.shape[0]), constant_values=0)
+        new_bs.append(_b)
+
+    # inject into t-SNE
+    res = tsne(
+        np.asarray(new_bs).reshape(len(new_bs), -1),
+        perplexity=params['perplexity'],
+        niter=params['niter'],
+        mode=mode,
+    )
+
+    # mkdir
+    check_N_mkdir(params['rlt_dir'])
+
+    # visualize the tsne
+    if mode == '2D':
+        tsne_2D(res, new_bn, grps, rlt_dir=params['tsne_dir'], preffix='Bias', suffix=params['step'])
+    elif mode == '3D':
+        tsne_3D(res, new_bn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
+    else:
+        raise NotImplementedError('please choose 2D or 3D mode')
+
+
+def tsne_on_weights(params=None, mode='2D'):
     """
     input:
     -------
@@ -16,9 +83,7 @@ def tsne_partialRes_weights(params=None, conserve_nodes=None, mode='2D'):
         None
     """
     assert params!=None, 'please define the dictionary of paths'
-    assert conserve_nodes!=None, 'please define the list of nodes that you conserve'
     assert isinstance(params, dict), 'paths should be a dictionary containning path'
-    assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
     # run tsne on wieghts
     # get weights from checkpoint
     wns, _, ws, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path'])
@@ -43,18 +108,14 @@ def tsne_partialRes_weights(params=None, conserve_nodes=None, mode='2D'):
                niter=params['niter'], mode=mode)  # e.g. (3, 3, x) --> (9, x) --> (x, 2) or (x, 3)
 
     # mkdir
-
+    check_N_mkdir(params['rlt_dir'])
     # visualize the tsne
     if mode == '2D':
-        tsne_on_weights_2D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
+        tsne_2D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
     elif mode == '3D':
-        tsne_on_weights_3D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
+        tsne_3D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
     else:
         raise NotImplementedError('please choose 2D or 3D mode')
-
-
-def change_hist_bins():
-    pass
 
 
 def weights_hists_2excel(ckpt_dir=None, rlt_dir=None):
@@ -209,62 +270,86 @@ def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
     lnames = sorted(lnames)
 
     # get weights-bias values at step0
-    wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs = get_all_trainable_variables(lnames[0])
-    step = [0]
-    w_avg = [0]
-    b_avg = [0]
-    w_std = [0]
-    b_std = [0]
+    wn, bn, ws_init, bs_init, dnn_wn, dnn_bn, dnn_ws_init, dnn_bs_init = get_all_trainable_variables(lnames[0])
+    l_total_w_avg = [0]
+    l_total_b_avg = [0]
+    l_total_w_std = [0]
+    l_total_b_std = [0]
+
+    dic_w = {'step': [0]}
+    dic_b = {'step': [0]}
+
+    for key in wn + dnn_wn:
+        dic_w[key.split('/')[0] + '_avg'] = [0]
+        dic_w[key.split('/')[0] + '_std'] = [0]
+        dic_b[key.split('/')[0] + '_avg'] = [0]
+        dic_b[key.split('/')[0] + '_std'] = [0]
+
     for ckpt_path in lnames[1:]:
-        step.append(int(ckpt_path.split('step')[1].split('.')[0]))
+        # insert step
+        dic_w['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
+        dic_b['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
+        total_dis_w = []
+        total_dis_b = []
+
         # get ws values at stepX
-        wn_, bn_, ws_, bs_, dnn_wn_, dnn_bn_, dnn_ws_, dnn_bs_ = get_all_trainable_variables(ckpt_path)
+        wn, bn, ws_, bs_, dnn_wn, dnn_bn, dnn_ws_, dnn_bs_ = get_all_trainable_variables(ckpt_path)
         # program euclidean distance
-        dis_w = []
-        dis_b = []
-        for w, w_ in zip(ws + dnn_ws, ws_ + dnn_ws_):
+
+        # for w
+        for _wn, w_init, w_ in zip(wn + dnn_wn, ws_init + dnn_ws_init, ws_ + dnn_ws_):
+            l_dis_w = []
             try:
                 # for CNN
-                w, w_ = w.reshape((w.shape[0], w.shape[1], w.shape[2] * w.shape[3])), \
-                        w_.reshape((w_.shape[0], w_.shape[1], w_.shape[2] * w_.shape[3]))
-                for _w, _w_ in zip(w, w_):
-                    dis_w.append(np.sqrt(np.sum(_w - _w_) ** 2))
-            except:
+                # retrive the filters
+                w_init, w_ = np.sum(w_init, axis=2), np.sum(w_, axis=2)
+                # write w
+                for i in range(w_init.shape[2]):
+                    dis_w = np.sqrt(np.sum((w_init[:, :, i] - w_[:, :, i]) ** 2))
+                    l_dis_w.append(dis_w)
+                    total_dis_w.append(dis_w)
+
+            except Exception as e:
                 # for DNN
-                dis_w.append(np.sqrt(np.sum(w - w_) ** 2))
+                dis_w = np.sqrt(np.sum((w_init - w_) ** 2))
+                l_dis_w.append(dis_w)
+                total_dis_w.append(dis_w)
 
-        for b, b_ in zip(bs + dnn_bs, bs_ + dnn_bs_):
-            dis_b.append(np.sqrt(np.sum(b - b_) ** 2))
+            # save w into dfs
+            dic_w[_wn.split('/')[0] + '_avg'].append(np.asarray(l_dis_w).mean())
+            dic_w[_wn.split('/')[0] + '_std'].append(np.asarray(l_dis_w).std())
 
-        dis_w = np.asarray(dis_w)
-        dis_b = np.asarray(dis_b)
-        w_avg.append(dis_w.mean())
-        w_std.append(dis_w.std())
-        b_avg.append(dis_b.mean())
-        b_std.append(dis_b.std())
+        # for b
+        for _bn, b_init, b_ in zip(bn + dnn_bn, bs_init + dnn_bs_init, bs_ + dnn_bs_):
+            l_dis_b = []
+            for i in range(b_init.shape[0]):
+                dis_b = np.sqrt(np.sum((b_init[i] - b_[i]) ** 2))
+                l_dis_b.append(dis_b)
+                total_dis_b.append(dis_b)
+
+            # write b into dfs
+            dic_b[_bn.split('/')[0] + '_avg'].append(np.asarray(l_dis_b).mean())
+            dic_b[_bn.split('/')[0] + '_std'].append(np.asarray(l_dis_b).std())
+        l_total_w_avg.append(np.asarray(total_dis_w).mean())
+        l_total_w_std.append(np.asarray(total_dis_w).std())
+        l_total_b_avg.append(np.asarray(total_dis_b).mean())
+        l_total_b_std.append(np.asarray(total_dis_b).std())
+
+    dic_w['total_avg'] = l_total_w_avg
+    dic_w['total_std'] = l_total_w_std
+    dic_b['total_avg'] = l_total_b_avg
+    dic_b['total_std'] = l_total_b_std
 
     # create df
-    dfs = {
-        'weight': pd.DataFrame({
-            'step': step,
-            'avg': w_avg,
-            'std': w_std,
-        }),
-        'bias': pd.DataFrame({
-            'step': step,
-            'avg': b_avg,
-            'std': b_std,
-        })
-
-    }
+    dfs = {'weight': pd.DataFrame(dic_w), 'bias': pd.DataFrame(dic_b)}
 
     # write into excel
     with pd.ExcelWriter(rlt_dir + 'euclidean_dist.xlsx', engine='xlsxwriter') as writer:
         for sheet_name in dfs.keys():
-            dfs[sheet_name].to_excel(writer, sheet_name=sheet_name, index=False)
+            dfs[sheet_name].sort_values('step').to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-def partialRlt_and_diff(paths=None, conserve_nodes=None):
+def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
     """
     input:
     -------
@@ -298,6 +383,12 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None):
 
     # run nodes and save results
     inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']))
+
+    # plt
+    if plt:
+        # plot all activations
+        # plot top 10 activations
+        pass
 
 
 if __name__ == '__main__':
@@ -351,8 +442,8 @@ if __name__ == '__main__':
     #     'model/decontractor/conv9bis/sigmoid',
     #     'model/decontractor/logits/relu',
     # ]
-    graph_def_dir = './logs/2019_10_23_bs300_ps80_lr0.0001_cs7_nc80_do0.1_act_leaky_aug_True_commentConv4bb_1-leaky/hour16/'
-    step = 12864
+    graph_def_dir = './logs/2019_10_30_bs300_ps80_lr0.0001_cs9_nc80_do0.1_act_leaky_aug_True_commentremove_bridges/hour18/'
+    step = 0
     paths = {
         'step': step,
         'perplexity': 10,  #default 30 usual range 5-50
@@ -369,7 +460,10 @@ if __name__ == '__main__':
     }
 
     # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
-    # tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
-    tsne_partialRes_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
+    # tsne_on_bias(params=paths, mode='2D')
+    # tsne_on_bias(params=paths, mode='3D')
+    # tsne_on_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
+    # tsne_on_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    # visualize_weights(params=paths)
+    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])

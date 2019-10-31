@@ -133,40 +133,6 @@ def _h5_writer(X_patches, y_patches, patch_shape, outdir, patch_size):
         print('\n***Created new .h5')
 
 
-def _int64_feature(value):
-    """Wrapper for inserting int64 features into Example proto."""
-    if not isinstance(value, list):
-        value = [value]
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
-
-def _bytes_feature(value):
-    """Wrapper for inserting bytes features into Example proto."""
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
-def _tfrecordWriter(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId):
-    #TODO: the tf.io.TFRecordWriter cannot do yet append in tensorflow V1.12, so can only write the multiple
-    #TODO: of batch_size in .tfrecoord here (different from .h5)
-
-    for id in np.nditer(np.linspace(maxId + 1, maxId + id_length, id_length - 1, dtype='int')):
-        with tf.io.TFRecordWriter(outdir + '{}_{}_{}.tfrecord'.format(patch_size, batch_size, id)) as writer:
-            start = rest + batch_size * (id - maxId)
-            end = rest + batch_size * (id - maxId) + batch_size
-
-            for i in np.nditer(np.linspace(start, end, batch_size)):
-                # Create a feature
-                feature = {
-                    'image_raw': _bytes_feature(X_patches[i, ].tostring()),
-                    'label': _bytes_feature(y_patches[i, ].tostring())
-                }
-                # Create an example protocol buffer
-                example = tf.train.Example(features=tf.train.Features(feature=feature))
-
-                # Serialize to string and write on the file
-                writer.write(example.SerializeToString())
-
-
 def _resultWriter(tensor, layer_name='', path=None):
     '''
     tensor: images(numpy array or list of image) to save of (Height, Width, nth_Conv)
@@ -176,6 +142,7 @@ def _resultWriter(tensor, layer_name='', path=None):
     # mkdir
     check_N_mkdir(path + layer_name)
 
+    # for writting inference partial rlt
     if isinstance(tensor, list):
         for i, elt in enumerate(tensor):
             Image.fromarray(np.array(elt)).save(path + '{}/{}.tif'.format(layer_name, i))

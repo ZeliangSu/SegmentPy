@@ -129,6 +129,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=N
 
             # run partial results operations and diff block
             res = sess.run(ops_dict['ops'], feed_dict=feed_dict)
+            activations = []
 
             # note: save partial/final inferences of the first image
             for layer_name, tensors in zip(conserve_nodes, res):
@@ -143,6 +144,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=N
                     pass
                 _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
                               path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
+                activations.append(tensors)
 
     # calculate diff by numpy
     res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(label))
@@ -151,3 +153,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=N
     # note: save diff of all imgs
     _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
                   path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
+
+    # return
+    return activations
+

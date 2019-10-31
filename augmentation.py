@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from random import choice
+from random import choices
 
 
 def random_aug(X_img, y_img):
@@ -15,8 +15,15 @@ def random_aug(X_img, y_img):
     X_img: (np.ndarray) augmented input image
     y_img: (np.ndarray) same output image
     """
-    fns = [gaussian_noise, flipping, sp_noise, speckle_noise, non_noise, contrast, grayscale_var]  #todo: can add probabilities
-    X_img, y_img = choice(fns)(X_img, y_img)
+    fns = [gaussian_noise, flipping, sp_noise, speckle_noise, non_noise, contrast, grayscale_var]
+    weights = [1, 1, 1, 1, 1, 1, 1]
+    sum = 0
+    for w in weights:
+        sum += w
+    X_img, y_img = choices(
+        population=fns,
+        weights=[w/sum for w in weights]
+    )(X_img, y_img)
     return X_img.astype('float32'), y_img
 
 

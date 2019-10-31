@@ -74,7 +74,7 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                              nodes['learning_rate']: learning_rate})
                             cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
-                            # in situ testing without loading weights like cs-230-stanford
+                            # in situ testing without loading weights unlike cs-230-stanford
                             summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                                   feed_dict={nodes['train_or_test']: 'test',
                                                              nodes['drop']: 1,

@@ -40,40 +40,7 @@ def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix
 
 
 # t-SNE on kernel weights
-def tsne_on_weights(embedded_tensor, labels, figsize=(90, 90), suffix='step0'):
-    """
-    inputs:
-    -------
-        embedded_tensor: (numpy ndarray)
-        labels: (numpy ndarray?)
-        figsize: (tuple of int)
-        suffix: (str)
-
-    return:
-    -------
-        None
-    """
-    assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
-    plt.figure(figsize=figsize)
-    for i, label in enumerate(labels):
-        x, y = embedded_tensor[i, ]
-        plt.scatter(x, y)
-        plt.annotate(
-            label,
-            xy=(x, y),
-            xytext=(5, 2),
-            textcoords='offset points',
-            ha='right',
-            va='bottom'
-        )
-    plt.savefig(
-        fname='./dummy/tsne_kernel{}.png'.format(suffix),  #fixme: change here
-        dpi=50  # 2048 pixel divided by 45 = 45
-    )
-
-
-# t-SNE on kernel weights
-def tsne_on_weights_2D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffix=0):
+def tsne_2D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, preffix='Weights', suffix=0):
     """
     inputs:
     -------
@@ -101,9 +68,9 @@ def tsne_on_weights_2D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=
 
     # 2D scatter plots
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=figsize)
-    scat1 = ax1.scatter(df_conv['coordX'], df_conv['coordY'], c=df_conv['colors'], cmap='tab20')
-    scat2 = ax2.scatter(df_deconv['coordX'], df_deconv['coordY'], c=df_deconv['colors'], cmap='tab20')
-    scat3 = ax3.scatter(df['coordX'], df['coordY'], c=df['colors'])
+    scat1 = ax1.scatter(df_conv['coordX'], df_conv['coordY'], c=df_conv['colors'], cmap='tab20', alpha=0.5)
+    scat2 = ax2.scatter(df_deconv['coordX'], df_deconv['coordY'], c=df_deconv['colors'], cmap='tab20', alpha=0.5)
+    scat3 = ax3.scatter(df['coordX'], df['coordY'], c=df['colors'], alpha=0.5)
 
     # set titles
     ax1.set_title('Conv layers weights')
@@ -117,13 +84,14 @@ def tsne_on_weights_2D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=
     ax2.add_artist(leg2)
     leg3 = ax3.legend(scat3.legend_elements()[0], df['layers'].unique(), title='All Layers')  #note: unique() might change order
     ax3.add_artist(leg3)
+    ax3.legend(loc='center left', bbox_to_anchor=(1.04, 0.5))
 
     check_N_mkdir(rlt_dir)
-    plt.savefig(rlt_dir + 'Weights_2D_plot_step{}.png'.format(suffix))
+    plt.savefig(rlt_dir + '{}_2D_plot_step{}.png'.format(preffix, suffix))
     plt.show()
 
 
-def tsne_on_weights_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffix=0):
+def tsne_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffix=0):
     """
     inputs:
     -------
@@ -184,11 +152,6 @@ def tsne_on_weights_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=
     plt.show()
 
 
-def tsne_paper():
-    # https://cs.nyu.edu/~fergus/papers/zeilerECCV2014.pdf
-    raise NotImplementedError('Please refer to Zeiler et al. 2014')
-
-
 def tsne(tensor, perplexity=30, niter=5000, mode='2D'):
     """
     inputs:
@@ -211,3 +174,4 @@ def tsne(tensor, perplexity=30, niter=5000, mode='2D'):
     else:
         raise ValueError('Please choose a mode among 2D, 3D, sklearn or tf!')
     return res
+
