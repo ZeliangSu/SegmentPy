@@ -454,25 +454,25 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
 
     with tf.name_scope('model'):
         with tf.name_scope('encoder'):
-            conv1, _ = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv],
+            conv1, _ = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], activation=activation,
                                      name='conv1')  # [height, width, in_channels, output_channels]
-            conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], name='conv1bis')
+            conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], activation=activation, name='conv1bis')
             conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
 
-            conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], name='conv2')
-            conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], name='conv2bis')
+            conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], activation=activation, name='conv2')
+            conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, name='conv2bis')
             conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
 
-            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation,
                                      name='conv3')
-            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation='relu', name='conv3bis')
+            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, name='conv3bis')
             conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
 
             conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
-                                     activation='leaky', name='conv4')
+                                     activation=activation, name='conv4')
             conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
-                                         activation='leaky', name='conv4bis')
-            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='leaky',
+                                         activation=activation, name='conv4bis')
+            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation=activation,
                                              name='conv4bisbis')
 
         with tf.name_scope('dnn'):
@@ -490,34 +490,33 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
 
         with tf.name_scope('decoder'):
             deconv_5, _ = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 4],
-                                                  [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4],
+                                                  [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4], activation=activation,
                                                   name='deconv5')  # [height, width, in_channels, output_channels]
             deconv_5bis, _ = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 8],
                                                       [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8],
-                                                      name='deconv5bis')
+                                                    activation=activation, name='deconv5bis')
 
             deconv_6, _ = conv2d_transpose_layer(up_2by2(deconv_5bis, name='up1'), [conv_size, conv_size, nb_conv * 8, nb_conv * 2],
                                                   [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2],
-                                                  name='deconv6')
+                                                 activation=activation, name='deconv6')
             deconv_6bis, _ = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                                       [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2],
-                                                      name='deconv6bis')
+                                                    activation=activation, name='deconv6bis')
 
             deconv_7, _ = conv2d_transpose_layer(up_2by2(deconv_6bis, name='up2'), [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                                   [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2],
-                                                  name='deconv7')
+                                                 activation=activation, name='deconv7')
             deconv_7bis, _ = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                                       [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2],
-                                                      name='deconv7bis')
+                                                    activation=activation, name='deconv7bis')
 
             deconv_8, _ = conv2d_transpose_layer(up_2by2(deconv_7bis, name='up3'), [conv_size, conv_size, nb_conv * 2, nb_conv],
-                                                  [X_dyn_batsize, patch_size, patch_size, nb_conv], name='deconv8')
+                                                  [X_dyn_batsize, patch_size, patch_size, nb_conv], activation=activation, name='deconv8')
             deconv_8bis, _ = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv],
                                                       [X_dyn_batsize, patch_size, patch_size, nb_conv],
-                                                      name='deconv8bis')
+                                                    activation=activation, name='deconv8bis')
             logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1],
-                                                  [X_dyn_batsize, patch_size, patch_size, 1],
-                                                  name='logits')
+                                                  [X_dyn_batsize, patch_size, patch_size, 1], name='logits')
 
     with tf.name_scope('operation'):
         # optimizer/train operation

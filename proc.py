@@ -4,7 +4,7 @@ from numpy.lib.stride_tricks import as_strided
 from PIL import Image
 import os
 import h5py
-from writer import _h5Writer, _tfrecordWriter, _h5Writer_V2
+from writer import _h5Writer, _h5Writer_V2
 from reader import _tifReader
 
 
