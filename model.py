@@ -471,19 +471,19 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
             conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
                                      activation=activation, name='conv4')
             conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
-                                         activation=activation, name='conv4bis')
-            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation=activation,
+                                         activation='leaky', name='conv4bis')
+            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, 1], activation='leaky',
                                              name='conv4bisbis')
 
         with tf.name_scope('dnn'):
             conv4_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')
-            full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation=activation,
+            full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation='leaky',
                                                   name='dnn1')
             full_dropout1 = dropout(full_layer_1, drop_prob, name='dropout1')
-            full_layer_2, _ = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation=activation,
+            full_layer_2, _ = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation='leaky',
                                                   name='dnn2')
             full_dropout2 = dropout(full_layer_2, drop_prob, name='dropout2')
-            full_layer_3, _ = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation=activation,
+            full_layer_3, _ = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation='leaky',
                                                   name='dnn3')
             full_dropout3 = dropout(full_layer_3, drop_prob, name='dropout3')
             dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')

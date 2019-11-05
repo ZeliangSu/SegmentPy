@@ -72,7 +72,7 @@ def get_all_trainable_variables(metagraph_path):
         dnn_bn = [v.name for v in all_vars if v.name.endswith('b:0') and v.name.startswith('dnn')]
         ws = [sess.run(v) for v in all_vars if v.name.endswith('w:0') and not v.name.startswith('dnn')]
         bs = [sess.run(v) for v in all_vars if v.name.endswith('b:0') and not v.name.startswith('dnn')]
-        dnn_ws = [sess.run(v) for v in all_vars if v.name.endswith('b:0') and v.name.startswith('dnn')]
+        dnn_ws = [sess.run(v) for v in all_vars if v.name.endswith('w:0') and v.name.startswith('dnn')]
         dnn_bs = [sess.run(v) for v in all_vars if v.name.endswith('b:0') and v.name.startswith('dnn')]
 
     return wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs
