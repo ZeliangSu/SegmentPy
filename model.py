@@ -454,16 +454,15 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
             conv1, _ = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], activation=activation,
                                      name='conv1')  # [height, width, in_channels, output_channels]
             conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], activation=activation, name='conv1bis')
-            conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
+            conv1_pooling, ind1 = max_pool_2by2_with_arg(conv1bis, name='maxp1')
 
             conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], activation=activation, name='conv2')
             conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, name='conv2bis')
-            conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
+            conv2_pooling, ind2 = max_pool_2by2_with_arg(conv2bis, name='maxp2')
 
-            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation,
-                                     name='conv3')
+            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, name='conv3')
             conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, name='conv3bis')
-            conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
+            conv3_pooling, ind3 = max_pool_2by2_with_arg(conv3bis, name='maxp3')
 
             conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
                                      activation=activation, name='conv4')
@@ -493,21 +492,24 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
                                                       [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8],
                                                     activation=activation, name='deconv5bis')
 
-            deconv_6, _ = conv2d_transpose_layer(up_2by2(deconv_5bis, name='up1'), [conv_size, conv_size, nb_conv * 8, nb_conv * 2],
+            up1 = up_2by2_ind(deconv_5bis, ind3, name='up1')
+            deconv_6, _ = conv2d_transpose_layer(up1, [conv_size, conv_size, nb_conv * 8, nb_conv * 2],
                                                   [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2],
                                                  activation=activation, name='deconv6')
             deconv_6bis, _ = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                                       [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2],
                                                     activation=activation, name='deconv6bis')
 
-            deconv_7, _ = conv2d_transpose_layer(up_2by2(deconv_6bis, name='up2'), [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+            up2 = up_2by2_ind(deconv_6bis, ind2, name='up2')
+            deconv_7, _ = conv2d_transpose_layer(up2, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                                   [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2],
                                                  activation=activation, name='deconv7')
             deconv_7bis, _ = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                                       [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2],
                                                     activation=activation, name='deconv7bis')
 
-            deconv_8, _ = conv2d_transpose_layer(up_2by2(deconv_7bis, name='up3'), [conv_size, conv_size, nb_conv * 2, nb_conv],
+            up3 = up_2by2_ind(deconv_7bis, ind1, name='up3')
+            deconv_8, _ = conv2d_transpose_layer(up3, [conv_size, conv_size, nb_conv * 2, nb_conv],
                                                   [X_dyn_batsize, patch_size, patch_size, nb_conv], activation=activation, name='deconv8')
             deconv_8bis, _ = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv],
                                                       [X_dyn_batsize, patch_size, patch_size, nb_conv],

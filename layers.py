@@ -43,6 +43,12 @@ def max_pool_2by2(x, name=''):
         return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
 
 
+def max_pool_2by2_with_arg(x, name=''):
+    with tf.name_scope(name):
+        v, ind = tf.nn.max_pool_with_argmax(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
+    return v, ind
+
+
 def up_2by2(input_layer, name=''):
     """
     input:
@@ -55,6 +61,39 @@ def up_2by2(input_layer, name=''):
     """
     with tf.name_scope(name):
         return tf.image.resize_nearest_neighbor(input_layer, size=[2 * input_layer.shape[1], 2 * input_layer.shape[2]], name='up')
+
+
+def up_2by2_ind(input_layer, ind, name=''):
+    """
+    input:
+    -------
+        input_layer: (tf.Tensor) tensor from the previous layer
+        name: (string) name of the node
+    return:
+    -------
+        (tf.Tensor) row-by-row column-by-column copied tensor
+    """
+    with tf.name_scope(name):
+        # get shapes
+        dyn_input_shape = tf.cast(tf.shape(input_layer), dtype=tf.int64)
+        bs = dyn_input_shape[0]
+
+        # prepare
+        # (bs, 10, 10, 640) --> (bs * 64000)
+        _pool = tf.reshape(input_layer, [-1])
+        _range = tf.reshape(tf.range(bs, dtype=ind.dtype), [bs, 1, 1, 1])
+        # ([1, 5, 10]) --> ([1, 1, 1])
+        tmp = tf.ones_like(ind) * _range
+        # ([1, 1, 1]) --> ([[1, 1, 1]])
+        tmp = tf.reshape(tmp, [-1, 1])
+        # (bs, 10, 10, 640 / (2*2)) --> (bs * 10 * 10 * 640 / 4 , 1)
+        _ind = tf.reshape(ind, [-1, 1])
+        _ind = tf.concat([tmp, _ind], 1)
+
+        # scatter
+        unpool = tf.scatter_nd(_ind, _pool, [bs, dyn_input_shape[1], dyn_input_shape[2], dyn_input_shape[3]])
+
+        return unpool
 
 
 def up_2by2_U(input_layer, dim, name=''):
@@ -148,17 +187,23 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, acti
         shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name)
         b = init_bias([shape[2]], name)
+
+        # get batch_size
         dyn_input_shape = tf.shape(input_layer)
         batch_size = dyn_input_shape[0]
-        output_shape = tf.stack([batch_size, output_shape[1], output_shape[2], output_shape[3]])
-        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=output_shape,
+
+        # make transpose layer
+        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=[batch_size, output_shape[1], output_shape[2], output_shape[3]],
                                            strides=[1, stride, stride, 1], padding='SAME', name=name)
+
+        # dropout
         if dropout != 1:
             transpose = tf.nn.dropout(transpose, keep_prob=dropout)
         output = transpose + b
 
+        # add activation function
         if name == 'logits':
-            output_activation = output
+            output_activation = tf.identity(output, name='identity')
         else:
             if activation == 'relu':
                 output_activation = tf.nn.relu(output, name='relu')
