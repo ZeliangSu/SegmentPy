@@ -8,7 +8,6 @@ import pandas as pd
 from util import check_N_mkdir
 
 
-# t-SNE on activation
 def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix='step0'):
     """
     inputs:
@@ -39,8 +38,7 @@ def tsne_on_activation(embedded_tensor, labels, figsize=(45, 45), zoom=1, suffix
     )
 
 
-# t-SNE on kernel weights
-def tsne_2D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, preffix='Weights', suffix=0):
+def compare_tsne_2D(embedded_tensor, labels, grps, which, figsize=(90, 90), rlt_dir=None, preffix='Weights', fst=0, sec=0):
     """
     inputs:
     -------
@@ -56,42 +54,54 @@ def tsne_2D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, preff
     """
     assert rlt_dir != None, "enter a rlt_dir"
     assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
-    df = pd.DataFrame(zip(embedded_tensor[:, 0], embedded_tensor[:, 1], labels, grps))
-    df.columns = ['coordX', 'coordY', 'labels', 'layers']
-    df_deconv = df[df['layers'].str.contains('deconv|logit')]
-    df_conv = df[~df['layers'].str.contains('deconv|logit')]
+    df = pd.DataFrame(zip(embedded_tensor[:, 0], embedded_tensor[:, 1], labels, grps, which))
+    df.columns = ['coordX', 'coordY', 'labels', 'layers', 'which']
+    df_init = df.loc[df['which'] == 0]
+    df_evolv = df.loc[df['which'] == 1]
 
     # convert column groups to categories int
-    df_conv['colors'] = pd.Categorical(df_conv['layers']).codes
-    df_deconv['colors'] = pd.Categorical(df_deconv['layers']).codes
+    df_init['colors'] = pd.Categorical(df_init['layers']).codes
+    df_evolv['colors'] = pd.Categorical(df_evolv['layers']).codes
     df['colors'] = pd.Categorical(df['layers']).codes
 
     # 2D scatter plots
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=figsize)
-    scat1 = ax1.scatter(df_conv['coordX'], df_conv['coordY'], c=df_conv['colors'], cmap='tab20', alpha=0.5)
-    scat2 = ax2.scatter(df_deconv['coordX'], df_deconv['coordY'], c=df_deconv['colors'], cmap='tab20', alpha=0.5)
-    scat3 = ax3.scatter(df['coordX'], df['coordY'], c=df['colors'], alpha=0.5)
+    fig1, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
+    scat1 = ax1.scatter(df_init['coordX'], df_init['coordY'], c=df_init['colors'], cmap='coolwarm', alpha=0.5)
+    scat2 = ax2.scatter(df_evolv['coordX'], df_evolv['coordY'], c=df_evolv['colors'], cmap='coolwarm', alpha=0.5)
+    scat3 = ax3.scatter(df_init['coordX'], df_init['coordY'], c='black')
+    ax3.scatter(df_evolv['coordX'], df_evolv['coordY'], c=df_evolv['colors'], cmap='coolwarm', alpha=0.5)
+
+    scat4 = ax4.quiver(
+        np.asarray(df_init['coordX']),
+        np.asarray(df_init['coordY']),
+        np.asarray(df_evolv['coordX']) - np.asarray(df_init['coordX']),
+        np.asarray(df_evolv['coordY']) - np.asarray(df_init['coordY']),
+        scale_units='xy', angles='xy', scale=1,
+    )
+    scat4 = ax4.scatter(df_init['coordX'], df_init['coordY'], c='black')
+    ax4.scatter(df_evolv['coordX'], df_evolv['coordY'], c=df_evolv['colors'], cmap='coolwarm', alpha=0.5)
 
     # set titles
-    ax1.set_title('Conv layers weights')
-    ax2.set_title('Deconv layers weights')
-    ax3.set_title('All layers weights')
+    ax1.set_title('Init weights')
+    ax2.set_title('Evolved weights')
+    ax3.set_title('Compare weights')
+    ax4.set_title('Trajectory')
 
     # set legends
-    leg1 = ax1.legend(scat1.legend_elements()[0], df_conv['layers'].unique(), title='Conv Layers')  #note: unique() might change order
+    leg1 = ax1.legend(scat1.legend_elements()[0], df_init['layers'].unique(), title='Init Layers')  #note: unique() might change order
     ax1.add_artist(leg1)
-    leg2 = ax2.legend(scat2.legend_elements()[0], df_deconv['layers'].unique(), title='Deconv Layers')  #note: unique() might change order
+    leg2 = ax2.legend(scat2.legend_elements()[0], df_evolv['layers'].unique(), title='Evolved Layers')  #note: unique() might change order
     ax2.add_artist(leg2)
-    leg3 = ax3.legend(scat3.legend_elements()[0], df['layers'].unique(), title='All Layers')  #note: unique() might change order
-    ax3.add_artist(leg3)
-    ax3.legend(loc='center left', bbox_to_anchor=(1.04, 0.5))
+    # leg3 = ax3.legend(scat3.legend_elements()[0], df['which'].unique(), title='Init vs Evolve')  #note: unique() might change order
+    # ax3.add_artist(leg3)
+    # ax3.legend(loc='center left', bbox_to_anchor=(1.04, 0.5))
 
     check_N_mkdir(rlt_dir)
-    plt.savefig(rlt_dir + '{}_2D_plot_step{}.png'.format(preffix, suffix))
+    plt.savefig(rlt_dir + '{}_2D_plot_step{}_vs_step{}_trajectory.png'.format(preffix, fst, sec))
     plt.show()
 
 
-def tsne_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffix=0):
+def compare_tsne_3D(embedded_tensor, labels, grps, which, figsize=(90, 90), rlt_dir=None, suffix=0):
     """
     inputs:
     -------
@@ -108,21 +118,21 @@ def tsne_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffi
     assert rlt_dir != None, "enter a rlt_dir"
     assert embedded_tensor.shape[0] >= len(labels), 'You should have more embeddings then labels'
     # group data with pandas
-    df = pd.DataFrame(zip(embedded_tensor[:, 0], embedded_tensor[:, 1], embedded_tensor[:, 2], labels, grps))
-    df.columns = ['coordX', 'coordY', 'coordZ', 'labels', 'layers']
-    df_deconv = df[df['layers'].str.contains('deconv')]
-    df_conv = df[~df['layers'].str.contains('deconv')]
+    df = pd.DataFrame(zip(embedded_tensor[:, 0], embedded_tensor[:, 1], embedded_tensor[:, 2], labels, grps, which))
+    df.columns = ['coordX', 'coordY', 'coordZ', 'labels', 'layers', 'which']
+    df_init = df.loc[df['which'] == 0]
+    df_evolv = df.loc[~df['which'] == 1]
 
     # convert colume groups to categories int
-    df_conv['colors'] = pd.Categorical(df_conv['layers']).codes
-    df_deconv['colors'] = pd.Categorical(df_deconv['layers']).codes
+    df_init['colors'] = pd.Categorical(df_init['layers']).codes
+    df_evolv['colors'] = pd.Categorical(df_evolv['layers']).codes
     df['colors'] = pd.Categorical(df['layers']).codes
 
     # plots conv
     fig = plt.figure(figsize=figsize)
     ax = Axes3D(fig)
     ax.set_title('Weights from encoder')
-    ax.scatter(df_conv['coordX'], df_conv['coordY'], df_conv['coordZ'], c=df_conv['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
+    ax.scatter(df_init['coordX'], df_init['coordY'], df_init['coordZ'], c=df_init['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -133,7 +143,7 @@ def tsne_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffi
     fig2 = plt.figure(figsize=figsize)
     ax2 = Axes3D(fig2)
     ax2.set_title('Weights from decoder')
-    ax2.scatter(df_deconv['coordX'], df_deconv['coordY'], df_deconv['coordZ'], c=df_deconv['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
+    ax2.scatter(df_evolv['coordX'], df_evolv['coordY'], df_evolv['coordZ'], c=df_evolv['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
     ax2.set_zlabel('Z')
@@ -142,17 +152,15 @@ def tsne_3D(embedded_tensor, labels, grps, figsize=(90, 90), rlt_dir=None, suffi
     fig3 = plt.figure(figsize=figsize)
     ax3 = Axes3D(fig3)
     ax3.set_title('Weights from all layers')
-    ax3.scatter(df['coordX'], df['coordY'], df['coordZ'], c=df['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
+    ax3.scatter(df_init['coordX'], df_init['coordY'], df_init['coordZ'], c=df_init['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
+    ax3.scatter(df_evolv['coordX'], df_evolv['coordY'], df_evolv['coordZ'], c=df_evolv['colors'], cmap=plt.get_cmap('Spectral'), marker='o')
     ax3.set_xlabel('X')
     ax3.set_ylabel('Y')
     ax3.set_zlabel('Z')
-    # plt.savefig(rlt_dir + 'conv_weights_3Dplot_step{}.png'.format(suffix))
-
-    # plt.savefig(rlt_dir + 'deconv_weights_3Dplot_step{}.png'.format(suffix))
     plt.show()
 
 
-def tsne(tensor, perplexity=30, niter=5000, mode='2D'):
+def tsne(tensor, perplexity=6000, niter=5000, mode='2D'):
     """
     inputs:
     -------

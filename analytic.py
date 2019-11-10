@@ -1,6 +1,6 @@
 import pandas as pd
 from util import get_all_trainable_variables
-from tsne import tsne, tsne_2D, tsne_3D
+from tsne import tsne, compare_tsne_2D, compare_tsne_3D
 from visualize import *
 from PIL import Image
 from scipy import interpolate
@@ -33,6 +33,7 @@ def tsne_on_bias(params=None, mode='2D'):
     assert isinstance(params, dict), 'paths should be a dictionary containning path'
 
     # get bias
+    _, bn_init, _, bs_init, _, dnn_bn_init, _, dnn_bs_init = get_all_trainable_variables(params['ckpt_path_init'])
     _, bn, _, bs, _, dnn_bn, _, dnn_bs = get_all_trainable_variables(params['ckpt_path'])
 
     shapes = [b.shape[0] for b in bs]
@@ -44,11 +45,27 @@ def tsne_on_bias(params=None, mode='2D'):
     new_bn = []
     new_bs = []
     grps = []
+    which = []
 
     # preparation: unify the b shape by padding
+    # for first ckpt
+    for _bn, _b in zip(bn_init + dnn_bn_init, bs_init + dnn_bs_init):
+        new_bn.append(_bn.split(':')[0])
+        grps.append(_bn.split('/')[0])
+        which.append(0)
+
+        # pad
+        if _b.shape[0] < max_shape:
+            _b = np.pad(_b, (0, max_shape - _b.shape[0]), constant_values=0)
+        new_bs.append(_b)
+
+    # for second ckpt
     for _bn, _b in zip(bn + dnn_bn, bs + dnn_bs):
         new_bn.append(_bn.split(':')[0])
         grps.append(_bn.split('/')[0])
+        which.append(1)
+
+        # pad
         if _b.shape[0] < max_shape:
             _b = np.pad(_b, (0, max_shape - _b.shape[0]), constant_values=0)
         new_bs.append(_b)
@@ -66,9 +83,9 @@ def tsne_on_bias(params=None, mode='2D'):
 
     # visualize the tsne
     if mode == '2D':
-        tsne_2D(res, new_bn, grps, rlt_dir=params['tsne_dir'], preffix='Bias', suffix=params['step'])
+        compare_tsne_2D(res, new_bn, grps, which=which, rlt_dir=params['tsne_dir'], preffix='Bias', fst=paths['ckpt_path_init'].split('step')[1], sec=paths['ckpt_path'].split('step')[1])
     elif mode == '3D':
-        tsne_3D(res, new_bn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
+        compare_tsne_3D(res, new_bn, grps, which=which, rlt_dir=params['tsne_dir'], suffix=params['step'])
     else:
         raise NotImplementedError('please choose 2D or 3D mode')
 
@@ -86,20 +103,33 @@ def tsne_on_weights(params=None, mode='2D'):
     assert isinstance(params, dict), 'paths should be a dictionary containning path'
     # run tsne on wieghts
     # get weights from checkpoint
+    wns_init, _, ws_init, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path_init'])
     wns, _, ws, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path'])
 
     # arange label and kernel
     new_wn = []
     new_ws = []
     grps = []
-    for wn, w in zip(wns, ws):  # w.shape = [c_w, c_h, c_in, nb_conv]
+    which = []
+
+    # for 1st ckpt
+    for wn, w in zip(wns_init, ws_init):  # w.shape = [c_w, c_h, c_in, nb_conv]
         for i in range(w.shape[3]):
             new_wn.append(wn + '_{}'.format(i))  # e.g. conv4bis_96
             grps.append(wn.split('/')[0])
+            which.append(0)
 
             #note: associativity: a x b + a x c = a x (b + c)
             # "...a kernel is the sum of all the dimensions in the previous layer..."
             # https://stackoverflow.com/questions/42712219/dimensions-in-convolutional-neural-network
+            new_ws.append(np.sum(w[:, :, :, i], axis=2))  # e.g. (3, 3, 12, 24) [w, h, in, nb_conv] --> (3, 3, 24)
+
+    # for 2nd ckpt
+    for wn, w in zip(wns, ws):  # w.shape = [c_w, c_h, c_in, nb_conv]
+        for i in range(w.shape[3]):
+            new_wn.append(wn + '_{}'.format(i))  # e.g. conv4bis_96
+            grps.append(wn.split('/')[0])
+            which.append(1)
             new_ws.append(np.sum(w[:, :, :, i], axis=2))  # e.g. (3, 3, 12, 24) [w, h, in, nb_conv] --> (3, 3, 24)
 
     # inject into t-SNE
@@ -111,9 +141,9 @@ def tsne_on_weights(params=None, mode='2D'):
     check_N_mkdir(params['rlt_dir'])
     # visualize the tsne
     if mode == '2D':
-        tsne_2D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
+        compare_tsne_2D(res, new_wn, grps, which, rlt_dir=params['tsne_dir'], fst=paths['ckpt_path_init'].split('step')[1], sec=paths['ckpt_path'].split('step')[1])
     elif mode == '3D':
-        tsne_3D(res, new_wn, grps, rlt_dir=params['tsne_dir'], suffix=params['step'])
+        compare_tsne_3D(res, new_wn, grps, which, rlt_dir=params['tsne_dir'], suffix=params['step'])
     else:
         raise NotImplementedError('please choose 2D or 3D mode')
 
@@ -363,17 +393,18 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
     assert isinstance(paths, dict), 'paths should be a dictionary containning path'
     assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
 
+    # clean graph first
+    tf.reset_default_graph()
+
     # load ckpt
     patch_size = int(paths['data_dir'].split('/')[-2])
 
     try:
         batch_size = int(paths['working_dir'].split('bs')[1].split('_')[0])
     except:
-        batch_size = 300
+        batch_size = 0
 
     new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
-
-    # define nodes to conserve
 
     # convert ckpt to pb
     convert_ckpt2pb(input=new_ph, paths=paths, conserve_nodes=conserve_nodes)
@@ -400,9 +431,9 @@ if __name__ == '__main__':
         'model/encoder/conv2bis/relu',
         'model/encoder/conv3/relu',
         'model/encoder/conv3bis/relu',
-        'model/encoder/conv4/leaky',
+        'model/encoder/conv4/relu',
         'model/encoder/conv4bis/leaky',
-        'model/encoder/conv4bisbis/x-leaky',
+        'model/encoder/conv4bisbis/leaky',
         'model/dnn/dnn1/leaky',
         'model/dnn/dnn2/leaky',
         'model/dnn/dnn3/leaky',
@@ -414,7 +445,7 @@ if __name__ == '__main__':
         'model/decoder/deconv7bis/relu',
         'model/decoder/deconv8/relu',
         'model/decoder/deconv8bis/relu',
-        'model/decoder/logits/relu',
+        'model/decoder/logits/add',
     ]
     # U-Net
     # conserve_nodes = [
@@ -442,17 +473,18 @@ if __name__ == '__main__':
     #     'model/decontractor/conv9bis/sigmoid',
     #     'model/decontractor/logits/relu',
     # ]
-    graph_def_dir = './logs/2019_10_30_bs300_ps80_lr0.0001_cs9_nc80_do0.1_act_leaky_aug_True_commentremove_bridges/hour18/'
+    graph_def_dir = './logs/2019_11_7_bs300_ps80_lr0.001_cs9_nc80_do0.5_act_relu_aug_True_commentLRCS_remove_var_aug/hour1/'
     step = 0
+    step_init = 0
     paths = {
         'step': step,
-        'perplexity': 10,  #default 30 usual range 5-50
+        'perplexity': 100,  #default 30 usual range 5-50
         'niter': 5000,  #default 5000
         'working_dir': graph_def_dir,
         'ckpt_dir': graph_def_dir + 'ckpt/',
-        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
+        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step_init),
         'save_pb_dir': graph_def_dir + 'pb/',
-        'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
+        'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step_init),
         'data_dir': './proc/test/80/',
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
@@ -460,10 +492,28 @@ if __name__ == '__main__':
     }
 
     # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
-    # tsne_on_bias(params=paths, mode='2D')
-    # tsne_on_bias(params=paths, mode='3D')
-    # tsne_on_weights(params=paths, conserve_nodes=conserve_nodes, mode='2D')
-    # tsne_on_weights(params=paths, conserve_nodes=conserve_nodes, mode='3D')
-    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     # visualize_weights(params=paths)
-    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+
+    step = 28160
+    paths = {
+        'step': step,
+        'perplexity': 10,  #default 30 usual range 5-50
+        'niter': 5000,  #default 5000
+        'working_dir': graph_def_dir,
+        'ckpt_dir': graph_def_dir + 'ckpt/',
+        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
+        'ckpt_path_init': graph_def_dir + 'ckpt/step{}'.format(step_init),
+        'save_pb_dir': graph_def_dir + 'pb/',
+        'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
+        'data_dir': './proc/test/80/',
+        'rlt_dir':  graph_def_dir + 'rlt/',
+        'tsne_dir':  graph_def_dir + 'tsne/',
+        'tsne_path':  graph_def_dir + 'tsne/',
+    }
+    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    tsne_on_weights(params=paths, mode='2D')
+    tsne_on_bias(params=paths, mode='2D')
+    # visualize_weights(params=paths)
+    # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+

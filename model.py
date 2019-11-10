@@ -445,11 +445,8 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
 
     with tf.name_scope('input_pipeline'):
         X_dyn_batsize = batch_size
-
         def f1(): return train_inputs
-
         def f2(): return test_inputs
-
         inputs = tf.cond(tf.equal(training_type, 'test'), lambda: f2(), lambda: f1(), name='input_cond')
 
     with tf.name_scope('model'):
@@ -776,6 +773,6 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
         'summary': merged,
         'train_or_test': training_type,
         'loss_update_op': loss_up_op,
-        'acc_update_op': acc_up_op
+        'acc_update_op': acc_up_op,
     }
 

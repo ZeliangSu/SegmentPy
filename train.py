@@ -80,6 +80,8 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                                                              nodes['drop']: 1,
                                                              nodes['learning_rate']: learning_rate})
                             test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
+
+
                         else:
                             summary, _, _, _ = sess.run(
                                 [nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
@@ -91,13 +93,14 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                         print(e)
                         break
 
+                    #save model
                     if step % save_step == 0:
                         _globalStep = step + ep * hyperparams['nb_batch']
                         saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
+
+
         except (KeyboardInterrupt, SystemExit):
             saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
         saver.save(sess, folder + 'ckpt/step{}'.format(hyperparams['nb_epoch'] * hyperparams['nb_batch']))
 
 
-def retrain_from_ckpt(paths=None, input_pipeline=None, hyperparams=None):
-    pass

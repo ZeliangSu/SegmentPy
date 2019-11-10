@@ -15,7 +15,15 @@ def random_aug(X_img, y_img):
     X_img: (np.ndarray) augmented input image
     y_img: (np.ndarray) same output image
     """
-    fns = [gaussian_noise, flipping, sp_noise, speckle_noise, non_noise, contrast, grayscale_var]  #todo: can add probabilities
+    fns = [
+        gaussian_noise,
+        flipping,
+        sp_noise,
+        speckle_noise,
+        non_noise,
+        # contrast,
+        # grayscale_var
+    ]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
     return X_img.astype('float32'), y_img
 
