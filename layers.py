@@ -74,25 +74,32 @@ def up_2by2_ind(input_layer, ind, name=''):
         (tf.Tensor) row-by-row column-by-column copied tensor
     """
     with tf.name_scope(name):
-        # get shapes
-        dyn_input_shape = tf.cast(tf.shape(input_layer), dtype=tf.int64)
-        bs = dyn_input_shape[0]
+        in_shape = input_layer.get_shape().as_list()
+        # note: int64
+        out_shape = [tf.cast(tf.shape(input_layer), dtype=tf.int64)[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
 
         # prepare
-        # (bs, 10, 10, 640) --> (bs * 64000)
+        # shape: (bs, 10, 10, 640) --> (bs * 64000)
         _pool = tf.reshape(input_layer, [-1])
-        _range = tf.reshape(tf.range(bs, dtype=ind.dtype), [bs, 1, 1, 1])
-        # ([1, 5, 10]) --> ([1, 1, 1])
+        _range = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
+        # ([[1, 5, 10], [1, 5, 10]]) --> ([[1, 1, 1], [1, 1, 1]]) --> ([[0, 0, 0], [1, 1, 1]])
         tmp = tf.ones_like(ind) * _range
-        # ([1, 1, 1]) --> ([[1, 1, 1]])
+        # ([[0, 0, 0], [1, 1, 1]]) --> ([[0], [0], [0], [1], [1], [1]]); shp(2, 3) --> shp(6, 1)
         tmp = tf.reshape(tmp, [-1, 1])
-        # (bs, 10, 10, 640 / (2*2)) --> (bs * 10 * 10 * 640 / 4 , 1)
+        # shape: (bs, 10, 10, 640 / (2*2)) --> (bs * 10 * 10 * 640 / 4 , 1)
         _ind = tf.reshape(ind, [-1, 1])
+        # tmp([[0], [1]]) concat axis=1 ind([[1], [6]]) --> ([[0, 1], [1, 6]]) shape: (?, 1)-->(?, 2)
         _ind = tf.concat([tmp, _ind], 1)
 
         # scatter
-        unpool = tf.scatter_nd(_ind, _pool, [bs, dyn_input_shape[1], dyn_input_shape[2], dyn_input_shape[3]])
+        # e.g. shp(4, 1), shp(4,), shp(1,) --> outshp(8,)
+        # e.g. shp(2, 1), shp(2, 4, 4), shp(3,) --> outshp(4, 4, 4)
+        # e.g. shp(300*10*10*160, 2), shp(300*10*10*160), shp(2,) --> outshp(200, 16k)
+        # note: first dimension should be equal: (X, 2) and (X,), which makes the encoder and decoder symetric
+        unpool = tf.scatter_nd(_ind, _pool, [out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
 
+        # reshape
+        unpool = tf.reshape(unpool, out_shape)
         return unpool
 
 
