@@ -98,6 +98,8 @@ def compare_tsne_2D(embedded_tensor, labels, grps, which, figsize=(90, 90), rlt_
 
     check_N_mkdir(rlt_dir)
     plt.savefig(rlt_dir + '{}_2D_plot_step{}_vs_step{}_trajectory.png'.format(preffix, fst, sec))
+    pd.DataFrame(df_init).to_csv(rlt_dir + '{}_2D_plot_step{}.csv'.format(preffix, fst))
+    pd.DataFrame(df_evolv).to_csv(rlt_dir + '{}_2D_plot_step{}.csv'.format(preffix, sec))
     plt.show()
 
 

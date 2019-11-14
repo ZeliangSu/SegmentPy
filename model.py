@@ -468,55 +468,55 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
             conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
                                      activation=activation, name='conv4')
             conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
-                                         activation='leaky', name='conv4bis')
-            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 8, 1], activation='leaky',
+                                         activation=activation, name='conv4bis')
+            conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 8, 1], activation=activation,
                                              name='conv4bisbis')
 
         with tf.name_scope('dnn'):
             conv4_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')
-            full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation='leaky',
+            full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation='relu',
                                                   name='dnn1')
             full_dropout1 = dropout(full_layer_1, drop_prob, name='dropout1')
-            full_layer_2, _ = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation='leaky',
+            full_layer_2, _ = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation='relu',
                                                   name='dnn2')
             full_dropout2 = dropout(full_layer_2, drop_prob, name='dropout2')
-            full_layer_3, _ = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation='leaky',
+            full_layer_3, _ = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation='relu',
                                                   name='dnn3')
             full_dropout3 = dropout(full_layer_3, drop_prob, name='dropout3')
             dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')
 
         with tf.name_scope('decoder'):
             deconv_5, _ = conv2d_transpose_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 8],
-                                                  [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], activation=activation,
+                                                    output_shape=[X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], activation=activation,
                                                   name='deconv5')  # [height, width, in_channels, output_channels]
             deconv_5bis, _ = conv2d_transpose_layer(deconv_5, [conv_size, conv_size, nb_conv * 8, nb_conv * 4],
-                                                      [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4],
+                                                    output_shape=[X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 4],
                                                     activation=activation, name='deconv5bis')
 
             up1 = up_2by2_ind(deconv_5bis, ind3, name='up1')
             deconv_6, _ = conv2d_transpose_layer(up1, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
-                                                  [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 4],
+                                                 output_shape=[X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 4],
                                                  activation=activation, name='deconv6')
             deconv_6bis, _ = conv2d_transpose_layer(deconv_6, [conv_size, conv_size, nb_conv * 4, nb_conv * 2],
-                                                      [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2],
+                                                    output_shape=[X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 2],
                                                     activation=activation, name='deconv6bis')
 
             up2 = up_2by2_ind(deconv_6bis, ind2, name='up2')
             deconv_7, _ = conv2d_transpose_layer(up2, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
-                                                  [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2],
+                                                 output_shape=[X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2],
                                                  activation=activation, name='deconv7')
             deconv_7bis, _ = conv2d_transpose_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv],
-                                                      [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv],
+                                                    output_shape=[X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv],
                                                     activation=activation, name='deconv7bis')
 
             up3 = up_2by2_ind(deconv_7bis, ind1, name='up3')
             deconv_8, _ = conv2d_transpose_layer(up3, [conv_size, conv_size, nb_conv, nb_conv],
-                                                  [X_dyn_batsize, patch_size, patch_size, nb_conv], activation=activation, name='deconv8')
+                                                 output_shape=[X_dyn_batsize, patch_size, patch_size, nb_conv], activation=activation, name='deconv8')
             deconv_8bis, _ = conv2d_transpose_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv],
-                                                      [X_dyn_batsize, patch_size, patch_size, nb_conv],
+                                                    output_shape=[X_dyn_batsize, patch_size, patch_size, nb_conv],
                                                     activation=activation, name='deconv8bis')
             logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1],
-                                                  [X_dyn_batsize, patch_size, patch_size, 1], name='logits')
+                                                    output_shape=[X_dyn_batsize, patch_size, patch_size, 1], name='logits')
 
     with tf.name_scope('operation'):
         # optimizer/train operation

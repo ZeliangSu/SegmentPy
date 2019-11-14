@@ -62,7 +62,7 @@ def get_all_trainable_variables(metagraph_path):
         clear_devices=True
     )
 
-    with tf.Session() as sess:
+    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
         restorer.restore(sess, metagraph_path)
         all_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
