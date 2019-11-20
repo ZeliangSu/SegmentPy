@@ -71,23 +71,29 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                             summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                                   feed_dict={nodes['train_or_test']: 'cv',
                                                              nodes['drop']: 1,
-                                                             nodes['learning_rate']: learning_rate})
+                                                             nodes['learning_rate']: learning_rate,
+                                                             nodes['BN_phase']: False,
+                            })
                             cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
                             # in situ testing without loading weights unlike cs-230-stanford
                             summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                                   feed_dict={nodes['train_or_test']: 'test',
                                                              nodes['drop']: 1,
-                                                             nodes['learning_rate']: learning_rate})
+                                                             nodes['learning_rate']: learning_rate,
+                                                             nodes['BN_phase']: False,
+                                                             })
                             test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
 
                         else:
                             summary, _, _, _ = sess.run(
-                                [nodes['summary'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
+                                [nodes['grad_sum'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
                                 feed_dict={nodes['train_or_test']: 'train',
                                            nodes['drop']: hyperparams['dropout'],
-                                           nodes['learning_rate']: learning_rate})
+                                           nodes['learning_rate']: learning_rate,
+                                           nodes['BN_phase']: True,
+                                           })
                             train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
                     except tf.errors.OutOfRangeError as e:
                         print(e)

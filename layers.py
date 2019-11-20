@@ -133,7 +133,7 @@ def placeholder(tensor_shape, name=''):
         return tensor_ph, tf.shape(tensor_ph)[0]
 
 
-def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
+def conv2d_layer(input_layer, shape, stride=1, if_BN=False, is_train=False, activation='relu', name=''):
     """
     input:
     -------
@@ -151,23 +151,28 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
         W = init_weights(shape, name)  # [conv_height, conv_width, in_channels, output_channels]
         b = init_bias([shape[3]], name)
         output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
-        if name == 'logits':
-            output_activation = output
+        if 'logit' in name:
+            output_activation = tf.identity(output, name='identity')
         else:
             if activation == 'relu':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.relu(output, name='relu')
             elif activation == 'sigmoid':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.sigmoid(output, name='sigmoid')
             elif activation == 'tanh':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.tanh(output, name='tanh')
             elif activation == 'leaky':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.leaky_relu(output, name='leaky')
             elif '-leaky' in activation:
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
@@ -178,7 +183,7 @@ def conv2d_layer(input_layer, shape, stride=1, activation='relu', name=''):
                                                    ])
 
 
-def conv2d_transpose_layer(input_layer, shape,  output_shape=None, stride=1, activation='relu', name=''):
+def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=False, is_train=False, activation='relu', name=''):
     """
     input:
     -------
@@ -208,23 +213,28 @@ def conv2d_transpose_layer(input_layer, shape,  output_shape=None, stride=1, act
         output = transpose + b
 
         # add activation function
-        if name == 'logits':
+        if 'logit' in name:
             output_activation = tf.identity(output, name='identity')
         else:
             if activation == 'relu':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.relu(output, name='relu')
             elif activation == 'sigmoid':
-                output = batch_norm(output, name='batch_norm')
-                output_activation = tf.nn.sigmoid(output, name='sigmoid')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
+                    output_activation = tf.nn.sigmoid(output, name='sigmoid')
             elif activation == 'tanh':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.tanh(output, name='tanh')
             elif activation == 'leaky':
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.leaky_relu(output, name='leaky')
             elif '-leaky' in activation:
-                output = batch_norm(output, name='batch_norm')
+                if if_BN:
+                    output = batch_norm(output, is_train=is_train, name=name)
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
@@ -235,7 +245,7 @@ def conv2d_transpose_layer(input_layer, shape,  output_shape=None, stride=1, act
                                                    ])
 
 
-def normal_full_layer(input_layer, size, activation='relu', name=''):
+def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation='relu', name=''):
     """
     input:
     -------
@@ -252,7 +262,8 @@ def normal_full_layer(input_layer, size, activation='relu', name=''):
         W = init_weights([input_size, size], name)
         b = init_bias([size], name)
         output = tf.matmul(input_layer, W) + b
-        # output = batch_norm(output, training_type, name='batch_norm')
+        if if_BN:
+            output = batch_norm(output, is_train=is_train, name=name)
         if activation == 'relu':
             output_activation = tf.nn.relu(output, name='relu')
         elif activation == 'sigmoid':
@@ -328,11 +339,13 @@ def loss_fn(y_true, output_layer, name='loss_fn'):
         loss_op: (tf.loss?) loss operation, by default of a segmentation problem, it's appropriate to use MSE
     """
     with tf.name_scope(name):
-        loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
         return loss_op
 
 
-def batch_norm(input_layer, name=''):
+def batch_norm(input_layer, is_train, name=''):
     '''
     :param bias_input:
     :param trainig_type: (tf.placeholder
@@ -340,13 +353,9 @@ def batch_norm(input_layer, name=''):
     :return:
     '''
     with tf.variable_scope(name):
-        return tf.nn.batch_normalization(
+        return tf.layers.batch_normalization(
             input_layer,
-            mean=0,
-            variance=1,
-            offset=0,
-            scale=0.1,
-            variance_epsilon=1e-5,
+            training=is_train,
             name='batch_norm',
         )
 

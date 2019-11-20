@@ -93,7 +93,7 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
     return g_main, ops_dict
 
 
-def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=None, rlt_dir=None):
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, batch_size, input_dir=None, rlt_dir=None):
     """
 
     Parameters
@@ -109,22 +109,25 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=N
     """
     with g_main.as_default() as g_main:
         new_input = g_main.get_tensor_by_name('new_ph:0')
-        dropout_input = g_main.get_tensor_by_name('dropout_prob:0')
-
+        try:
+            dropout_input = g_main.get_tensor_by_name('dropout_prob:0')
+        except Exception as e:
+            print(e)
+            pass
         # run inference
         with tf.Session(graph=g_main) as sess:
             print_nodes_name_shape(sess.graph)
 
             # write firstly input and output images
-            imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(300)]  #generalize here
+            imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(batch_size)]
             _resultWriter(imgs, 'input', path=rlt_dir)
-            label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(300)]  #generalize here
+            label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(batch_size)]
             _resultWriter(label, 'label', path=rlt_dir)
             img_size = np.array(imgs[0]).shape[1]
 
             feed_dict = {
-                new_input: np.array(imgs).reshape((300, img_size, img_size, 1)),  #generalize here
-                dropout_input: 1.0,
+                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                # dropout_input: 1.0,
             }
 
             # run partial results operations and diff block

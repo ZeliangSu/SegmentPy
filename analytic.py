@@ -6,20 +6,26 @@ from PIL import Image
 from scipy import interpolate
 
 
-def visualize_weights(params=None, plt=False):
+def visualize_weights(params=None, plt=False, mode='copy'):
     assert isinstance(params, dict)
     dir = params['rlt_dir'] + 'weights/step{}/'.format(params['step'])
     wn, _, ws, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path'])
     for _wn, _w in zip(wn, ws):
         for i in range(_w.shape[3]):
-            # interpolation and enlarge to a bigger matrix (instead of repeating)
-            x = np.linspace(-1, 1, _w.shape[0])
-            y = np.linspace(-1, 1, _w.shape[1])
-            f = interpolate.interp2d(x, y, np.sum(_w[:, :, :, i], axis=2), kind='cubic')
-            x = np.linspace(-1, 1, _w.shape[0] * 30)
-            y = np.linspace(-1, 1, _w.shape[1] * 30)
-            tmp = f(x, y)
+            if mode == 'interpolation':
+                # interpolation and enlarge to a bigger matrix (instead of repeating)
+                x = np.linspace(-1, 1, _w.shape[0])
+                y = np.linspace(-1, 1, _w.shape[1])
+                f = interpolate.interp2d(x, y, np.sum(_w[:, :, :, i], axis=2), kind='cubic')
+                x = np.linspace(-1, 1, _w.shape[0] * 30)
+                y = np.linspace(-1, 1, _w.shape[1] * 30)
+                tmp = f(x, y)
 
+            elif mode == 'copy':
+                tmp = np.repeat(np.repeat(np.sum(_w[:, :, :, i], axis=2), 30, axis=0), 30, axis=1)
+
+            else:
+                raise NotImplementedError('mode??')
             # save
             check_N_mkdir(dir + '{}/'.format(_wn.split('/')[0]))
             Image.fromarray(tmp).save(
@@ -36,7 +42,7 @@ def tsne_on_bias(params=None, mode='2D'):
     _, bn_init, _, bs_init, _, dnn_bn_init, _, dnn_bs_init = get_all_trainable_variables(params['ckpt_path_init'])
     _, bn, _, bs, _, dnn_bn, _, dnn_bs = get_all_trainable_variables(params['ckpt_path'])
 
-    shapes = [b.shape[0] for b in bs]
+    shapes = [b.shape[0] for b in bs + dnn_bs]
     max_shape = 0
     for _shape in shapes:
         if _shape >= max_shape:
@@ -325,7 +331,6 @@ def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
         # get ws values at stepX
         wn, bn, ws_, bs_, dnn_wn, dnn_bn, dnn_ws_, dnn_bs_ = get_all_trainable_variables(ckpt_path)
         # program euclidean distance
-
         # for w
         for _wn, w_init, w_ in zip(wn + dnn_wn, ws_init + dnn_ws_init, ws_ + dnn_ws_):
             l_dis_w = []
@@ -379,6 +384,107 @@ def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
             dfs[sheet_name].sort_values('step').to_excel(writer, sheet_name=sheet_name, index=False)
 
 
+def weights_angularity(ckpt_dir=None, rlt_dir=None):
+    """
+    inputs:
+    -------
+        path: (string) path to get the checkpoint e.g. './logs/YYYY_MM_DD_.../hourHH/ckpt/'
+    return:
+    -------
+        None
+    """
+    # construct dataframe
+    # header sheet_name weight: [step0, step20, ...]
+    # header sheet_name bias: [step0, step20, ...]
+    check_N_mkdir(rlt_dir)
+    lnames = []
+    for step in os.listdir(ckpt_dir):
+        if step.endswith('.meta'):
+            lnames.append(ckpt_dir + step.split('.')[0])
+    lnames = sorted(lnames)
+
+    # get weights-bias values at step0
+    wn, bn, ws_init, bs_init, dnn_wn, dnn_bn, dnn_ws_init, dnn_bs_init = get_all_trainable_variables(lnames[0])
+    l_total_w_avg = [0]
+    l_total_b_avg = [0]
+    l_total_w_std = [0]
+    l_total_b_std = [0]
+
+    dic_w = {'step': [0]}
+    dic_b = {'step': [0]}
+
+    for key in wn + dnn_wn:
+        dic_w[key.split('/')[0] + '_avg'] = [0]
+        dic_w[key.split('/')[0] + '_std'] = [0]
+        dic_b[key.split('/')[0] + '_avg'] = [0]
+        dic_b[key.split('/')[0] + '_std'] = [0]
+
+    for ckpt_path in lnames[1:]:
+        # insert step
+        dic_w['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
+        dic_b['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
+        total_dis_w = []
+        total_dis_b = []
+
+        # get ws values at stepX
+        wn, bn, ws_, bs_, dnn_wn, dnn_bn, dnn_ws_, dnn_bs_ = get_all_trainable_variables(ckpt_path)
+        # program euclidean distance
+
+        # for w
+        for _wn, w_init, w_ in zip(wn + dnn_wn, ws_init + dnn_ws_init, ws_ + dnn_ws_):
+            l_dis_w = []
+            try:
+                # for CNN
+                # retrive the filters
+                w_init, w_ = np.sum(w_init, axis=2), np.sum(w_, axis=2)
+                # write w
+                for i in range(w_init.shape[2]):
+                    angle_w = np.dot(w_init[:, :, i], w_[:, :, i]) / (np.linalg.norm(w_init[:, :, i]) * np.linalg.norm(w_[:, :, i]))
+                    l_dis_w.append(angle_w)
+                    total_dis_w.append(angle_w)
+
+            except Exception as e:
+                # for DNN
+                # Retrieve weights
+                w_init, w_ = np.sum(w_init,  axis=1), np.sum(w_, axis=1)
+                angle_w = np.dot(w_init.T, w_) / (np.linalg.norm(w_init) * np.linalg.norm(w_))
+                l_dis_w.append(angle_w)
+                total_dis_w.append(angle_w)
+
+            # save w into dfs
+            dic_w[_wn.split('/')[0] + '_avg'].append(np.asarray(l_dis_w).mean())
+            dic_w[_wn.split('/')[0] + '_std'].append(np.asarray(l_dis_w).std())
+
+        # for b
+        for _bn, b_init, b_ in zip(bn + dnn_bn, bs_init + dnn_bs_init, bs_ + dnn_bs_):
+            l_dis_b = []
+
+            dis_b = np.dot(b_init, b_) / (np.linalg.norm(b_init) * np.linalg.norm(b_))
+            l_dis_b.append(dis_b)
+            total_dis_b.append(dis_b)
+
+            # write b into dfs
+            dic_b[_bn.split('/')[0] + '_avg'].append(np.asarray(l_dis_b).mean())
+            dic_b[_bn.split('/')[0] + '_std'].append(np.asarray(l_dis_b).std())
+        l_total_w_avg.append(np.asarray(total_dis_w).mean())
+        l_total_w_std.append(np.asarray(total_dis_w).std())
+        l_total_b_avg.append(np.asarray(total_dis_b).mean())
+        l_total_b_std.append(np.asarray(total_dis_b).std())
+
+    dic_w['total_avg'] = l_total_w_avg
+    dic_w['total_std'] = l_total_w_std
+    dic_b['total_avg'] = l_total_b_avg
+    dic_b['total_std'] = l_total_b_std
+
+    # create df
+    dfs = {'weight': pd.DataFrame(dic_w), 'bias': pd.DataFrame(dic_b)}
+
+    # write into excel
+    with pd.ExcelWriter(rlt_dir + 'angularity.xlsx', engine='xlsxwriter') as writer:
+        for sheet_name in dfs.keys():
+            dfs[sheet_name].sort_values('step').to_excel(writer, sheet_name=sheet_name, index=False)
+
+
 def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
     """
     input:
@@ -413,7 +519,9 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
     g_main, ops_dict = load_mainGraph(conserve_nodes, path=paths['save_pb_path'])
 
     # run nodes and save results
-    inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']))
+    inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
+                                   batch_size=batch_size, input_dir=paths['data_dir'],
+                                   rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']))
 
     # plt
     if plt:
@@ -425,26 +533,26 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
 if __name__ == '__main__':
     # Xlearn
     conserve_nodes = [
-        'model/encoder/conv1/relu',
-        'model/encoder/conv1bis/relu',
-        'model/encoder/conv2/relu',
-        'model/encoder/conv2bis/relu',
-        'model/encoder/conv3/relu',
-        'model/encoder/conv3bis/relu',
-        'model/encoder/conv4/relu',
+        'model/encoder/conv1/leaky',
+        'model/encoder/conv1bis/leaky',
+        'model/encoder/conv2/leaky',
+        'model/encoder/conv2bis/leaky',
+        'model/encoder/conv3/leaky',
+        'model/encoder/conv3bis/leaky',
+        'model/encoder/conv4/leaky',
         'model/encoder/conv4bis/leaky',
         'model/encoder/conv4bisbis/leaky',
-        'model/dnn/dnn1/leaky',
-        'model/dnn/dnn2/leaky',
-        'model/dnn/dnn3/leaky',
-        'model/decoder/deconv5/relu',
-        'model/decoder/deconv5bis/relu',
-        'model/decoder/deconv6/relu',
-        'model/decoder/deconv6bis/relu',
-        'model/decoder/deconv7bis/relu',
-        'model/decoder/deconv7bis/relu',
-        'model/decoder/deconv8/relu',
-        'model/decoder/deconv8bis/relu',
+        'model/dnn/dnn1/relu',
+        'model/dnn/dnn2/relu',
+        'model/dnn/dnn3/relu',
+        'model/decoder/deconv5/leaky',
+        'model/decoder/deconv5bis/leaky',
+        'model/decoder/deconv6/leaky',
+        'model/decoder/deconv6bis/leaky',
+        'model/decoder/deconv7bis/leaky',
+        'model/decoder/deconv7bis/leaky',
+        'model/decoder/deconv8/leaky',
+        'model/decoder/deconv8bis/leaky',
         'model/decoder/logits/add',
     ]
     # U-Net
@@ -473,7 +581,7 @@ if __name__ == '__main__':
     #     'model/decontractor/conv9bis/sigmoid',
     #     'model/decontractor/logits/relu',
     # ]
-    graph_def_dir = './logs/2019_11_7_bs300_ps80_lr0.001_cs9_nc80_do0.5_act_relu_aug_True_commentLRCS_remove_var_aug/hour1/'
+    graph_def_dir = './logs/2019_11_18_bs5_ps512_lr0.0001_cs9_nc80_do0.1_act_leaky_aug_True_commentLRCS_SEGNET_batch_norm_variant2/hour17/'
     step = 0
     step_init = 0
     paths = {
@@ -485,7 +593,7 @@ if __name__ == '__main__':
         'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step_init),
         'save_pb_dir': graph_def_dir + 'pb/',
         'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step_init),
-        'data_dir': './proc/test/80/',
+        'data_dir': './proc/test/512/',
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
@@ -495,7 +603,7 @@ if __name__ == '__main__':
     # visualize_weights(params=paths)
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
 
-    step = 28160
+    step = 3000
     paths = {
         'step': step,
         'perplexity': 10,  #default 30 usual range 5-50
@@ -506,14 +614,14 @@ if __name__ == '__main__':
         'ckpt_path_init': graph_def_dir + 'ckpt/step{}'.format(step_init),
         'save_pb_dir': graph_def_dir + 'pb/',
         'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
-        'data_dir': './proc/test/80/',
+        'data_dir': './proc/test/512/',
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
     }
-    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
-    tsne_on_weights(params=paths, mode='2D')
-    tsne_on_bias(params=paths, mode='2D')
-    # visualize_weights(params=paths)
+    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    # tsne_on_weights(params=paths, mode='2D')
+    # tsne_on_bias(params=paths, mode='2D')
+    visualize_weights(params=paths)
     # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-
+    # weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])

@@ -23,6 +23,7 @@ def preprocess(indir, stride, patch_size, mode='h5', shuffle=True, evaluate=True
     -------
         None
     """
+    # todo: can simplify to not loading in RAM
     # import data
     X_stack, y_stack, _ = _tifReader(indir)
     outdir = './proc/'
