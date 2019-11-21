@@ -339,9 +339,9 @@ def loss_fn(y_true, output_layer, name='loss_fn'):
         loss_op: (tf.loss?) loss operation, by default of a segmentation problem, it's appropriate to use MSE
     """
     with tf.name_scope(name):
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # with tf.control_dependencies(update_ops):  #note: use tf.get_collection(tf.GraphKeys.UPDATE_OPS) manually is better
+        loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
         return loss_op
 
 

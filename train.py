@@ -76,19 +76,21 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                             })
                             cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
+                        if step % 9 == 4: #note: (solution) unknown cross-validation nan-in-summary bug on batch norm
                             # in situ testing without loading weights unlike cs-230-stanford
                             summary, _, _, _ = sess.run([nodes['summary'], nodes['y_pred'], nodes['loss_update_op'], nodes['acc_update_op']],
                                                   feed_dict={nodes['train_or_test']: 'test',
                                                              nodes['drop']: 1,
                                                              nodes['learning_rate']: learning_rate,
-                                                             nodes['BN_phase']: False,
+                                                             nodes['BN_phase']: False, #fixme: if cv and test False successively throw nan-in-summary error
                                                              })
                             test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
 
-
                         else:
-                            summary, _, _, _ = sess.run(
-                                [nodes['grad_sum'], nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']],
+                            summary, _, _, _, _ = sess.run([
+                                nodes['summary'], tf.get_collection(tf.GraphKeys.UPDATE_OPS),
+                                nodes['train_op'], nodes['loss_update_op'], nodes['acc_update_op']
+                            ],
                                 feed_dict={nodes['train_or_test']: 'train',
                                            nodes['drop']: hyperparams['dropout'],
                                            nodes['learning_rate']: learning_rate,
@@ -103,8 +105,6 @@ def train(nodes, train_inputs, test_inputs, hyperparams, save_step=200, device_o
                     if step % save_step == 0:
                         _globalStep = step + ep * hyperparams['nb_batch']
                         saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
-
-
         except (KeyboardInterrupt, SystemExit):
             saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
         saver.save(sess, folder + 'ckpt/step{}'.format(hyperparams['nb_epoch'] * hyperparams['nb_batch']))
