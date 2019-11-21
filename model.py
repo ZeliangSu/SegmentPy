@@ -435,6 +435,7 @@ def model_xlearn_custom(train_inputs, test_inputs, patch_size, batch_size, conv_
         'drop': drop_prob,
         'learning_rate': lr,
         'summary': merged,
+        # 'BN_phase': BN_phase,
         'train_or_test': training_type,
         'loss_update_op': loss_up_op,
         'acc_update_op': acc_up_op
@@ -566,6 +567,7 @@ def model_LRCS_custom(train_inputs, test_inputs, patch_size, batch_size, conv_si
         'train_op': train_op,
         'learning_rate': lr,
         'summary': merged,
+        # 'BN_phase': BN_phase,
         'train_or_test': training_type,
         'loss_update_op': loss_up_op,
         'acc_update_op': acc_up_op
@@ -688,6 +690,7 @@ def model_Unet(train_inputs, test_inputs, patch_size, batch_size, conv_size, nb_
         'drop': drop_prob,
         'learning_rate': lr,
         'summary': merged,
+        # 'BN_phase': BN_phase,
         'train_or_test': training_type,
         'loss_update_op': loss_up_op,
         'acc_update_op': acc_up_op
@@ -722,6 +725,7 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
     training_type = tf.placeholder(tf.string, name='training_type')
     drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
     lr = tf.placeholder(tf.float32, name='learning_rate')
+    BN_phase = tf.placeholder(tf.bool, name='BN_phase')
 
     with tf.name_scope('input_pipeline'):
         X_dyn_batsize = batch_size
@@ -732,46 +736,46 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
     with tf.name_scope('model'):
 
         with tf.name_scope('contractor'):
-            conv1, _ = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], activation=activation, name='conv1')#[height, width, in_channels, output_channels]
-            conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], activation=activation, name='conv1bis')
+            conv1, _ = conv2d_layer(inputs['img'], shape=[conv_size, conv_size, 1, nb_conv], activation=activation, if_BN=True, is_train=BN_phase, name='conv1')#[height, width, in_channels, output_channels]
+            conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], activation=activation, if_BN=True, is_train=BN_phase, name='conv1bis')
             conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
 
-            conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], activation=activation, name='conv2')
-            conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, name='conv2bis')
+            conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], activation=activation, if_BN=True, is_train=BN_phase, name='conv2')
+            conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation, if_BN=True, is_train=BN_phase, name='conv2bis')
             conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
 
-            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], activation=activation, name='conv3')
-            conv3bis, _ = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, name='conv3bis')
+            conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], activation=activation, if_BN=True, is_train=BN_phase, name='conv3')
+            conv3bis, _ = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, if_BN=True, is_train=BN_phase, name='conv3bis')
             conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
 
-            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8], activation=activation, name='conv4')
-            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, name='conv4bis')
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8], activation=activation, if_BN=True, is_train=BN_phase, name='conv4')
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, if_BN=True, is_train=BN_phase, name='conv4bis')
             conv4_pooling = max_pool_2by2(conv4bis, name='maxp4')
 
         with tf.name_scope('bottom'):
-            conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], activation=activation, name='bot5')
-            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], activation=activation, name='bot5bis')
-            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], stride=2, activation=activation, name='deconv1')
+            conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16], activation=activation, if_BN=True, is_train=BN_phase, name='bot5')
+            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16], activation=activation, if_BN=True, is_train=BN_phase, name='bot5bis')
+            deconv1, m5u = conv2d_transpose_layer(conv5bis, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], [X_dyn_batsize, patch_size // 8, patch_size // 8, nb_conv * 8], stride=2, activation=activation, if_BN=True, is_train=BN_phase, name='deconv1')
 
         with tf.name_scope('decontractor'):
             concat1 = concat([deconv1, conv4bis], name='concat1')
-            conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], activation=activation, name='conv6')  #[height, width, in_channels, output_channels]
-            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, name='conv6bis')
-            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 4], stride=2, activation=activation, name='deconv2')
+            conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8], activation=activation, if_BN=True, is_train=BN_phase, name='conv6')  #[height, width, in_channels, output_channels]
+            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8], activation=activation, if_BN=True, is_train=BN_phase, name='conv6bis')
+            deconv2, m6u = conv2d_transpose_layer(conv_6bis, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], [X_dyn_batsize, patch_size // 4, patch_size // 4, nb_conv * 4], stride=2, activation=activation, if_BN=True, is_train=BN_phase, name='deconv2')
 
             concat2 = concat([deconv2, conv3bis], name='concat2')
-            conv_7, _ = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], activation=activation, name='conv7')
-            conv_7bis, _ = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, name='conv7bis')
-            deconv3, _ = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], stride=2, activation=activation, name='deconv3')
+            conv_7, _ = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], activation=activation, if_BN=True, is_train=BN_phase, name='conv7')
+            conv_7bis, _ = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], activation=activation, if_BN=True, is_train=BN_phase, name='conv7bis')
+            deconv3, _ = conv2d_transpose_layer(conv_7bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], [X_dyn_batsize, patch_size // 2, patch_size // 2, nb_conv * 2], stride=2, activation=activation, if_BN=True, is_train=BN_phase, name='deconv3')
 
             concat3 = concat([deconv3, conv2bis], name='concat3')
-            conv_8, _ = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], activation=activation, name='conv8')
-            conv_8bis, _ = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation,  name='conv8bis')
-            deconv4, _ = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], stride=2, activation=activation, name='deconv4')
+            conv_8, _ = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], activation=activation, if_BN=True, is_train=BN_phase, name='conv8')
+            conv_8bis, _ = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], activation=activation,  if_BN=True, is_train=BN_phase, name='conv8bis')
+            deconv4, _ = conv2d_transpose_layer(conv_8bis, [conv_size, conv_size, nb_conv * 2, nb_conv], [X_dyn_batsize, patch_size, patch_size, nb_conv], stride=2, activation=activation, if_BN=True, is_train=BN_phase, name='deconv4')
 
             concat4 = concat([deconv4, conv1bis], name='concat4')
-            deconv_9, _ = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], activation=activation, name='conv9')
-            deconv_9bis, _ = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv], activation=activation, name='conv9bis')
+            deconv_9, _ = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv], activation=activation, if_BN=True, is_train=BN_phase, name='conv9')
+            deconv_9bis, _ = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv], activation=activation, if_BN=True, is_train=BN_phase, name='conv9bis')
             logits, m9b = conv2d_layer(deconv_9bis, [conv_size, conv_size, nb_conv, 1], activation=activation, name='logits')
 
     with tf.name_scope('operation'):
@@ -795,11 +799,11 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
     with tf.name_scope('summary'):
         def f5():
             grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
-            return tf.summary.merge([m4, m4b, m5, m5b, m5u,
-                                   m6, m6b, m6u, m9b, m_loss, m_acc, grad_sum])
+            return tf.summary.merge([m4b, m5,
+                                   m6, m9b, m_loss, m_acc, grad_sum])
         def f6():
-            return tf.summary.merge([m4, m4b, m5, m5b, m5u,
-                                   m6, m6b, m6u, m9b, m_loss, m_acc])
+            return tf.summary.merge([m4b, m5,
+                                   m6, m9b, m_loss, m_acc])
         merged = tf.cond(tf.equal(training_type, 'train'), lambda: f5(), lambda: f6(), name='BN_cond')
 
     return {
@@ -808,6 +812,7 @@ def model_Unet_lite(train_inputs, test_inputs, patch_size, batch_size, conv_size
         'drop': drop_prob,
         'learning_rate': lr,
         'summary': merged,
+        'BN_phase': BN_phase,
         'train_or_test': training_type,
         'loss_update_op': loss_up_op,
         'acc_update_op': acc_up_op,

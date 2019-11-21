@@ -16,12 +16,12 @@ hyperparams = {
     'nb_epoch': 100,
     'nb_batch': None,
     'conv_size': 9,
-    'nb_conv': 80,
+    'nb_conv': 64,
     'learning_rate': 1e-4,  #float or np.array of programmed learning rate
     'dropout': 0.1,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
-    'device_option': 'specific_gpu:1',
+    'device_option': 'specific_gpu:0',
     'augmentation': True,
     'activation': 'leaky',
     'save_step': 1000,
@@ -38,7 +38,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}{}_c
     hyperparams['dropout'],
     hyperparams['activation'],
     '_aug_' + str(hyperparams['augmentation']),
-    'xlearn_unet_bridge_BN',  #note: here put your special comment
+    'xlearn_segnet_bridge_BN',  #note: here put your special comment
     hyperparams['hour'],
 )
 
@@ -53,7 +53,7 @@ train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmenta
 test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test')
 
 # init model
-nodes = model_xlearn_lite(train_inputs,
+nodes = model_Unet_lite(train_inputs,
                    test_inputs,
                    hyperparams['patch_size'],
                    hyperparams['batch_size'],
