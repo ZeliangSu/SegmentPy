@@ -1774,3 +1774,97 @@
 # len_fnames = len(fnames)
 # tf.enable_eager_execution()
 # fnames = tf.data.Dataset.from_tensor_slices(fnames)
+
+################################################
+#
+#  build separate graph, which share variables
+#
+################################################
+import tensorflow as tf
+from tqdm import tqdm
+
+input = tf.ones([50, 50, 1, 1], tf.float32, name='input')
+output = tf.ones([50, 50, 1, 1], tf.float32, name='output')
+dropout = tf.placeholder_with_default(0.1, (), name='dropout')
+save_summary_step = 20
+save_model_step = 100
+
+##################### train graph on gpu1
+with tf.device('/device:GPU:0'):
+    with tf.variable_scope('model', reuse=False):
+        with tf.name_scope('conv1'):
+            w = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.constant_initializer(5.0))
+            out1 = tf.nn.conv2d(input, w, strides=[1, 1, 1, 1], padding='SAME', name='conv')
+            out1 = tf.layers.batch_normalization(out1, training=True, name='batch_norm')
+            out1 = tf.nn.relu(out1, 'relu')
+        with tf.name_scope('dnn'):
+            flat = tf.reshape(out1, [1, 2500])
+            w2 = tf.get_variable('w2', shape=[2500, 2500], initializer=tf.constant_initializer(5.0))
+            dnn_out = tf.matmul(flat, w2)
+            dnn_out = tf.nn.dropout(dnn_out, keep_prob=dropout, name='do')
+            dnn_out = tf.reshape(dnn_out, shape=[50, 50, 1, 1], name='logits')
+
+        # with tf.name_scope('operation'):
+    with tf.name_scope('operation'):
+        mse = tf.losses.mean_squared_error(labels=output, predictions=dnn_out)
+        opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
+
+        grads = opt.compute_gradients(mse)
+        train_op = opt.apply_gradients(grads, name='apply_grad')
+
+with tf.name_scope('metrics'):
+    acc_val_op, acc_update_op = tf.metrics.accuracy(labels=output, predictions=dnn_out)
+    summ_acc = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)])
+    grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
+
+with tf.name_scope('summary'):
+    merged = tf.summary.merge([summ_acc, grad_sum])
+
+###################### test graph on gpu2
+with tf.device('/device:GPU:1'):
+    with tf.variable_scope('model', reuse=True):
+        with tf.name_scope('conv1'):
+            w = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.constant_initializer(5.0))
+            out2 = tf.nn.conv2d(input, w, strides=[1, 1, 1, 1], padding='SAME', name='conv')
+            out2 = tf.layers.batch_normalization(out2, training=False, name='batch_norm')
+            out2 = tf.nn.relu(out2, 'relu')
+        with tf.name_scope('dnn'):
+            flat = tf.reshape(out1, [1, 2500])
+            w2 = tf.get_variable('w2', shape=[2500, 2500], initializer=tf.constant_initializer(5.0))
+            dnn_out2 = tf.matmul(flat, w2)
+            dnn_out2 = tf.nn.dropout(dnn_out2, keep_prob=dropout, name='do')
+            dnn_out2 = tf.reshape(dnn_out2, shape=[50, 50, 1, 1], name='logits')
+
+with tf.name_scope('metrics'):
+    acc_val_op2, acc_update_op2 = tf.metrics.accuracy(labels=output, predictions=dnn_out2)
+    summ_acc2 = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op2)])
+
+with tf.name_scope('summary'):
+    merged2 = tf.summary.merge([summ_acc2])
+
+##############################################
+with tf.Session() as sess:
+    sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+    model_saver = tf.train.Saver(max_to_keep=100000)
+    train_writer = tf.summary.FileWriter('./dummy/gpus/train/', sess.graph)
+    for i in tqdm(range(1000)):
+        if i % save_summary_step == 0:
+            _, rlt, summary, _ = sess.run([train_op, out1, summ_acc, acc_update_op])
+            # print('train:', rlt)
+            train_writer.add_summary(summary, global_step=i)
+        else:
+            _, rlt = sess.run([train_op, out1])
+            # print('train:', rlt)
+        if i % save_model_step == 0:
+            model_saver.save(sess, './dummy/ckpt/step{}'.format(i))
+
+with tf.Session() as sess:
+    sess.run(([tf.global_variables_initializer(), tf.local_variables_initializer()]))
+    model_loader = tf.train.Saver()
+    test_writer = tf.summary.FileWriter('./dummy/gpus/test/', sess.graph)
+    model_loader.restore(sess, './dummy/ckpt/step{}'.format(100))
+    for j in tqdm(range(5)):
+        rlt, summary = sess.run([out2, merged2], feed_dict={dropout: 1})
+        # print('test:', rlt)
+        test_writer.add_summary(summary, global_step=j)
+
