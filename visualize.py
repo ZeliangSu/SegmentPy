@@ -32,10 +32,10 @@ def convert_ckpt2pb(input=None, paths=None, conserve_nodes=None):
             paths['ckpt_path'] + '.meta',
             input_map={
                 'input_pipeline/input_cond/Merge_1': input,
+                'BN_phase': tf.placeholder(tf.bool, name='new_BN_phase')
             },
             clear_devices=True
         )
-
         input_graph = tf.get_default_graph()
         input_graph_def = input_graph.as_graph_def()
 
@@ -50,7 +50,6 @@ def convert_ckpt2pb(input=None, paths=None, conserve_nodes=None):
                 output_node_names=conserve_nodes,
             )
             # print_nodes_name_shape(sess.graph)
-
             # write pb
             with tf.gfile.GFile(pb_path, 'wb') as f:  #'wb' stands for write binary
                 f.write(output_graph_def.SerializeToString())
@@ -109,27 +108,34 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, batch_size,
     """
     with g_main.as_default() as g_main:
         new_input = g_main.get_tensor_by_name('new_ph:0')
+
+        # write firstly input and output images
+        imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(batch_size)]
+        _resultWriter(imgs, 'input', path=rlt_dir)
+        label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(batch_size)]
+        _resultWriter(label, 'label', path=rlt_dir)
+        img_size = np.array(imgs[0]).shape[1]
+
         try:
             dropout_input = g_main.get_tensor_by_name('dropout_prob:0')
+            new_BN_phase = g_main.get_tensor_by_name('BN_phase:0')
+            feed_dict = {
+                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                dropout_input: 1.0,
+                new_BN_phase: False,
+            }
         except Exception as e:
-            print(e)
+            print('Error(message):', e)
+            new_BN_phase = g_main.get_tensor_by_name('new_BN_phase:0')
+            feed_dict = {
+                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                new_BN_phase: False,
+            }
             pass
+
         # run inference
         with tf.Session(graph=g_main) as sess:
             print_nodes_name_shape(sess.graph)
-
-            # write firstly input and output images
-            imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(batch_size)]
-            _resultWriter(imgs, 'input', path=rlt_dir)
-            label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(batch_size)]
-            _resultWriter(label, 'label', path=rlt_dir)
-            img_size = np.array(imgs[0]).shape[1]
-
-            feed_dict = {
-                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
-                # dropout_input: 1.0,
-            }
-
             # run partial results operations and diff block
             res = sess.run(ops_dict['ops'], feed_dict=feed_dict)
             activations = []

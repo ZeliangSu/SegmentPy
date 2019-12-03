@@ -24,9 +24,9 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
 
     warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
 
-    is_trainning = True if suffix in ['train', 'cv', 'test'] else False
+    is_training = True if suffix in ['train', 'cv', 'test'] else False
 
-    if is_trainning:
+    if is_training:
         # placeholder for list fo files
         with tf.name_scope('input_pipeline_' + suffix):
             fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
@@ -87,7 +87,7 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
             inputs = {'batch': X_it,
                       'iterator_init_op': iter_init_op,
                       'fnames_ph': fnames_ph,
-                      'ps_ph': patch_size_ph,
+                      'patch_size_ph': patch_size_ph,
                       }
 
     return inputs

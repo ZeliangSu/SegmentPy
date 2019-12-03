@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def init_weights(shape, name='weights'):
+def init_weights(shape, name='weights', reuse=False):
     """
     input:
     -------
@@ -11,11 +11,11 @@ def init_weights(shape, name='weights'):
     -------
         tensorflow variable initialized by xavier method
     """
-    with tf.variable_scope(name):
-        return tf.get_variable('w', shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+    with tf.variable_scope(name, reuse=reuse):
+        return tf.get_variable('w', shape=shape, initializer=tf.initializers.glorot_normal())
 
 
-def init_bias(shape, name='bias'):
+def init_bias(shape, name='bias', reuse=False):
     """
     input:
     -------
@@ -25,8 +25,8 @@ def init_bias(shape, name='bias'):
     -------
         tensorflow variable initialized by xavier method
     """
-    with tf.variable_scope(name):
-        return tf.get_variable('b', shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+    with tf.variable_scope(name, reuse=reuse):
+        return tf.get_variable('b', shape=shape, initializer=tf.initializers.glorot_normal())
 
 
 def max_pool_2by2(x, name=''):
@@ -133,7 +133,7 @@ def placeholder(tensor_shape, name=''):
         return tensor_ph, tf.shape(tensor_ph)[0]
 
 
-def conv2d_layer(input_layer, shape, stride=1, if_BN=False, is_train=False, activation='relu', name=''):
+def conv2d_layer(input_layer, shape, stride=1, if_BN=False, is_train=None, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -148,42 +148,38 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=False, is_train=False, acti
 
     """
     with tf.name_scope(name):
-        W = init_weights(shape, name)  # [conv_height, conv_width, in_channels, output_channels]
-        b = init_bias([shape[3]], name)
+        W = init_weights(shape, name, reuse=reuse)  # [conv_height, conv_width, in_channels, output_channels]
+        b = init_bias([shape[3]], name, reuse=reuse)
         output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
         if 'logit' in name:
             output_activation = tf.identity(output, name='identity')
         else:
             if activation == 'relu':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.relu(output, name='relu')
             elif activation == 'sigmoid':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.sigmoid(output, name='sigmoid')
             elif activation == 'tanh':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.tanh(output, name='tanh')
             elif activation == 'leaky':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, name='leaky')
             elif '-leaky' in activation:
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
-        return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
-                                                   tf.summary.histogram("bias", b),
-                                                   tf.summary.histogram("layer", output),
-                                                   tf.summary.histogram("activations", output_activation)
-                                                   ])
+        return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
-def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=False, is_train=False, activation='relu', name=''):
+def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=False, is_train=False, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -199,8 +195,8 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
     """
     with tf.name_scope(name):
         shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
-        W = init_weights(shape, name)
-        b = init_bias([shape[2]], name)
+        W = init_weights(shape, name, reuse=reuse)
+        b = init_bias([shape[2]], name, reuse=reuse)
 
         # get batch_size
         dyn_input_shape = tf.shape(input_layer)
@@ -218,34 +214,30 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
         else:
             if activation == 'relu':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.relu(output, name='relu')
             elif activation == 'sigmoid':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                     output_activation = tf.nn.sigmoid(output, name='sigmoid')
             elif activation == 'tanh':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.tanh(output, name='tanh')
             elif activation == 'leaky':
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, name='leaky')
             elif '-leaky' in activation:
                 if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name)
+                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
-        return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
-                                                   tf.summary.histogram("bias", b),
-                                                   tf.summary.histogram("layer", output),
-                                                   tf.summary.histogram("activations", output_activation)
-                                                   ])
+        return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
-def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation='relu', name=''):
+def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -259,11 +251,11 @@ def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation
     """
     with tf.name_scope(name):
         input_size = int(input_layer.get_shape()[1])
-        W = init_weights([input_size, size], name)
-        b = init_bias([size], name)
+        W = init_weights([input_size, size], name, reuse=reuse)
+        b = init_bias([size], name, reuse=reuse)
         output = tf.matmul(input_layer, W) + b
         if if_BN:
-            output = batch_norm(output, is_train=is_train, name=name)
+            output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
         if activation == 'relu':
             output_activation = tf.nn.relu(output, name='relu')
         elif activation == 'sigmoid':
@@ -274,11 +266,7 @@ def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation
             output_activation = tf.nn.leaky_relu(output, name='leaky')
         else:
             raise NotImplementedError('Activation function not found!')
-        return output_activation, tf.summary.merge([tf.summary.histogram("weights", W),
-                                                   tf.summary.histogram("bias", b),
-                                                   tf.summary.histogram("layer", output),
-                                                   tf.summary.histogram("activations", output_activation)
-                                                   ])
+        return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
 def dropout(input_layer, hold_prob, name=''):
@@ -327,7 +315,7 @@ def concat(list_tensors, name=''):
         return output
 
 
-def loss_fn(y_true, output_layer, name='loss_fn'):
+def loss_fn(y_true, logits, name='loss_fn'):
     """
     input:
     -------
@@ -340,19 +328,19 @@ def loss_fn(y_true, output_layer, name='loss_fn'):
     """
     with tf.name_scope(name):
         # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        # with tf.control_dependencies(update_ops):  #note: use tf.get_collection(tf.GraphKeys.UPDATE_OPS) manually is better
-        loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=output_layer)
+        # with tf.control_dependencies(update_ops):  #note: use tf.get_collection(tf.GraphKeys.UPDATE_OPS) manually is better for debugging
+        loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=logits)
         return loss_op
 
 
-def batch_norm(input_layer, is_train, name=''):
+def batch_norm(input_layer, is_train, name='', reuse=False):
     '''
     :param bias_input:
     :param trainig_type: (tf.placeholder
     :param name:
     :return:
     '''
-    with tf.variable_scope(name):
+    with tf.variable_scope(name, reuse=reuse):
         return tf.layers.batch_normalization(
             input_layer,
             training=is_train,
@@ -360,32 +348,26 @@ def batch_norm(input_layer, is_train, name=''):
         )
 
 
-def metrics(y_pred, y_true, loss_op, training_type):
+def metrics(y_pred, y_true, loss_op, is_training):
     """
     input:
     -------
         y_pred: (tf.Tensor) output of the neural net
         y_true: (np.ndarray? | tf.Tensor) expected results
         loss_op: (tf.loss) loss function
-        training_type: switching between train set, cross-validation set and test set#fixme: should I change the name?
+        training_type: switching between train set, cross-validation set and test set
     return:
     -------
         merged summaries of loss and accuracy
     """
-    y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')  #fixme: mysterious 0 gradients or 0 accuracy bug by using this line
-    def loss_trn(): return tf.metrics.mean(loss_op, name='ls_train')
-    def loss_cv(): return tf.metrics.mean(loss_op, name='ls_cv')
-    def loss_tst(): return tf.metrics.mean(loss_op, name='ls_test')
-    def acc_trn(): return tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_train')
-    def acc_cv(): return tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_cv')
-    def acc_tst(): return tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_test')
+    y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')
+    if is_training:
+        loss_val_op, loss_update_op = tf.metrics.mean(loss_op, name='ls_train')
+        acc_val_op, acc_update_op =tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_train')
 
-    loss_val_op, loss_update_op = tf.case({tf.equal(training_type, 'train'): loss_trn,
-                                           tf.equal(training_type, 'cv'): loss_cv},
-                                           default=loss_tst)
-    acc_val_op, acc_update_op = tf.case({tf.equal(training_type, 'train'): acc_trn,
-                                         tf.equal(training_type, 'cv'): acc_cv},
-                                         default=acc_tst)
+    else:
+        loss_val_op, loss_update_op = tf.metrics.mean(loss_op, name='ls_test')
+        acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_test')
 
     return tf.summary.merge([tf.summary.scalar("loss", loss_val_op)]), loss_update_op,\
            tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op
