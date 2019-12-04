@@ -1,9 +1,17 @@
 import pandas as pd
-from util import get_all_trainable_variables
+import numpy as np
+import tensorflow as tf
+import os
+from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape
 from tsne import tsne, compare_tsne_2D, compare_tsne_3D
-from visualize import *
+from inference import freeze_ckpt_for_inference
 from PIL import Image
 from scipy import interpolate
+from writer import _resultWriter
+import h5py as h5
+
+if os.name == 'posix':  #to fix MAC openMP bug
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # Xlearn
 Xlearn_conserve_nodes = [
@@ -68,9 +76,9 @@ LRCS_conserve_nodes = [
     'LRCS/encoder/conv4/leaky',
     'LRCS/encoder/conv4bis/leaky',
     'LRCS/encoder/conv4bisbis/leaky',
-    'LRCS/dnn/dnn1/leaky',
-    'LRCS/dnn/dnn2/leaky',
-    'LRCS/dnn/dnn3/leaky',
+    'LRCS/dnn/dnn1/relu',
+    'LRCS/dnn/dnn2/relu',
+    'LRCS/dnn/dnn3/relu',
     'LRCS/decoder/deconv5/leaky',
     'LRCS/decoder/deconv5bis/leaky',
     'LRCS/decoder/deconv6/leaky',
@@ -87,6 +95,115 @@ conserve_nodes_dict = {
     'Unet': Unet_conserve_nodes,
     'LRCS': LRCS_conserve_nodes
 }
+
+
+def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
+    """
+    inputs:
+    -------
+        conserve_nodes: (list of string)
+        path: (str)
+
+    return:
+    -------
+        g_main: (tf.Graph())
+        ops_dict: (dictionary of operations)
+    """
+    # import graph def
+    with tf.gfile.GFile(path, mode='rb') as f:
+        # init GraphDef()
+        restored_graph_def = tf.GraphDef()
+        # parse saved .pb to GraphDef()
+        restored_graph_def.ParseFromString(f.read())
+
+    with tf.Graph().as_default() as g_main:
+        # import graph def
+        tf.import_graph_def(
+            graph_def=restored_graph_def,
+            return_elements=[conserve_nodes[-1]],
+            name=''  # note: '' so that won't have import/ prefix
+        )
+
+    # prepare feed_dict for inference
+    ops_dict = {
+        'ops': [g_main.get_tensor_by_name(op_name + ':0') for op_name in conserve_nodes],
+        }
+    return g_main, ops_dict
+
+
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, batch_size, input_dir=None, rlt_dir=None):
+    """
+
+    Parameters
+    ----------
+    g_combined: (tf.Graph())
+    ops_dict: (list of operations)
+    conserve_nodes: (list of string)
+
+    Returns
+    -------
+        None
+
+    """
+    with g_main.as_default() as g_main:
+        new_input = g_main.get_tensor_by_name('new_input:0')
+
+        # write firstly input and output images
+        imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(batch_size)]
+        _resultWriter(imgs, 'input', path=rlt_dir)
+        label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(batch_size)]
+        _resultWriter(label, 'label', path=rlt_dir)
+        img_size = np.array(imgs[0]).shape[1]
+
+        try:
+            dropout_input = g_main.get_tensor_by_name('new_dropout:0')
+            new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
+            feed_dict = {
+                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                dropout_input: 1.0,
+                new_BN_phase: False,
+            }
+        except Exception as e:
+            print('Error(message):', e)
+            new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
+            feed_dict = {
+                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                new_BN_phase: False,
+            }
+            pass
+
+        # run inference
+        with tf.Session(graph=g_main) as sess:
+            print_nodes_name_shape(sess.graph)
+            # run partial results operations and diff block
+            res = sess.run(ops_dict['ops'], feed_dict=feed_dict)
+            activations = []
+
+            # note: save partial/final inferences of the first image
+            for layer_name, tensors in zip(conserve_nodes, res):
+                try:
+                    if tensors.ndim == 4 or 2:
+                        if layer_name.split('/')[-2] != 'logits':
+                            tensors = tensors[0]  # todo: should generalize to batch
+                        else:
+                            _tensors = [np.squeeze(tensors[i]) for i in range(tensors.shape[0])]
+                            tensors = _tensors
+                except:
+                    pass
+                _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
+                              path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
+                activations.append(tensors)
+
+    # calculate diff by numpy
+    res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(label))
+    res_diff = np.asarray(res_diff, dtype=np.int)
+
+    # note: save diff of all imgs
+    _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
+                  path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
+
+    # return
+    return activations
 
 
 def visualize_weights(params=None, plt=False, mode='copy'):
@@ -568,7 +685,7 @@ def weights_angularity(ckpt_dir=None, rlt_dir=None):
             dfs[sheet_name].sort_values('step').to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
+def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=False):
     """
     input:
     -------
@@ -585,37 +702,34 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
     # clean graph first
     tf.reset_default_graph()
 
-    # load ckpt
-    patch_size = int(paths['data_dir'].split('/')[-2])
-
-    try:
-        batch_size = int(paths['working_dir'].split('bs')[1].split('_')[0])
-    except:
-        batch_size = 0
-
-    new_ph = tf.placeholder(tf.float32, shape=[batch_size, patch_size, patch_size, 1], name='new_ph')
-
     # convert ckpt to pb
-    convert_ckpt2pb(input=new_ph, paths=paths, conserve_nodes=conserve_nodes)
+    freeze_ckpt_for_inference(paths=paths, hyper=hyperparams, conserve_nodes=conserve_nodes)
 
     # load main graph
     g_main, ops_dict = load_mainGraph(conserve_nodes, path=paths['save_pb_path'])
 
     # run nodes and save results
     inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
-                                   batch_size=batch_size, input_dir=paths['data_dir'],
+                                   batch_size=hyperparams['batch_size'], input_dir=paths['data_dir'],
                                    rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']))
 
     # plt
     if plt:
-        # plot all activations
-        # plot top 10 activations
+        # todo: plot top 10 activations
         pass
 
 
 if __name__ == '__main__':
+    hyperparams = {
+        'patch_size': 512,
+        'batch_size': 8,
+        'nb_batch': None,
+        'nb_patch': None,
+        'stride': 1,
+        'device_option': 'cpu',
+    }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2019_11_21_bs5_ps512_lr0.0001_cs9_nc48_do0.1_act_leaky_aug_True_commentUnet_lite_BN/hour21/'
+    graph_def_dir = './logs/2019_12_3_bs8_ps512_lr0.0001_cs9_nc48_do0.1_act_leaky_aug_True_commentLRCS_lite_BN/'
     step = 0
     step_init = 0
     paths = {
@@ -633,7 +747,7 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
     visualize_weights(params=paths)
 
     step = 16888
@@ -653,7 +767,7 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
     tsne_on_weights(params=paths, mode='2D')
     tsne_on_bias(params=paths, mode='2D')
     visualize_weights(params=paths)
