@@ -6,6 +6,7 @@ from randomForest import load_model, predict
 from inference import inference_recursive
 from util import check_N_mkdir
 
+
 class SU_series:
     def __init__(self, number):
         self.series = [0]

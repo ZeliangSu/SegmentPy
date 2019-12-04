@@ -130,7 +130,7 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                             # change
                             ckpt_saved_path = folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step)
                             loader.restore(sess, ckpt_saved_path)
-                            for i_batch in range(hyperparams['save_step'] // 10 - 1):
+                            for i_batch in range(hyperparams['save_step'] // 10):
                                 _, summary, _, _ = sess.run(
                                     [
                                         test_nodes['y_pred'],
@@ -140,13 +140,12 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                                     ],
                                     feed_dict={
                                         test_nodes['drop']: 1.0,
-                                        test_nodes['learning_rate']: learning_rate,
+                                        test_nodes['learning_rate']: 0,
                                         test_nodes['BN_phase']: False,
                                     }
                                 )
-                            test_writer.add_summary(summary, _ep * hyperparams['nb_batch'] + _step)
-
-
+                                if i_batch == hyperparams['save_step'] // 10 - 1:
+                                    test_writer.add_summary(summary, _ep * hyperparams['nb_batch'] + _step)
 
         except (KeyboardInterrupt, SystemExit):
             saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))

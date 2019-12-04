@@ -53,7 +53,12 @@ def nodes(pipeline, placeholders=None, model_name='LRCS', patch_size=512, batch_
         with tf.name_scope('metrics'):
             m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], mse, is_training)
         with tf.name_scope('summary'):
-            merged = tf.summary.merge([m_loss, m_acc])
+            tmp = []
+            for layer_param in list_params:
+                for k, v in layer_param.items():
+                    tmp.append(tf.summary.histogram(k, v))
+            m_param = tf.summary.merge(tmp)
+            merged = tf.summary.merge([m_param, m_loss, m_acc])
 
     return {
         'y_pred': logits,

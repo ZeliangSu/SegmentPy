@@ -5,6 +5,89 @@ from visualize import *
 from PIL import Image
 from scipy import interpolate
 
+# Xlearn
+Xlearn_conserve_nodes = [
+    'model/encoder/conv1/leaky',
+    'model/encoder/conv1bis/leaky',
+    'model/encoder/conv2/leaky',
+    'model/encoder/conv2bis/leaky',
+    'model/encoder/conv3/leaky',
+    'model/encoder/conv3bis/leaky',
+    'model/encoder/conv4/leaky',
+    'model/encoder/conv4bis/leaky',
+    'model/encoder/conv4bisbis/leaky',
+    'model/dnn/dnn1/relu',
+    'model/dnn/dnn2/relu',
+    'model/dnn/dnn3/relu',
+    'model/decoder/deconv5/leaky',
+    'model/decoder/deconv5bis/leaky',
+    'model/decoder/deconv6/leaky',
+    'model/decoder/deconv6bis/leaky',
+    'model/decoder/deconv7bis/leaky',
+    'model/decoder/deconv7bis/leaky',
+    'model/decoder/deconv8/leaky',
+    'model/decoder/deconv8bis/leaky',
+    'model/decoder/logits/add',
+]
+
+# U-Net
+Unet_conserve_nodes = [
+    'model/contractor/conv1/leaky',
+    'model/contractor/conv1bis/leaky',
+    'model/contractor/conv2/leaky',
+    'model/contractor/conv2bis/leaky',
+    'model/contractor/conv3/leaky',
+    'model/contractor/conv3bis/leaky',
+    'model/contractor/conv4/leaky',
+    'model/contractor/conv4bis/leaky',
+    'model/bottom/bot5/leaky',
+    'model/bottom/bot5bis/leaky',
+    'model/bottom/deconv1/leaky',
+    'model/decontractor/conv6/leaky',
+    'model/decontractor/conv6bis/leaky',
+    'model/decontractor/deconv2/leaky',
+    'model/decontractor/conv7/leaky',
+    'model/decontractor/conv7bis/leaky',
+    'model/decontractor/deconv3/leaky',
+    'model/decontractor/conv8/leaky',
+    'model/decontractor/conv8bis/leaky',
+    'model/decontractor/deconv4/leaky',
+    'model/decontractor/conv9/leaky',
+    'model/decontractor/conv9bis/leaky',
+    'model/decontractor/logits/add',
+]
+
+# LRCS
+LRCS_conserve_nodes = [
+    'LRCS/encoder/conv1/leaky',
+    'LRCS/encoder/conv1bis/leaky',
+    'LRCS/encoder/conv2/leaky',
+    'LRCS/encoder/conv2bis/leaky',
+    'LRCS/encoder/conv3/leaky',
+    'LRCS/encoder/conv3bis/leaky',
+    'LRCS/encoder/conv4/leaky',
+    'LRCS/encoder/conv4bis/leaky',
+    'LRCS/encoder/conv4bisbis/leaky',
+    'LRCS/dnn/dnn1/leaky',
+    'LRCS/dnn/dnn2/leaky',
+    'LRCS/dnn/dnn3/leaky',
+    'LRCS/decoder/deconv5/leaky',
+    'LRCS/decoder/deconv5bis/leaky',
+    'LRCS/decoder/deconv6/leaky',
+    'LRCS/decoder/deconv6bis/leaky',
+    'LRCS/decoder/deconv7/leaky',
+    'LRCS/decoder/deconv7bis/leaky',
+    'LRCS/decoder/deconv8/leaky',
+    'LRCS/decoder/deconv8bis/leaky',
+    'LRCS/decoder/logits/identity',
+]
+
+conserve_nodes_dict = {
+    'Xlearn': Xlearn_conserve_nodes,
+    'Unet': Unet_conserve_nodes,
+    'LRCS': LRCS_conserve_nodes
+}
+
 
 def visualize_weights(params=None, plt=False, mode='copy'):
     assert isinstance(params, dict)
@@ -531,57 +614,8 @@ def partialRlt_and_diff(paths=None, conserve_nodes=None, plt=False):
 
 
 if __name__ == '__main__':
-    # Xlearn
-    conserve_nodes = [
-        'model/encoder/conv1/leaky',
-        'model/encoder/conv1bis/leaky',
-        'model/encoder/conv2/leaky',
-        'model/encoder/conv2bis/leaky',
-        'model/encoder/conv3/leaky',
-        'model/encoder/conv3bis/leaky',
-        'model/encoder/conv4/leaky',
-        'model/encoder/conv4bis/leaky',
-        'model/encoder/conv4bisbis/leaky',
-        'model/dnn/dnn1/relu',
-        'model/dnn/dnn2/relu',
-        'model/dnn/dnn3/relu',
-        'model/decoder/deconv5/leaky',
-        'model/decoder/deconv5bis/leaky',
-        'model/decoder/deconv6/leaky',
-        'model/decoder/deconv6bis/leaky',
-        'model/decoder/deconv7bis/leaky',
-        'model/decoder/deconv7bis/leaky',
-        'model/decoder/deconv8/leaky',
-        'model/decoder/deconv8bis/leaky',
-        'model/decoder/logits/add',
-    ]
-    # U-Net
-    # conserve_nodes = [
-    #     'model/contractor/conv1/sigmoid',
-    #     'model/contractor/conv1bis/sigmoid',
-    #     'model/contractor/conv2/sigmoid',
-    #     'model/contractor/conv2bis/sigmoid',
-    #     'model/contractor/conv3/sigmoid',
-    #     'model/contractor/conv3bis/sigmoid',
-    #     'model/contractor/conv4/sigmoid',
-    #     'model/contractor/conv4bis/sigmoid',
-    #     'model/bottom/bot5/sigmoid',
-    #     'model/bottom/bot5bis/sigmoid',
-    #     'model/bottom/deconv1/sigmoid',
-    #     'model/decontractor/conv6/sigmoid',
-    #     'model/decontractor/conv6bis/sigmoid',
-    #     'model/decontractor/deconv2/sigmoid',
-    #     'model/decontractor/conv7/sigmoid',
-    #     'model/decontractor/conv7bis/sigmoid',
-    #     'model/decontractor/deconv3/sigmoid',
-    #     'model/decontractor/conv8/sigmoid',
-    #     'model/decontractor/conv8bis/sigmoid',
-    #     'model/decontractor/deconv4/sigmoid',
-    #     'model/decontractor/conv9/sigmoid',
-    #     'model/decontractor/conv9bis/sigmoid',
-    #     'model/decontractor/logits/relu',
-    # ]
-    graph_def_dir = './logs/2019_11_18_bs5_ps512_lr0.0001_cs9_nc80_do0.1_act_leaky_aug_True_commentLRCS_SEGNET_batch_norm_variant2/hour17/'
+    conserve_nodes = conserve_nodes_dict['LRCS']
+    graph_def_dir = './logs/2019_11_21_bs5_ps512_lr0.0001_cs9_nc48_do0.1_act_leaky_aug_True_commentUnet_lite_BN/hour21/'
     step = 0
     step_init = 0
     paths = {
@@ -598,15 +632,14 @@ if __name__ == '__main__':
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
     }
+    print('Proceed step {}'.format(paths['step']))
+    partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
+    visualize_weights(params=paths)
 
-    # partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
-    # visualize_weights(params=paths)
-    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-
-    step = 3000
+    step = 16888
     paths = {
         'step': step,
-        'perplexity': 10,  #default 30 usual range 5-50
+        'perplexity': 100,  #default 30 usual range 5-50
         'niter': 5000,  #default 5000
         'working_dir': graph_def_dir,
         'ckpt_dir': graph_def_dir + 'ckpt/',
@@ -619,9 +652,11 @@ if __name__ == '__main__':
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
     }
+    print('Proceed step {}'.format(paths['step']))
     partialRlt_and_diff(paths=paths, conserve_nodes=conserve_nodes)
-    # tsne_on_weights(params=paths, mode='2D')
-    # tsne_on_bias(params=paths, mode='2D')
+    tsne_on_weights(params=paths, mode='2D')
+    tsne_on_bias(params=paths, mode='2D')
     visualize_weights(params=paths)
-    # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    # weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
