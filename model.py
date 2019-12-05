@@ -140,13 +140,13 @@ def model_LRCS_custom(pipeline, patch_size, batch_size, conv_size, nb_conv, drop
 
             with tf.name_scope('dnn'):
                 conv4_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')
-                full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation='relu',
+                full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation=activation,
                                                       name='dnn1', reuse=reuse)
                 full_dropout1 = dropout(full_layer_1, drop_prob, name='dropout1')
-                full_layer_2, mf2 = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation='relu',
+                full_layer_2, mf2 = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation=activation,
                                                     name='dnn2', reuse=reuse)
                 full_dropout2 = dropout(full_layer_2, drop_prob, name='dropout2')
-                full_layer_3, mf3 = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation='relu',
+                full_layer_3, mf3 = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation=activation,
                                                     name='dnn3', reuse=reuse)
                 full_dropout3 = dropout(full_layer_3, drop_prob, name='dropout1')
                 dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')

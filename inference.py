@@ -85,7 +85,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
 
     # load meta graph
     try:
-        new_dropout = tf.placeholder(tf.float32, shape=[None], name='new_dropout')
+        new_dropout = tf.placeholder(tf.float32, shape=[], name='new_dropout')
         restorer = tf.train.import_meta_graph(
             paths['ckpt_path'] + '.meta',
             input_map={
@@ -331,7 +331,7 @@ if __name__ == '__main__':
         'batch_size': 8,
         'nb_batch': None,
         'nb_patch': None,
-        'stride': 1,
+        'stride': 50,
         'device_option': 'cpu',
     }
 
@@ -340,7 +340,7 @@ if __name__ == '__main__':
     test1_label = np.asarray(Image.open('./dummy/test1_uns++_tu.tif'))
     test2_label = np.asarray(Image.open('./dummy/test2_Weka_UNS_tu.tif'))
 
-    l_out = inference_recursive(inputs=[test1_raw, test2_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
+    l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
 
 
     #######################################

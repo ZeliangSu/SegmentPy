@@ -6,6 +6,19 @@ from randomForest import load_model, predict
 from inference import inference_recursive
 from util import check_N_mkdir
 
+filt_names = [
+    'gaussian_blur',
+    'sobel',
+    'hessian',
+    'dog',
+    # 'membrane_proj',
+    'anisotropic_diffusion1',
+    'anisotropic_diffusion2',
+    'gabor',
+    'bilateral',
+    'median',
+]
+
 
 class SU_series:
     def __init__(self, number):
@@ -151,27 +164,13 @@ def hist_inversing(init_arr, seg_arr, bins=2**10, classes=None, csv=None, plot=F
 
 
 if __name__ == '__main__':
-
     conserve_nodes = [
             'model/decoder/logits/relu',
         ]
 
-    filt_names = [
-        'gaussian_blur',
-        'sobel',
-        'hessian',
-        'dog',
-        #'membrane_proj',
-        'anisotropic_diffusion1',
-        'anisotropic_diffusion2',
-        'gabor',
-        'bilateral',
-        'median',
-    ]
-
     hyperparams = {
-        'patch_size': 80,
-        'batch_size': None,
+        'patch_size': 512,
+        'batch_size': 8,
         'nb_batch': None,
         'nb_patch': None,
         'stride': 1,
@@ -209,12 +208,12 @@ if __name__ == '__main__':
     vol_NN = np.asarray(vol_NN)
 
     # or read from folder
-    # vol_RF, _, _ = _tifReader(paths['RF_out_dir'])
-    # vol_NN, _, _ = _tifReader(paths['out_dir'])
-    # X_stack, y_stack, _ = _tifReader(paths['in_dir'])
-    # vol_RF = np.asarray(vol_RF)
-    # vol_NN = np.asarray(vol_NN)
-    # y_stack = np.asarray(y_stack)
+    vol_RF, _, _ = _tifReader(paths['RF_out_dir'])
+    vol_NN, _, _ = _tifReader(paths['out_dir'])
+    X_stack, y_stack, _ = _tifReader(paths['in_dir'])
+    vol_RF = np.asarray(vol_RF)
+    vol_NN = np.asarray(vol_NN)
+    y_stack = np.asarray(y_stack)
 
     # or load from rlt
     print('\nRF:', DSC(vol_RF, y_stack))

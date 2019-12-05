@@ -131,7 +131,7 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
     return g_main, ops_dict
 
 
-def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, batch_size, input_dir=None, rlt_dir=None):
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, ):
     """
 
     Parameters
@@ -145,21 +145,31 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, batch_size,
         None
 
     """
+    config_params = {}
+    if hyper['device_option'] == 'cpu':
+        config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
+    elif 'specific' in hyper['device_option']:
+        print('using GPU:{}'.format(hyper['device_option'].split(':')[-1]))
+        config_params['config'] = tf.ConfigProto(
+            gpu_options=tf.GPUOptions(visible_device_list=hyper['device_option'].split(':')[-1]),
+            allow_soft_placement=True,
+            log_device_placement=False,
+            )
     with g_main.as_default() as g_main:
         new_input = g_main.get_tensor_by_name('new_input:0')
 
         # write firstly input and output images
-        imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(batch_size)]
+        imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(hyper['batch_size'])]
         _resultWriter(imgs, 'input', path=rlt_dir)
-        label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(batch_size)]
+        label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(hyper['batch_size'])]
         _resultWriter(label, 'label', path=rlt_dir)
-        img_size = np.array(imgs[0]).shape[1]
+        img_size = hyper['patch_size']
 
         try:
             dropout_input = g_main.get_tensor_by_name('new_dropout:0')
             new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
             feed_dict = {
-                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                new_input: np.array(imgs).reshape((hyper['batch_size'], img_size, img_size, 1)),
                 dropout_input: 1.0,
                 new_BN_phase: False,
             }
@@ -167,13 +177,13 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, batch_size,
             print('Error(message):', e)
             new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
             feed_dict = {
-                new_input: np.array(imgs).reshape((batch_size, img_size, img_size, 1)),
+                new_input: np.array(imgs).reshape((hyper['batch_size'], img_size, img_size, 1)),
                 new_BN_phase: False,
             }
             pass
 
         # run inference
-        with tf.Session(graph=g_main) as sess:
+        with tf.Session(graph=g_main, **config_params) as sess:
             print_nodes_name_shape(sess.graph)
             # run partial results operations and diff block
             res = sess.run(ops_dict['ops'], feed_dict=feed_dict)
@@ -710,8 +720,8 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 
     # run nodes and save results
     inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
-                                   batch_size=hyperparams['batch_size'], input_dir=paths['data_dir'],
-                                   rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']))
+                                   input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']),
+                                   hyper=hyperparams)
 
     # plt
     if plt:
@@ -729,7 +739,7 @@ if __name__ == '__main__':
         'device_option': 'cpu',
     }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2019_12_3_bs8_ps512_lr0.0001_cs9_nc48_do0.1_act_leaky_aug_True_commentLRCS_lite_BN/'
+    graph_def_dir = './logs/2019_12_3_bs8_ps512_lr0.0001_cs9_nc48_do0.1_act_leaky_aug_True_commentLRCS_lite_BN/hour17/'
     step = 0
     step_init = 0
     paths = {
@@ -747,8 +757,8 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    visualize_weights(params=paths)
+    # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+    # visualize_weights(params=paths)
 
     step = 16888
     paths = {
@@ -767,10 +777,10 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    tsne_on_weights(params=paths, mode='2D')
-    tsne_on_bias(params=paths, mode='2D')
-    visualize_weights(params=paths)
+    # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+    # tsne_on_weights(params=paths, mode='2D')
+    # tsne_on_bias(params=paths, mode='2D')
+    # visualize_weights(params=paths)
     weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
