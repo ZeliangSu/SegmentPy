@@ -133,7 +133,7 @@ def placeholder(tensor_shape, name=''):
         return tensor_ph, tf.shape(tensor_ph)[0]
 
 
-def conv2d_layer(input_layer, shape, stride=1, if_BN=False, is_train=None, activation='relu', name='', reuse=False):
+def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -154,32 +154,27 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=False, is_train=None, activ
         if 'logit' in name:
             output_activation = tf.identity(output, name='identity')
         else:
+            # Batch normalization
+            if if_BN:
+                output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
+
+            # Activation
             if activation == 'relu':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.relu(output, name='relu')
             elif activation == 'sigmoid':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.sigmoid(output, name='sigmoid')
             elif activation == 'tanh':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.tanh(output, name='tanh')
             elif activation == 'leaky':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, name='leaky')
             elif '-leaky' in activation:
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
         return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
-def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=False, is_train=False, activation='relu', name='', reuse=False):
+def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -212,32 +207,27 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
         if 'logit' in name:
             output_activation = tf.identity(output, name='identity')
         else:
+            # Batch Normalization
+            if if_BN:
+                output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
+
+            # activation
             if activation == 'relu':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.relu(output, name='relu')
             elif activation == 'sigmoid':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                     output_activation = tf.nn.sigmoid(output, name='sigmoid')
             elif activation == 'tanh':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.tanh(output, name='tanh')
             elif activation == 'leaky':
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, name='leaky')
             elif '-leaky' in activation:
-                if if_BN:
-                    output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
         return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
-def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation='relu', name='', reuse=False):
+def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -250,12 +240,18 @@ def normal_full_layer(input_layer, size, if_BN=False, is_train=False, activation
         & tensorflow merged summary
     """
     with tf.name_scope(name):
+
+        # Matmul
         input_size = int(input_layer.get_shape()[1])
         W = init_weights([input_size, size], name, reuse=reuse)
         b = init_bias([size], name, reuse=reuse)
         output = tf.matmul(input_layer, W) + b
+
+        # BN
         if if_BN:
             output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
+
+        # activation
         if activation == 'relu':
             output_activation = tf.nn.relu(output, name='relu')
         elif activation == 'sigmoid':
