@@ -156,7 +156,7 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
         else:
             # Batch normalization
             if if_BN:
-                output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
+                output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
 
             # Activation
             if activation == 'relu':
@@ -199,7 +199,7 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
 
         # make transpose layer
         transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=[batch_size, output_shape[1], output_shape[2], output_shape[3]],
-                                           strides=[1, stride, stride, 1], padding='SAME', name=name)
+                                           strides=[1, stride, stride, 1], padding='SAME', name='transpose')
 
         output = transpose + b
 
@@ -209,7 +209,7 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
         else:
             # Batch Normalization
             if if_BN:
-                output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
+                output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
 
             # activation
             if activation == 'relu':
@@ -249,7 +249,7 @@ def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='
 
         # BN
         if if_BN:
-            output = batch_norm(output, is_train=is_train, name=name, reuse=reuse)
+            output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
 
         # activation
         if activation == 'relu':
@@ -295,6 +295,21 @@ def reshape(input_layer, shape, name=''):
         return tf.reshape(input_layer, shape, name='reshape')
 
 
+def flatten(input_layer, name=''):
+    """
+    input:
+    -------
+        input_layer: (tf.Tensor or tf.placeholder) tensor from the previous layer
+        shape: (list) reshape to this shape
+        name: (string) name of the node
+    return:
+    -------
+        (tf.Tensor) reshaped tensor
+    """
+    with tf.name_scope(name):
+        return tf.layers.flatten(input_layer, name='reshape')
+
+
 def concat(list_tensors, name=''):
     """
     input:
@@ -311,7 +326,7 @@ def concat(list_tensors, name=''):
         return output
 
 
-def loss_fn(y_true, logits, name='loss_fn'):
+def MSE(y_true, logits, name='loss_fn'):
     """
     input:
     -------
@@ -326,6 +341,18 @@ def loss_fn(y_true, logits, name='loss_fn'):
         # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         # with tf.control_dependencies(update_ops):  #note: use tf.get_collection(tf.GraphKeys.UPDATE_OPS) manually is better for debugging
         loss_op = tf.losses.mean_squared_error(labels=tf.cast(y_true, tf.float32), predictions=logits)
+        return loss_op
+
+
+def DSC(y_true, logits, name='Dice_Similarity_Coefficient'):
+    # [batch_size, height, weight, class]
+    axis = (1, 2, 3)
+    # minimize equally for all classes (even for minor class)
+    with tf.name_scope(name):
+        y_true = tf.cast(y_true, tf.float32)
+        numerator = 2 * tf.reduce_sum(y_true * logits , axis=axis)
+        denominator = tf.reduce_sum(y_true + logits, axis=axis)
+        loss_op = 1 - (numerator) / (denominator)
         return loss_op
 
 

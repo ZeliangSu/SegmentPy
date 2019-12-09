@@ -8,7 +8,7 @@ from augmentation import random_aug
 from proc import _stride
 
 
-def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False):
+def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
     """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -36,7 +36,10 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
             batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
             batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
             # read data
-            batch = batch.map(_pyfn_parser_wrapper, num_parallel_calls=ncores)
+            if mode == 'regression':
+                batch = batch.map(_pyfn_parser_wrapper, num_parallel_calls=ncores)
+            elif mode == 'classification':
+                batch = batch.map(_pyfn_classification_parser_wrapper, num_parallel_calls=ncores)
             # random augment data
             if augmentation:
                 batch = batch.map(_pyfn_aug_wrapper, num_parallel_calls=ncores)
@@ -70,7 +73,7 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
             batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
 
             # read img and stride
-            batch = batch.map(_pyfn_stride_wrapper, num_parallel_calls=1)
+            batch = batch.map(_pyfn_stride_wrapper, num_parallel_calls=ncores)
 
             # simply batch it
             # note: check the last batch results
@@ -122,8 +125,16 @@ def _pyfn_parser_wrapper(fname, patch_size):
     """
     return tf.py_func(parse_h5,  #wrapped pythonic function
                       [fname, patch_size],
-                      [tf.float32, tf.float32]  #[output, output] dtype
+                      [tf.float32, tf.int64]  #[output, output] dtype
                       )
+
+
+def _pyfn_classification_parser_wrapper(fname, patch_size):
+    return tf.py_func(
+        parse_h5_one_hot,
+        [fname, patch_size],
+        [tf.float32, tf.int64]
+    )
 
 
 def _pyfn_aug_wrapper(X_img, y_img):
@@ -138,8 +149,24 @@ def _pyfn_aug_wrapper(X_img, y_img):
     """
     return tf.py_func(random_aug,
                       [X_img, y_img],
-                      [tf.float32, tf.float32]  #[output, output] dtype
+                      [tf.float32, tf.int64]  #[output, output] dtype
                       )
+
+
+def parse_h5_one_hot(fname, patch_size):
+    with h5py.File(fname.decode('utf-8', 'r'), 'r') as f:
+        X = f['X'][:].reshape(patch_size, patch_size, 1)
+        y = f['y'][:].reshape(patch_size, patch_size, 1)
+        # if y is saved as float, convert to int
+        if y.dtype == np.float32:
+            y = y.astype(np.int8)
+        # get how many classes
+        nb_classes = len(np.unique(y))
+        _y = np.zeros((*y.shape[:3], nb_classes))
+        # one hot
+        for i in range(1, nb_classes - 1):
+            _y[np.where(y == i), i] = 1
+        return _minmaxscalar(X), y.astype(np.int64)
 
 
 def parse_h5(fname, patch_size):
@@ -159,7 +186,7 @@ def parse_h5(fname, patch_size):
     with h5py.File(fname.decode('utf-8'), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
-        return _minmaxscalar(X), y  #can't do minmaxscalar for y
+        return _minmaxscalar(X), y.astype(np.int64)  #can't do minmaxscalar for y
 
 
 def _minmaxscalar(ndarray, dtype=np.float32):

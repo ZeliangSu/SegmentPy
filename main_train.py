@@ -15,21 +15,24 @@ hyperparams = {
     'batch_size': 8,  #Xlearn < 20, Unet < 20 saturate GPU memory
     'nb_epoch': 100,
     'nb_batch': None,
-    'conv_size': 9,
+    'conv_size': 3,
     'nb_conv': 48,
     'learning_rate': 1e-4,  #float or np.array of programmed learning rate
     'dropout': 0.1,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
     'device_option': 'specific_gpu:0',
+    'second_device': None,
     'augmentation': True,
     'activation': 'leaky',
     'save_step': 500,
     'save_summary_step': 50,
     'folder_name': None,
+    'model': 'ind_3c_3b_3c',
+    'mode': 'classification',
 }
 
-hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}{}_comment{}/hour{}/'.format(
+hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_mdl_{}_comment_{}/hour{}/'.format(
     hyperparams['date'],
     hyperparams['batch_size'],
     hyperparams['patch_size'],
@@ -38,8 +41,9 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}{}_c
     hyperparams['nb_conv'],
     hyperparams['dropout'],
     hyperparams['activation'],
-    '_aug_' + str(hyperparams['augmentation']),
-    'Unet_lite_BN',  #note: here put your special comment
+    str(hyperparams['augmentation']),
+    hyperparams['model'],
+    'with_BN',  #note: here put your special comment
     hyperparams['hour'],
 )
 
@@ -50,8 +54,8 @@ hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams
                              f) for f in os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
 
 # init input pipeline
-train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'])
-test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test')
+train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
+test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test', mode='classification')
 drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
 lr = tf.placeholder(tf.float32, name='learning_rate')
 BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
@@ -59,23 +63,26 @@ list_placeholders = [drop_prob, lr, BN_phase]
 # init model
 train_nodes = nodes(pipeline=train_inputs,
                     placeholders=list_placeholders,
-                    model_name='LRCS',
+                    model_name=hyperparams['model'],
                     patch_size=hyperparams['patch_size'],
                     batch_size=hyperparams['batch_size'],
                     conv_size=hyperparams['conv_size'],
                     nb_conv=hyperparams['nb_conv'],
                     activation=hyperparams['activation'],
                     is_training=True,
+                    mode=hyperparams['mode'],
                     )
 
 test_nodes = nodes(pipeline=test_inputs,
                    placeholders=list_placeholders,
+                   model_name=hyperparams['model'],
                    patch_size=hyperparams['patch_size'],
                    batch_size=hyperparams['batch_size'],
                    conv_size=hyperparams['conv_size'],
                    nb_conv=hyperparams['nb_conv'],
                    activation=hyperparams['activation'],
-                   is_training=False
+                   is_training=False,
+                   mode=hyperparams['mode'],
                    )
 
 

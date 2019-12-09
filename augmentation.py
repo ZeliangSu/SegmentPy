@@ -24,6 +24,7 @@ def random_aug(X_img, y_img):
         # grayscale_var
     ]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
+    y_img.astype(np.int64)
     return X_img.astype('float32'), y_img
 
 

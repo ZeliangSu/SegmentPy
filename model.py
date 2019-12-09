@@ -1,27 +1,41 @@
 import tensorflow as tf
 from layers import *
+from util import print_nodes_name_shape
 
 
-def nodes(pipeline, placeholders=None, model_name='LRCS', patch_size=512, batch_size=200, conv_size=9, nb_conv=80, activation='relu', is_training=False):
+def nodes(pipeline,
+          placeholders=None,
+          model_name='LRCS',
+          patch_size=512,
+          batch_size=200,
+          conv_size=9,
+          nb_conv=80,
+          activation='relu',
+          is_training=False,
+          mode='regression'):
+
+    # check entries
     assert isinstance(placeholders, list), 'placeholders should be a list.'
     # get placeholder
     drop_prob, lr, BN_phase = placeholders
 
     # build model
     logits, list_params = model_dict[model_name](pipeline=pipeline,
-                                                      patch_size=patch_size,
-                                                      batch_size=batch_size,
-                                                      conv_size=conv_size,
-                                                      nb_conv=nb_conv,
-                                                      drop_prob=drop_prob,
-                                                      activation=activation,
-                                                      BN_phase=BN_phase,
-                                                      reuse=not is_training
-                                                      )
+                                                 patch_size=patch_size,
+                                                 batch_size=batch_size,
+                                                 conv_size=conv_size,
+                                                 nb_conv=nb_conv,
+                                                 drop_prob=drop_prob,
+                                                 activation=activation,
+                                                 BN_phase=BN_phase,
+                                                 reuse=not is_training,
+                                                 mode=mode,
+                                                 nb_classes=3,
+                                                 )
 
     with tf.device('/cpu:0'):
         with tf.name_scope('Loss'):
-            mse = loss_fn(pipeline['label'], logits, name='loss_fn')
+            loss = DSC(pipeline['label'], logits, name='loss_fn')
     # loss function
     if is_training:
         with tf.device('/device:GPU:0'):
@@ -30,13 +44,13 @@ def nodes(pipeline, placeholders=None, model_name='LRCS', patch_size=512, batch_
                 opt = optimizer(lr, name='optimizeR')
 
                 # program gradients
-                grads = opt.compute_gradients(mse)
+                grads = opt.compute_gradients(loss)
 
                 # train operation
                 train_op = opt.apply_gradients(grads, name='train_op')
 
-        with tf.name_scope('metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], mse, is_training)
+        with tf.name_scope('train_metrics' if is_training else 'test_metrics'):
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
 
         with tf.name_scope('summary'):
             grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
@@ -72,7 +86,17 @@ def nodes(pipeline, placeholders=None, model_name='LRCS', patch_size=512, batch_
     }
 
 
-def model_LRCS_custom(pipeline, patch_size, batch_size, conv_size, nb_conv, drop_prob, BN_phase, activation='relu', reuse=False):
+def model_LRCS(pipeline,
+               patch_size,
+               batch_size,
+               conv_size,
+               nb_conv,
+               drop_prob,
+               BN_phase,
+               activation='relu',
+               reuse=False,
+               mode='regression',
+               nb_classes=3):
     """
     lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
     saved in
@@ -168,13 +192,25 @@ def model_LRCS_custom(pipeline, patch_size, batch_size, conv_size, nb_conv, drop
                                            is_train=BN_phase, activation=activation, name='deconv8', reuse=reuse)
                 deconv_8bis, _ = conv2d_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv],
                                               is_train=BN_phase, activation=activation, name='deconv8bis', reuse=reuse)
-                logits, m8bb = conv2d_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1],
+                logits, m8bb = conv2d_layer(deconv_8bis,
+                                            [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             is_train=BN_phase, name='logits', reuse=reuse)
 
-    return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8bb]
+        return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8bb]
 
 
-def model_Unet(pipeline, patch_size, batch_size, conv_size, nb_conv, drop_prob, BN_phase, activation='relu', reuse=False):
+def model_Unet(pipeline,
+               patch_size,
+               batch_size,
+               conv_size,
+               nb_conv,
+               drop_prob,
+               BN_phase,
+               activation='relu',
+               reuse=False,
+               mode='regression',
+               nb_classes=3
+               ):
     """
     xlearn segmentation convolutional neural net model with summary
 
@@ -278,14 +314,25 @@ def model_Unet(pipeline, patch_size, batch_size, conv_size, nb_conv, drop_prob, 
                                             activation=activation, name='conv9', reuse=reuse)
                 deconv_9bis, m9b = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv],
                                                 activation=activation, name='conv9bis', reuse=reuse)
-                logits, m9b = conv2d_layer(deconv_9bis, [conv_size, conv_size, nb_conv, 1],
-                                           activation=activation, name='logits', reuse=reuse)
+                logits, m8bb = conv2d_layer(deconv_9bis,
+                                            [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
+                                            is_train=BN_phase, name='logits', reuse=reuse)
+
+        return logits, [m3b, m4b, m5, m5b, m5u, m6, m9b]
 
 
-    return logits, [m3b, m4b, m5, m5b, m5u, m6, m9b]
-
-
-def model_xlearn(pipeline, patch_size, batch_size, conv_size, nb_conv, drop_prob, BN_phase, activation='relu', reuse=False):
+def model_xlearn(pipeline,
+                 patch_size,
+                 batch_size,
+                 conv_size,
+                 nb_conv,
+                 drop_prob,
+                 BN_phase,
+                 activation='relu',
+                 reuse=False,
+                 mode='regression',
+                 nb_classes=3,
+                 ):
     """
     xlearn segmentation convolutional neural net model with summary
 
@@ -402,17 +449,73 @@ def model_xlearn(pipeline, patch_size, batch_size, conv_size, nb_conv, drop_prob
                                                           [batch_size, patch_size, patch_size, nb_conv],
                                                           is_train=BN_phase, name='deconv8bis',
                                                           activation=activation, reuse=reuse)
-                logits, m8bb = conv2d_transpose_layer(deconv_8bis, [conv_size, conv_size, nb_conv, 1],
-                                                      # fixme: batch_size here might not be automatic while inference
-                                                      [batch_size, patch_size, patch_size, 1],
-                                                      is_train=BN_phase, name='logits',
-                                                      activation=activation, reuse=reuse)
+
+                logits, m8bb = conv2d_layer(deconv_8bis,
+                                            [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
+                                            # fixme: batch_size here might not be automatic while inference
+                                            [batch_size, patch_size, patch_size, 1],
+                                            is_train=BN_phase, name='logits',
+                                            reuse=reuse)
 
         return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8b]
 
 
+# ind: index skip connexion, img: image skip connexion, c:conv, d:dense, t:transpose, u:up
+def ind_3c_3b_3c(pipeline,
+                 patch_size,
+                 batch_size,
+                 conv_size,
+                 nb_conv,
+                 drop_prob,
+                 BN_phase,
+                 activation='relu',
+                 reuse=False,
+                 second_device=None,
+                 mode='regression',
+                 nb_classes=3
+                 ):
+    if not second_device:
+        second_device = '/cpu:0'
+    with tf.device('/device:GPU:0' if reuse == False else second_device):
+        with tf.name_scope('ind_3c_3b_3c'):
+            with tf.name_scope('encoder'):
+                conv4, m4 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],
+                                         is_train=BN_phase, activation=activation, name='conv4', reuse=reuse)
+                conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv, nb_conv],
+                                             is_train=BN_phase, activation=activation, name='conv4bis', reuse=reuse)
+                conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv, 1],
+                                                 is_train=BN_phase, activation=activation,
+                                                 name='conv4bisbis', reuse=reuse)
+
+            with tf.name_scope('dnn'):
+                conv4_flat = reshape(conv4bisbis, [-1, patch_size], name='flatten')  #note patch_size ** 2?
+                full_layer_1, mf1 = normal_full_layer(conv4_flat, 1024, activation=activation,
+                                                      is_train=BN_phase, name='dnn1', reuse=reuse)
+                full_dropout1 = dropout(full_layer_1, drop_prob, name='dropout1')
+                full_layer_2, mf2 = normal_full_layer(full_dropout1, 512, activation=activation,
+                                                      is_train=BN_phase, name='dnn2', reuse=reuse)
+                full_dropout2 = dropout(full_layer_2, drop_prob, name='dropout2')
+                full_layer_3, mf3 = normal_full_layer(full_dropout2, 64, activation=activation,
+                                                      is_train=BN_phase, name='dnn3', reuse=reuse)
+                full_dropout3 = dropout(full_layer_3, drop_prob, name='dropout1')
+                dnn_reshape = reshape(full_dropout3, [-1, patch_size, patch_size, 1], name='reshape')
+
+            with tf.name_scope('decoder'):
+                deconv_5, m5 = conv2d_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv],
+                                            is_train=BN_phase, activation=activation, name='deconv5',
+                                            reuse=reuse)  # [height, width, in_channels, output_channels]
+                deconv_5bis, m5b = conv2d_layer(deconv_5, [conv_size, conv_size, nb_conv, nb_conv],
+                                              is_train=BN_phase, activation=activation,
+                                              name='deconv5bis', reuse=reuse)
+                logits, m5bb = conv2d_layer(deconv_5bis, [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
+                                              is_train=BN_phase, activation=activation,
+                                              name='logits', reuse=reuse)
+        print_nodes_name_shape(tf.get_default_graph())
+        return logits, [m4, m4b, m4bb, mf1, mf2, mf3, m5, m5b, m5bb]
+
 model_dict = {
-    'LRCS': model_LRCS_custom,
+    'LRCS': model_LRCS,
     'Xlearn': model_xlearn,
     'Unet': model_Unet,
+    'ind_3c_3b_3c': ind_3c_3b_3c,
 }
