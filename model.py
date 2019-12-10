@@ -94,7 +94,8 @@ def classification_nodes(pipeline,
                          conv_size=9,
                          nb_conv=80,
                          activation='relu',
-                         is_training=False):
+                         is_training=False,
+                         loss_option='cross_entropy'):
 
     # check entries
     assert isinstance(placeholders, list), 'placeholders should be a list.'
@@ -117,8 +118,13 @@ def classification_nodes(pipeline,
 
     with tf.device('/cpu:0'):
         with tf.name_scope('Loss'):
-            softmax = tf.nn.softmax(logits, name='softmax')
-            loss = DSC(pipeline['label'], softmax, name='loss_fn')
+            if loss_option == 'DSC':
+                softmax = tf.nn.softmax(logits, name='softmax')
+                loss = DSC(pipeline['label'], softmax, name='loss_fn')
+            elif loss_option == 'cross_entropy':
+                loss = Cross_Entropy(pipeline['label'], logits, name='CE')
+            else:
+                raise NotImplementedError('Cannot find the loss option')
 
     # gradients
     if is_training:

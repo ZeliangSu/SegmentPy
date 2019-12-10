@@ -48,7 +48,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug
     str(hyperparams['augmentation']),
     hyperparams['model'],
     hyperparams['mode'],
-    'Add_softmax_then_DSC',  #note: here put your special comment
+    'Cross_entropy',  #note: here put your special comment
     hyperparams['hour'],
 )
 
@@ -67,26 +67,29 @@ BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
 list_placeholders = [drop_prob, lr, BN_phase]
 # init model
 train_nodes = classification_nodes(pipeline=train_inputs,
-                    placeholders=list_placeholders,
-                    model_name=hyperparams['model'],
-                    patch_size=hyperparams['patch_size'],
-                    batch_size=hyperparams['batch_size'],
-                    conv_size=hyperparams['conv_size'],
-                    nb_conv=hyperparams['nb_conv'],
-                    activation=hyperparams['activation'],
-                    is_training=True,
+                                   placeholders=list_placeholders,
+                                   model_name=hyperparams['model'],
+                                   patch_size=hyperparams['patch_size'],
+                                   batch_size=hyperparams['batch_size'],
+                                   conv_size=hyperparams['conv_size'],
+                                   nb_conv=hyperparams['nb_conv'],
+                                   activation=hyperparams['activation'],
+                                   is_training=True,
+                                   loss_option='cross_entropy'
+
                     )
 
 test_nodes = classification_nodes(pipeline=test_inputs,
-                   placeholders=list_placeholders,
-                   model_name=hyperparams['model'],
-                   patch_size=hyperparams['patch_size'],
-                   batch_size=hyperparams['batch_size'],
-                   conv_size=hyperparams['conv_size'],
-                   nb_conv=hyperparams['nb_conv'],
-                   activation=hyperparams['activation'],
-                   is_training=False,
-                   )
+                                  placeholders=list_placeholders,
+                                  model_name=hyperparams['model'],
+                                  patch_size=hyperparams['patch_size'],
+                                  batch_size=hyperparams['batch_size'],
+                                  conv_size=hyperparams['conv_size'],
+                                  nb_conv=hyperparams['nb_conv'],
+                                  activation=hyperparams['activation'],
+                                  is_training=False,
+                                  loss_option='cross_entropy',
+                                  )
 
 
 # print number of params
