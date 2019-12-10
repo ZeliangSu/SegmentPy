@@ -49,7 +49,7 @@ def regression_nodes(pipeline,
                 # train operation
                 train_op = opt.apply_gradients(grads, name='train_op')
 
-        with tf.name_scope('train_metrics' if is_training else 'test_metrics'):
+        with tf.name_scope('train_metrics'):
             m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
 
         with tf.name_scope('summary'):
@@ -64,7 +64,7 @@ def regression_nodes(pipeline,
         with tf.device('/device:GPU:0'):
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
-        with tf.name_scope('metrics'):
+        with tf.name_scope('test_metrics'):
             m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
         with tf.name_scope('summary'):
             tmp = []
@@ -278,7 +278,8 @@ def model_LRCS(pipeline,
                                               is_train=BN_phase, activation=activation, name='deconv8bis', reuse=reuse)
                 logits, m8bb = conv2d_layer(deconv_8bis,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
-                                            is_train=BN_phase, name='logits', reuse=reuse)
+                                            if_BN=False,is_train=BN_phase,
+                                            name='logits', reuse=reuse)
 
         return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8bb]
 
@@ -400,7 +401,7 @@ def model_Unet(pipeline,
                                                 activation=activation, name='conv9bis', reuse=reuse)
                 logits, m8bb = conv2d_layer(deconv_9bis,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
-                                            is_train=BN_phase, name='logits', reuse=reuse)
+                                            if_BN=False, is_train=BN_phase, name='logits', reuse=reuse)
 
         return logits, [m3b, m4b, m5, m5b, m5u, m6, m9b]
 
@@ -538,8 +539,8 @@ def model_xlearn(pipeline,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             # fixme: batch_size here might not be automatic while inference
                                             [batch_size, patch_size, patch_size, 1],
-                                            is_train=BN_phase, name='logits',
-                                            reuse=reuse)
+                                            if_BN=False, is_train=BN_phase,
+                                            name='logits', reuse=reuse)
 
         return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8b]
 
@@ -592,7 +593,7 @@ def ind_3c_3b_3c(pipeline,
                                               is_train=BN_phase, activation=activation,
                                               name='deconv5bis', reuse=reuse)
                 logits, m5bb = conv2d_layer(deconv_5bis, [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
-                                              is_train=BN_phase, activation=activation,
+                                              is_train=BN_phase, activation=activation, if_BN=False,
                                               name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
         return logits, [m4, m4b, m4bb, mf1, mf2, mf3, m5, m5b, m5bb]
