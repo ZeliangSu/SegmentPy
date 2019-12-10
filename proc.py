@@ -122,17 +122,19 @@ def preprocess_V2(indir, stride, patch_size, traintest_split_rate=0.9, shuffle=F
                      w_ids=train_id_dict[img_id][0],
                      h_ids=train_id_dict[img_id][1],
                      in_path=indir + str(img_id),
+                     stride=stride,
                      patch_size=patch_size,
-                     outdir=outdir)
+                     outdir=train_outdir)
 
     # test set
-    for img_id, _indir, patch_size, outdir in zip(list_ID, repeat(indir), repeat(patch_size), repeat(test_outdir)):
+    for img_id in list_ID:
         _h5Writer_V3(img_ID=img_id,
                      w_ids=test_id_dict[img_id][0],
                      h_ids=test_id_dict[img_id][1],
                      in_path=indir + str(img_id),
                      patch_size=patch_size,
-                     outdir=outdir)
+                     stride=stride,
+                     outdir=test_outdir)
 
 
 def _shuffle(tensor_a, tensor_b, random_state=42):

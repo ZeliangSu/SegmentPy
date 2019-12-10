@@ -47,6 +47,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug
     hyperparams['activation'],
     str(hyperparams['augmentation']),
     hyperparams['model'],
+    hyperparams['mode'],
     'Add_softmax_then_DSC',  #note: here put your special comment
     hyperparams['hour'],
 )

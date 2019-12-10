@@ -44,21 +44,22 @@ def _writer_V2(X, y, outdir, name, patch_size):
         f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
 
 
-def _h5Writer_V3(img_ID, w_ids, h_ids, in_path, patch_size, outdir):
+def _h5Writer_V3(img_ID, w_ids, h_ids, in_path, patch_size, stride, outdir):
     assert isinstance(img_ID, int), 'Param ID should be interger'
+    assert isinstance(stride, int), 'Stride should be interger'
     assert isinstance(w_ids, np.ndarray), 'Param ID should be np array'
     assert isinstance(h_ids, np.ndarray), 'Param ID should be np array'
     assert isinstance(in_path, str), 'Param ID should be np array'
     with mp.Pool(processes=mp.cpu_count()) as pool:
-        pool.starmap(_writer_V3, ((ID, xid, yid, _in_path, _outdir, _patch_size)
-                                  for ID, xid, yid, _in_path, _outdir, _patch_size
-                                  in zip(repeat(img_ID), w_ids, h_ids, repeat(in_path), repeat(outdir), repeat(patch_size))))
+        pool.starmap(_writer_V3, ((ID, xid, yid, _in_path, _outdir, stride, _patch_size)
+                                  for ID, xid, yid, _in_path, _outdir, _patch_size, stride
+                                  in zip(repeat(img_ID), w_ids, h_ids, repeat(in_path), repeat(outdir), repeat(patch_size), repeat(stride))))
 
 
-def _writer_V3(img_ID, x_id, y_id, in_path, outdir, patch_size):
+def _writer_V3(img_ID, x_id, y_id, in_path, outdir, stride, patch_size):
     logger.debug(mp.current_process())
-    X = np.asarray(Image.open(in_path + '.tif', 'r'))[x_id: x_id + patch_size, y_id: y_id + patch_size]
-    y = np.asarray(Image.open(in_path + '_label.tif', 'r'))[x_id: x_id + patch_size, y_id: y_id + patch_size]
+    X = np.asarray(Image.open(in_path + '.tif', 'r'))[x_id * stride: x_id * stride + patch_size, y_id * stride: y_id * stride + patch_size]
+    y = np.asarray(Image.open(in_path + '_label.tif', 'r'))[x_id * stride: x_id * stride + patch_size, y_id * stride: y_id * stride + patch_size]
     with h5py.File('{}/{}_{}_{}.h5'.format(outdir, img_ID, x_id, y_id), 'w') as f:
         f.create_dataset('X', (patch_size, patch_size), dtype='float32', data=X)
         f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
