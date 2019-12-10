@@ -164,8 +164,8 @@ def parse_h5_one_hot(fname, patch_size):
         nb_classes = len(np.unique(y))
         _y = np.zeros((*y.shape[:3], nb_classes))
         # one hot
-        for i in range(1, nb_classes - 1):
-            _y[np.where(y == i), i] = 1
+        for i in range(nb_classes):
+            _y[np.where(y == i), i] = 255
         return _minmaxscalar(X), y.astype(np.int64)
 
 

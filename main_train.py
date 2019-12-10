@@ -43,7 +43,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug
     hyperparams['activation'],
     str(hyperparams['augmentation']),
     hyperparams['model'],
-    'with_BN',  #note: here put your special comment
+    'Add_softmax_then_DSC',  #note: here put your special comment
     hyperparams['hour'],
 )
 
@@ -61,7 +61,7 @@ lr = tf.placeholder(tf.float32, name='learning_rate')
 BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
 list_placeholders = [drop_prob, lr, BN_phase]
 # init model
-train_nodes = nodes(pipeline=train_inputs,
+train_nodes = classification_nodes(pipeline=train_inputs,
                     placeholders=list_placeholders,
                     model_name=hyperparams['model'],
                     patch_size=hyperparams['patch_size'],
@@ -70,10 +70,9 @@ train_nodes = nodes(pipeline=train_inputs,
                     nb_conv=hyperparams['nb_conv'],
                     activation=hyperparams['activation'],
                     is_training=True,
-                    mode=hyperparams['mode'],
                     )
 
-test_nodes = nodes(pipeline=test_inputs,
+test_nodes = classification_nodes(pipeline=test_inputs,
                    placeholders=list_placeholders,
                    model_name=hyperparams['model'],
                    patch_size=hyperparams['patch_size'],
@@ -82,7 +81,6 @@ test_nodes = nodes(pipeline=test_inputs,
                    nb_conv=hyperparams['nb_conv'],
                    activation=hyperparams['activation'],
                    is_training=False,
-                   mode=hyperparams['mode'],
                    )
 
 

@@ -3,7 +3,7 @@ from layers import *
 from util import print_nodes_name_shape
 
 
-def nodes(pipeline,
+def regression_nodes(pipeline,
           placeholders=None,
           model_name='LRCS',
           patch_size=512,
@@ -12,7 +12,7 @@ def nodes(pipeline,
           nb_conv=80,
           activation='relu',
           is_training=False,
-          mode='regression'):
+          ):
 
     # check entries
     assert isinstance(placeholders, list), 'placeholders should be a list.'
@@ -29,7 +29,7 @@ def nodes(pipeline,
                                                  activation=activation,
                                                  BN_phase=BN_phase,
                                                  reuse=not is_training,
-                                                 mode=mode,
+                                                 mode='regression',
                                                  nb_classes=3,
                                                  )
 
@@ -65,7 +65,91 @@ def nodes(pipeline,
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
         with tf.name_scope('metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], mse, is_training)
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
+        with tf.name_scope('summary'):
+            tmp = []
+            for layer_param in list_params:
+                for k, v in layer_param.items():
+                    tmp.append(tf.summary.histogram(k, v))
+            m_param = tf.summary.merge(tmp)
+            merged = tf.summary.merge([m_param, m_loss, m_acc])
+
+    return {
+        'y_pred': logits,
+        'train_op': train_op,
+        'learning_rate': lr,
+        'summary': merged,
+        'drop': drop_prob,
+        'BN_phase': BN_phase,
+        'loss_update_op': loss_up_op,
+        'acc_update_op': acc_up_op
+    }
+
+
+def classification_nodes(pipeline,
+                         placeholders=None,
+                         model_name='LRCS',
+                         patch_size=512,
+                         batch_size=200,
+                         conv_size=9,
+                         nb_conv=80,
+                         activation='relu',
+                         is_training=False):
+
+    # check entries
+    assert isinstance(placeholders, list), 'placeholders should be a list.'
+    # get placeholder
+    drop_prob, lr, BN_phase = placeholders
+
+    # build model
+    logits, list_params = model_dict[model_name](pipeline=pipeline,
+                                                 patch_size=patch_size,
+                                                 batch_size=batch_size,
+                                                 conv_size=conv_size,
+                                                 nb_conv=nb_conv,
+                                                 drop_prob=drop_prob,
+                                                 activation=activation,
+                                                 BN_phase=BN_phase,
+                                                 reuse=not is_training,
+                                                 mode='classification',
+                                                 nb_classes=3,
+                                                 )
+
+    with tf.device('/cpu:0'):
+        with tf.name_scope('Loss'):
+            softmax = tf.nn.softmax(logits, name='softmax')
+            loss = DSC(pipeline['label'], softmax, name='loss_fn')
+
+    # gradients
+    if is_training:
+        with tf.device('/device:GPU:0'):
+            with tf.name_scope('operation'):
+                # optimizer/train operation
+                opt = optimizer(lr, name='optimizeR')
+
+                # program gradients
+                grads = opt.compute_gradients(loss)
+
+                # train operation
+                train_op = opt.apply_gradients(grads, name='train_op')
+
+        with tf.name_scope('train_metrics' if is_training else 'test_metrics'):
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
+
+        with tf.name_scope('summary'):
+            grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
+            tmp = []
+            for layer_param in list_params:
+                for k, v in layer_param.items():
+                    tmp.append(tf.summary.histogram(k, v))
+            m_param = tf.summary.merge(tmp)
+            merged = tf.summary.merge([m_param, m_loss, m_acc, grad_sum])
+    else:
+        with tf.device('/device:GPU:0'):
+            with tf.name_scope('operation'):
+                train_op = tf.no_op(name='no_op')
+        with tf.name_scope('metrics'):
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
         with tf.name_scope('summary'):
             tmp = []
             for layer_param in list_params:
