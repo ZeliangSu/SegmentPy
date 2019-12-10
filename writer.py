@@ -4,7 +4,11 @@ import numpy as np
 import multiprocessing as mp
 from PIL import Image
 from util import check_N_mkdir
-import os
+from itertools import repeat
+import logging
+import log
+logger = log.setup_custom_logger('root')
+logger.setLevel(logging.DEBUG)
 
 
 def _h5Writer(X_patches, y_patches, id_length, rest, outdir, patch_size, batch_size, maxId, mode='onefile'):
@@ -36,6 +40,26 @@ def _h5Writer_V2(X_patches, y_patches, outdir, patch_size):
 
 def _writer_V2(X, y, outdir, name, patch_size):
     with h5py.File('{}{}/{}.h5'.format(outdir, patch_size, name), 'w') as f:
+        f.create_dataset('X', (patch_size, patch_size), dtype='float32', data=X)
+        f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
+
+
+def _h5Writer_V3(img_ID, w_ids, h_ids, in_path, patch_size, outdir):
+    assert isinstance(img_ID, int), 'Param ID should be interger'
+    assert isinstance(w_ids, np.ndarray), 'Param ID should be np array'
+    assert isinstance(h_ids, np.ndarray), 'Param ID should be np array'
+    assert isinstance(in_path, str), 'Param ID should be np array'
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        pool.starmap(_writer_V3, ((ID, xid, yid, _in_path, _outdir, _patch_size)
+                                  for ID, xid, yid, _in_path, _outdir, _patch_size
+                                  in zip(repeat(img_ID), w_ids, h_ids, repeat(in_path), repeat(outdir), repeat(patch_size))))
+
+
+def _writer_V3(img_ID, x_id, y_id, in_path, outdir, patch_size):
+    logger.debug(mp.current_process())
+    X = np.asarray(Image.open(in_path + '.tif', 'r'))[x_id: x_id + patch_size, y_id: y_id + patch_size]
+    y = np.asarray(Image.open(in_path + '_label.tif', 'r'))[x_id: x_id + patch_size, y_id: y_id + patch_size]
+    with h5py.File('{}/{}_{}_{}.h5'.format(outdir, img_ID, x_id, y_id), 'w') as f:
         f.create_dataset('X', (patch_size, patch_size), dtype='float32', data=X)
         f.create_dataset('y', (patch_size, patch_size), dtype='float32', data=y)
 

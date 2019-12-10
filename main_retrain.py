@@ -5,7 +5,10 @@ import os
 from layers import *
 from tqdm import tqdm
 import numpy as np
-
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # params
 hyperparams = {

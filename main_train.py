@@ -8,6 +8,10 @@ from model import *
 from train import train_test
 from util import check_N_mkdir
 
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # params
 hyperparams = {

@@ -32,6 +32,8 @@ def _tifReader(dir):
         X_stack.append(X_img)
         y_stack.append(y_img)
         shapes.append(X_img.shape)
-    return X_stack, y_stack, shapes #lists
+    return X_stack, \
+           y_stack, \
+           shapes #lists
 
 

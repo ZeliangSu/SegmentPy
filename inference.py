@@ -206,7 +206,7 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
         # WARNING:tensorflow:Didn't find expected Conv2D input to 'model/contractor/conv1/conv1_2/batch_norm/cond/FusedBatchNorm'
         # WARNING:tensorflow:Didn't find expected Conv2D input to 'model/contractor/conv1/conv1_2/batch_norm/cond/FusedBatchNorm_1'
         # print(graph_def_optimized.node)
-        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[0]])
+        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
         G = tf.get_default_graph()
         tf.summary.FileWriter(paths['working_dir'] + 'tb/after_optimized', sess.graph)
         # print_nodes_name(G)
