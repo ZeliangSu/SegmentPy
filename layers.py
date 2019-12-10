@@ -350,7 +350,7 @@ def DSC(y_true, logits, name='Dice_Similarity_Coefficient'):
     # minimize equally for all classes (even for minor class)
     with tf.name_scope(name):
         y_true = tf.cast(y_true, tf.float32)
-        numerator = 2 * tf.reduce_sum(y_true * logits , axis=axis)
+        numerator = 2 * tf.reduce_sum(y_true * logits, axis=axis)
         denominator = tf.reduce_sum(y_true + logits, axis=axis)
         loss_op = 1 - (numerator) / (denominator)
         return loss_op

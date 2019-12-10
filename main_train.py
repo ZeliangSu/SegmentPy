@@ -26,17 +26,17 @@ hyperparams = {
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
     'device_option': 'specific_gpu:0',
-    'second_device': None,
+    'second_device': 'specific_gpu:1',
     'augmentation': True,
     'activation': 'leaky',
     'save_step': 500,
     'save_summary_step': 50,
     'folder_name': None,
-    'model': 'ind_3c_3b_3c',
+    'model': 'LRCS',
     'mode': 'classification',
 }
 
-hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_mdl_{}_comment_{}/hour{}/'.format(
+hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_mdl_{}_mode_{}_comment_{}/hour{}/'.format(
     hyperparams['date'],
     hyperparams['batch_size'],
     hyperparams['patch_size'],
@@ -47,6 +47,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug
     hyperparams['activation'],
     str(hyperparams['augmentation']),
     hyperparams['model'],
+    hyperparams['mode'],
     'with_BN',  #note: here put your special comment
     hyperparams['hour'],
 )
