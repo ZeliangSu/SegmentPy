@@ -165,7 +165,8 @@ def parse_h5_one_hot(fname, patch_size):
         _y = np.zeros((*y.shape[:3], nb_classes))
         # one hot
         for i in range(nb_classes):
-            _y[np.where(y == i), i] = 255
+            _y[np.where(y == i), i] = 50
+            # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
         return _minmaxscalar(X), y.astype(np.int64)
 
 

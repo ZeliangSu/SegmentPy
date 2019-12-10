@@ -357,7 +357,7 @@ def DSC(y_true, logits, name='Dice_Similarity_Coefficient'):
 
 
 def Cross_Entropy(y_true, logits, name='cross_entropy'):
-    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y_true), name=name)
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=y_true), name=name)
     return loss
 
 

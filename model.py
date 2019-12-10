@@ -139,7 +139,7 @@ def classification_nodes(pipeline,
                 # train operation
                 train_op = opt.apply_gradients(grads, name='train_op')
 
-        with tf.name_scope('train_metrics' if is_training else 'test_metrics'):
+        with tf.name_scope('train_metrics'):
             m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
 
         with tf.name_scope('summary'):
@@ -154,7 +154,7 @@ def classification_nodes(pipeline,
         with tf.device('/device:GPU:0'):
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
-        with tf.name_scope('metrics'):
+        with tf.name_scope('test_metrics'):
             m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
         with tf.name_scope('summary'):
             tmp = []
