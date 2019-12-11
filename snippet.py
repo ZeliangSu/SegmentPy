@@ -2369,43 +2369,6 @@
 #         })
 #         # print('out: {}'.format(new_out))
 
-
-
-####################################
-#
-#      Loss landscape
-#
-####################################
-import tensorflow as tf
-
-def move_weight(sess, weight_name, leap):
-    weight = sess.graph.get_tensor_by_name(weight_name)
-    sess.run(tf.assign(weight, weight + leap))
-
-
-#note: state includes weights, bias, BN
-def get_diff_state(state1, state2):
-    pass
-
-
-def get_random_state(state1, state2):
-    pass
-
-
-def extract_weights_from_ckpt():
-    pass
-
-def feed_forward_for_loss_acc():
-    pass
-
-# get 2 ckpts
-
-# get random directions
-
-# normalize directions by weights
-
-# calculate loss/acc for each point on the surface
-
 ########################################
 #
 #      Softmax vs sparse softmax
@@ -2429,3 +2392,153 @@ def feed_forward_for_loss_acc():
 #     a, b = sess.run([res1, res2])
 #     print(a, b)
 #     print(a == b)
+
+####################################
+#
+#      Loss landscape
+#
+####################################
+import tensorflow as tf
+import numpy as np
+from tqdm import tqdm
+from util import check_N_mkdir, print_nodes_name_shape
+import h5py as h5
+
+
+def move_state(sess, name, leap):
+    value = sess.graph.get_tensor_by_name(name)
+    sess.run(tf.assign(value, value + leap))
+
+
+#note: state includes weights, bias, BN
+def get_diff_state(state1, state2):
+    assert isinstance(state1, dict)
+    assert isinstance(state2, dict)
+    return [v2 - v1 for _, (v1, v2) in zip(state1.items(), state2.items())]
+
+
+def get_random_state(state):
+    assert isinstance(state, dict)
+    return [np.random.randn(v.size()) for _, v in state.items()]
+
+def set_state(sess, states, directions=None, step=None):
+    # get dx in x direction
+    # get dy in y direction
+    # changes  = dx * dstep_x + dy * dstep_y
+    # new_state --> deepcopy (not the pointer) state first
+    # for k, v in zip(new_state, changes), v + change
+    # load state in session
+    pass
+
+
+def _normalize_direction(direction, weights):
+    assert isinstance(direction, list)
+    assert isinstance(weights, list)
+    for d, w in zip(direction, weights):
+        d *= w.linalg.norm() / (d.linalg.norm() + 1e-10)
+
+
+def normalize_state(directions, state):
+    for direct, (name, weight) in zip(directions, state):
+        _normalize_direction(direct, weight)
+
+
+################## model
+inputs = np.random.randn(8, 3, 3, 1) * 3 + np.ones((8, 3, 3, 1))
+outputs = inputs ** 2
+input_ph = tf.placeholder(tf.float32, [None, 3, 3, 1], name='input_ph')
+output_ph = tf.placeholder(tf.float32, [None, 3, 3, 1], name='output_ph')
+BN_phase = tf.placeholder(tf.bool, [], name='BN_phase')
+# model
+with tf.variable_scope('model'):
+    with tf.name_scope('MLP'):
+        w1 = tf.get_variable('w1', [9 * 1, 9 * 1])
+        b1 = tf.get_variable('b1', [9 * 1])
+        flatten = tf.reshape(input_ph, [-1, 9])
+        layer = tf.matmul(flatten, w1) + b1
+        layer = tf.layers.batch_normalization(layer, training=BN_phase)
+        logits = tf.nn.leaky_relu(layer)
+        logits = tf.reshape(logits, [-1, 3, 3, 1])
+
+with tf.name_scope('operation'):
+    loss = tf.losses.mean_squared_error(labels=output_ph, predictions=logits)
+    opt = tf.train.AdamOptimizer(learning_rate=0.0001)
+    grads = opt.compute_gradients(loss)
+    train_op = opt.apply_gradients(grads)
+
+################## trainning
+check_N_mkdir('./dummy/ckpt/')
+
+with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+    saver = tf.train.Saver(max_to_keep=10000)
+    sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+    saver.save(sess, './dummy/ckpt/step0')
+    for step in tqdm(range(1000)):
+        sess.run(
+            [train_op], feed_dict={
+                input_ph: inputs,
+                output_ph: outputs,
+                BN_phase: True,
+            }
+        )
+        if step == 999:
+            saver.save(sess, './dummy/ckpt/step{}'.format(step))
+
+################## restore 2 ckpts and calculate directions
+# get 2 ckpts
+ckpt1_path = './dummy/ckpt/step0'
+ckpt2_path = './dummy/ckpt/step999'
+
+tf.reset_default_graph()
+loader = tf.train.import_meta_graph(ckpt1_path + '.meta', clear_devices=True)
+state1 = {}
+with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess1:
+    loader.restore(sess1, ckpt1_path)
+    # print_nodes_name_shape(tf.get_default_graph())
+    ckpt1_weight_names = []
+    for node in tf.get_default_graph().as_graph_def().node:
+        if node.name.endswith('w1') or \
+                node.name.endswith('b1') or \
+                node.name.endswith('beta') or \
+                node.name.endswith('gamma'):
+            ckpt1_weight_names.append(node.name + ':0')
+
+    # get weights/bias
+    for k in ckpt1_weight_names:
+        v = sess1.run(k)
+        state1[k] = v
+
+# ckpt2
+tf.reset_default_graph()
+loader = tf.train.import_meta_graph(ckpt2_path + '.meta', clear_devices=True)
+state2 = {}
+with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess2:
+    loader.restore(sess2, ckpt2_path)
+    # print_nodes_name_shape(tf.get_default_graph())
+    ckpt2_weight_names = []
+    for node in tf.get_default_graph().as_graph_def().node:
+        if node.name.endswith('w1') or \
+                node.name.endswith('b1') or \
+                node.name.endswith('beta') or \
+                node.name.endswith('gamma'):
+            ckpt2_weight_names.append(node.name + ':0')
+
+    # get weights/bias
+    for k in ckpt2_weight_names:
+        v = sess1.run(k)
+        state2[k] = v
+
+# get random directions
+rand_direct1 = get_random_state(state1)
+rand_direct2 = get_random_state(state2)
+# normalize directions by weights
+normalize_state(rand_direct1, state1)
+normalize_state(rand_direct2, state2)
+
+# create direction and surface .h5
+
+# calculate loss/acc for each point on the surface
+
+
+# plot surface
+

@@ -6,7 +6,10 @@ import warnings
 from PIL import Image
 from augmentation import random_aug
 from proc import _stride
-
+import logging
+import log
+logger = log.setup_custom_logger('root')
+logger.setLevel(logging.DEBUG)
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
     """
@@ -158,16 +161,17 @@ def parse_h5_one_hot(fname, patch_size):
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         # if y is saved as float, convert to int
-        if y.dtype == np.float32:
-            y = y.astype(np.int8)
+
+        y = y.astype(np.int32)
         # get how many classes
         nb_classes = len(np.unique(y))
         _y = np.zeros((*y.shape[:3], nb_classes))
         # one hot
         for i in range(nb_classes):
-            _y[np.where(y == i), i] = 50
+            _y[np.where(y == i), i] = 1
             # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
-        return _minmaxscalar(X), y.astype(np.int64)
+        logger.debug('y shape: {}, nb_class: {}'.format(y.shape, nb_classes))
+        return _minmaxscalar(X), _y.astype(np.int64)
 
 
 def parse_h5(fname, patch_size):

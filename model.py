@@ -122,7 +122,8 @@ def classification_nodes(pipeline,
                 softmax = tf.nn.softmax(logits, name='softmax')
                 loss = DSC(pipeline['label'], softmax, name='loss_fn')
             elif loss_option == 'cross_entropy':
-                loss = Cross_Entropy(pipeline['label'], logits, name='CE')
+                softmax = tf.nn.softmax(logits, name='softmax')
+                loss = Cross_Entropy(pipeline['label'], softmax, name='CE')
             else:
                 raise NotImplementedError('Cannot find the loss option')
 
