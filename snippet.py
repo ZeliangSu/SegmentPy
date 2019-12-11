@@ -1780,267 +1780,652 @@
 #  build separate graph, which share variables
 #
 ################################################
+# import tensorflow as tf
+# import numpy as np
+# from tqdm import tqdm
+# from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
+# from tensorflow.python.framework import dtypes
+# import os
+#
+# def up_2by2_ind(input_layer, ind, name=''):
+#     with tf.name_scope(name):
+#         in_shape = input_layer.get_shape().as_list()
+#         out_shape = [tf.cast(tf.shape(input_layer), dtype=tf.int64)[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
+#
+#         # prepare
+#         _pool = tf.reshape(input_layer, [-1])
+#         _range = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
+#         tmp = tf.ones_like(ind) * _range
+#         tmp = tf.reshape(tmp, [-1, 1])
+#         _ind = tf.reshape(ind, [-1, 1])
+#         _ind = tf.concat([tmp, _ind], 1)
+#
+#         # scatter
+#         unpool = tf.scatter_nd(_ind, _pool, [out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
+#
+#         # reshape
+#         unpool = tf.reshape(unpool, out_shape)
+#         return unpool
+#
+# def check_N_mkdir(path_to_dir):
+#     if not os.path.exists(path_to_dir):
+#         os.makedirs(path_to_dir, exist_ok=True)
+#
+# ###################### input pipeline
+# def wrapper(a, b):
+#     return tf.py_func(
+#         wrawrapper,
+#         [a, b],
+#         [tf.float32, tf.float32],
+#     )
+#
+# def wrawrapper(a, b):
+#     return np.ones((1, 50, 50, 1), dtype=np.float32), np.ones((1, 50, 50, 1), dtype=np.float32)
+#
+# a_ph = tf.placeholder(tf.string, shape=[None], name='a_ph')
+# b_ph = tf.placeholder(tf.int32, shape=[None], name='b_ph')
+#
+# batch = tf.data.Dataset.from_tensor_slices((a_ph, b_ph))
+# batch = batch.shuffle(tf.cast(tf.shape(a_ph)[0], tf.int64))
+# batch = batch.map(wrapper).prefetch(10).repeat()
+# it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+# iter_init_op = it.make_initializer(batch, name='iter_init_op')
+# X_it, y_it = it.get_next()
+#
+# dropout = tf.placeholder(tf.float32, [], name='dropout')
+# BN_phase = tf.placeholder(tf.bool, [], name='BN_phase')
+# save_summary_step = 20
+# save_model_step = 100
+# check_N_mkdir('./dummy/gpus/')
+# check_N_mkdir('./dummy/ckpt/')
+#
+# ##################### train graph on gpu1
+# with tf.device('/device:GPU:0'):
+#     with tf.name_scope('model'):
+#         with tf.name_scope('conv'):
+#             with tf.variable_scope('conv', reuse=False):
+#                 w1 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
+#             out1 = tf.nn.conv2d(X_it, w1, strides=[1, 1, 1, 1], padding='SAME', name='conv')
+#             with tf.variable_scope('conv', reuse=False):
+#                 out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
+#             out1 = tf.nn.relu(out1, 'relu')
+#             out1, ind1 = tf.nn.max_pool_with_argmax(out1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
+#         with tf.name_scope('dnn'):
+#             flat = tf.reshape(out1, [1, 625])
+#             with tf.variable_scope('dnn2', reuse=False):
+#                 w2 = tf.get_variable('w2', shape=[625, 625], initializer=tf.initializers.glorot_normal())
+#             dnn_out = tf.matmul(flat, w2)
+#             dnn_out = tf.nn.dropout(dnn_out, keep_prob=dropout, name='do')
+#             dnn_out = tf.nn.relu(dnn_out, name='relu')
+#             dnn_out = tf.reshape(dnn_out, shape=[1, 25, 25, 1], name='dnn')
+#
+#         with tf.name_scope('deconv'):
+#             out1 = up_2by2_ind(dnn_out, ind1, 'up1')
+#             with tf.variable_scope('deconv', reuse=False):
+#                 w3 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
+#             out1 = tf.nn.conv2d(out1, w3, strides=[1, 1, 1, 1], padding='SAME', name='deconv')
+#             with tf.variable_scope('deconv', reuse=False):
+#                 out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
+#             logits = tf.nn.relu(out1, 'logits')
+#
+#         #todo: here with tabulation with tf.name_scope('operation'):
+# with tf.name_scope('loss'):
+#     mse = tf.losses.mean_squared_error(labels=y_it, predictions=logits)
+#
+# with tf.device('/device:GPU:0'):
+#     with tf.name_scope('operation'):
+#         opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
+#         grads = opt.compute_gradients(mse)
+#         train_op = opt.apply_gradients(grads, name='apply_grad')
+#
+# # note: like following the gradient will not be in GPU:0
+# #  opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
+# #  grads = opt.compute_gradients(mse)
+# #  train_op = opt.apply_gradients(grads, name='apply_grad')
+#
+# with tf.name_scope('train_metrics'):
+#     acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_it, predictions=logits)
+#     summ_acc = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)])
+#     grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
+#
+# with tf.name_scope('train_summary'):
+#     merged = tf.summary.merge([summ_acc, grad_sum, tf.summary.histogram("weights", w1)])
+#
+# ###################### test graph on gpu2
+# with tf.device('/device:GPU:1'):
+#     with tf.name_scope('model'):
+#         with tf.name_scope('conv'):
+#             with tf.variable_scope('conv', reuse=True):
+#                 w1 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
+#             out1 = tf.nn.conv2d(X_it, w1, strides=[1, 1, 1, 1], padding='SAME', name='conv')
+#             with tf.variable_scope('conv', reuse=True):
+#                 out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
+#             out1 = tf.nn.relu(out1, 'relu')
+#             out1, ind1 = tf.nn.max_pool_with_argmax(out1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
+#         with tf.name_scope('dnn'):
+#             flat = tf.reshape(out1, [1, 625])
+#             with tf.variable_scope('dnn2', reuse=True):
+#                 w2 = tf.get_variable('w2', shape=[625, 625], initializer=tf.initializers.glorot_normal())
+#             dnn_out = tf.matmul(flat, w2)
+#             dnn_out = tf.nn.dropout(dnn_out, keep_prob=dropout, name='do')
+#             dnn_out = tf.nn.relu(dnn_out, name='relu')
+#             dnn_out = tf.reshape(dnn_out, shape=[1, 25, 25, 1], name='dnn')
+#
+#         with tf.name_scope('deconv'):
+#             out1 = up_2by2_ind(dnn_out, ind1, 'up1')
+#             with tf.variable_scope('deconv', reuse=True):
+#                 w3 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
+#             out1 = tf.nn.conv2d(out1, w3, strides=[1, 1, 1, 1], padding='SAME', name='deconv')
+#             with tf.variable_scope('conv', reuse=True):
+#                 out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
+#             logits = tf.nn.relu(out1, 'logits')
+#
+#
+# with tf.name_scope('test_metrics'):
+#     acc_val_op2, acc_update_op2 = tf.metrics.accuracy(labels=y_it, predictions=logits)
+#     summ_acc2 = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op2)])
+#
+# with tf.name_scope('test_summary'):
+#     merged2 = tf.summary.merge([summ_acc2, tf.summary.histogram("weights", w1), tf.summary.histogram("weights", w2)])
+#
+#
+# ##############################################
+# with tf.Session() as sess:
+#     sess.run([tf.global_variables_initializer(), tf.local_variables_initializer(), iter_init_op],
+#              feed_dict={a_ph: ['a'], b_ph: [10]})
+#     model_saver = tf.train.Saver(max_to_keep=100000)
+#     train_writer = tf.summary.FileWriter('./dummy/gpus/train/', sess.graph)
+#     test_writer = tf.summary.FileWriter('./dummy/gpus/test/', sess.graph)
+#     for i in tqdm(range(1000)):
+#         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+#         if i % save_summary_step == 0:
+#             _, rlt, summary, _, _ = sess.run([train_op, out1, merged, acc_update_op, update_ops], feed_dict={
+#                 dropout: 0.1,
+#                 BN_phase: True,
+#             }
+#                                           )
+#             # print('train:', rlt)
+#             train_writer.add_summary(summary, global_step=i)
+#         else:
+#             _, rlt, _ = sess.run([train_op, out1, update_ops], feed_dict={dropout: 1, BN_phase: True})
+#             # print('train:', rlt)
+#         if i % save_model_step == 0:
+#             model_saver.save(sess, './dummy/ckpt/step{}'.format(i))
+#             if i != 0:
+#                 for j in tqdm(range(5)):
+#                     rlt, summary = sess.run([logits, merged2], feed_dict={
+#                         dropout: 1,
+#                         BN_phase: False,
+#                     }
+#                                             )
+#                     # print('test:', rlt)
+#                     test_writer.add_summary(summary, global_step=j)
+#
+# ######################## inference and optimize pb
+# def freeze_ckpt_for_inference(ckpt_path=None, conserve_nodes=None):
+#     # clean graph first
+#     tf.reset_default_graph()
+#     # freeze ckpt then convert to pb
+#     new_input = tf.placeholder(tf.float32, shape=[None, 50, 50, 1], name='new_input')
+#     new_BN = tf.placeholder(tf.bool, name='new_BN')
+#     new_dropout = tf.placeholder(tf.float32, name='new_dropout')
+#
+#     restorer = tf.train.import_meta_graph(
+#         ckpt_path + '.meta',
+#         input_map={
+#             'IteratorGetNext': new_input,
+#             'BN_phase': new_BN,
+#             'dropout': new_dropout,
+#         },
+#         clear_devices=True,
+#     )
+#
+#     input_graph_def = tf.get_default_graph().as_graph_def()
+#     check_N_mkdir('./dummy/pb/')
+#     check_N_mkdir('./dummy/tb/')
+#
+#     # freeze to pb
+#     with tf.Session() as sess:
+#         # restore variables
+#         restorer.restore(sess, './dummy/ckpt/step900')
+#         # convert variable to constant
+#         output_graph_def = tf.graph_util.convert_variables_to_constants(
+#             sess=sess,
+#             input_graph_def=input_graph_def,
+#             output_node_names=conserve_nodes,
+#         )
+#
+#         # save to pb
+#         with tf.gfile.GFile('./dummy/pb/freeze.pb', 'wb') as f:  # 'wb' stands for write binary
+#             f.write(output_graph_def.SerializeToString())
+#
+#
+# def optimize_graph_for_inference(pb_dir=None, conserve_nodes=None):
+#     tf.reset_default_graph()
+#     check_N_mkdir(pb_dir)
+#
+#     # import pb file
+#     with tf.gfile.FastGFile(pb_dir + 'freeze.pb', "rb") as f:
+#         graph_def = tf.GraphDef()
+#         graph_def.ParseFromString(f.read())
+#
+#     # optimize graph
+#     optimize_graph_def = optimize_for_inference(input_graph_def=graph_def,
+#                                                 input_node_names=['new_input', 'new_BN', 'new_dropout'],
+#                                                 output_node_names=conserve_nodes,
+#                                                 placeholder_type_enum=[dtypes.float32.as_datatype_enum,
+#                                                                        dtypes.bool.as_datatype_enum,
+#                                                                        dtypes.float32.as_datatype_enum,
+#                                                                        ]
+#                            )
+#     with tf.gfile.GFile(pb_dir + 'optimize.pb', 'wb') as f:
+#         f.write(optimize_graph_def.SerializeToString())
+#
+#
+# def visualize_pb_file(pb_path):
+#     tf.reset_default_graph()
+#
+#     with tf.gfile.FastGFile(pb_path, "rb") as f:
+#         graph_def = tf.GraphDef()
+#         graph_def.ParseFromString(f.read())
+#
+#     #fixme: ValueError: NodeDef expected inputs '' do not match 1 inputs specified; Op<name=Const; signature= -> output:dtype; attr=value:tensor; attr=dtype:type>; NodeDef: {{node import/model/conv1/batch_norm/cond/Const}}
+#     # https://github.com/tensorflow/tensorflow/issues/19838
+#     # solution: https://github.com/tensorflow/tensorflow/issues/19838#issuecomment-559775353
+#     tf.graph_util.import_graph_def(
+#         graph_def,
+#     )
+#
+#     with tf.Session() as sess:
+#         tf.summary.FileWriter('./dummy/tb/optimize', sess.graph)
+#
+# conserve_nodes = ['model/deconv/logits']
+# freeze_ckpt_for_inference(ckpt_path='./dummy/ckpt/step900', conserve_nodes=conserve_nodes)
+# optimize_graph_for_inference(pb_dir='./dummy/pb/', conserve_nodes=conserve_nodes)
+# visualize_pb_file('./dummy/pb/optimize.pb')
+
+
+###################################################
+#
+#       dice loss function for classfication
+#
+###################################################
+# import tensorflow as tf
+# from tqdm import tqdm
+# import numpy as np
+# import os
+#
+#
+# def up_2by2_ind(input_layer, ind, name=''):
+#     with tf.name_scope(name):
+#         in_shape = input_layer.get_shape().as_list()
+#         out_shape = [tf.cast(tf.shape(input_layer), dtype=tf.int64)[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
+#
+#         # prepare
+#         _pool = tf.reshape(input_layer, [-1])
+#         _range = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
+#         tmp = tf.ones_like(ind) * _range
+#         tmp = tf.reshape(tmp, [-1, 1])
+#         _ind = tf.reshape(ind, [-1, 1])
+#         _ind = tf.concat([tmp, _ind], 1)
+#
+#         # scatter
+#         unpool = tf.scatter_nd(_ind, _pool, [out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
+#
+#         # reshape
+#         unpool = tf.reshape(unpool, out_shape)
+#         return unpool
+#
+#
+# def check_N_mkdir(path_to_dir):
+#     if not os.path.exists(path_to_dir):
+#         os.makedirs(path_to_dir, exist_ok=True)
+#
+#
+# def wrapper(a, b):
+#     return tf.py_func(
+#         wrawrapper,
+#         [a, b],
+#         [tf.float32, tf.int8],
+#     )
+#
+# rand = np.random.randint(0, 1, size=(8, 50, 50, 3), dtype=np.int8)
+# def wrawrapper(a, b):
+#     return np.ones((8, 50, 50, 1), dtype=np.float32), rand
+#
+#
+# def dice(y_true, y_pred):
+#     # [batch_size, height, weight, channel]
+#     # note: take only height and weight
+#     axis = (1, 2, 3)
+#     #  minimize even equally for all classes (even for minor class)
+#     y_true = tf.cast(y_true, tf.float32)
+#     numerator = 2 * tf.reduce_sum(y_true * y_pred, axis=axis)
+#     denominator = tf.reduce_sum(y_true + y_pred, axis=axis)
+#
+#     return 1 - (numerator) / (denominator)
+#
+#
+# a_ph = tf.placeholder(tf.string, shape=[None], name='a_ph')
+# b_ph = tf.placeholder(tf.int32, shape=[None], name='b_ph')
+#
+# batch = tf.data.Dataset.from_tensor_slices((a_ph, b_ph))
+# batch = batch.shuffle(tf.cast(tf.shape(a_ph)[0], tf.int64))
+# batch = batch.map(wrapper).prefetch(10).repeat()
+# it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+# iter_init_op = it.make_initializer(batch, name='iter_init_op')
+# X_it, y_it = it.get_next()
+#
+# dropout = tf.placeholder(tf.float32, [], name='dropout')
+# BN_phase = tf.placeholder(tf.bool, [], name='BN_phase')
+# save_summary_step = 20
+# save_model_step = 100
+# check_N_mkdir('./dummy/gpus/')
+# check_N_mkdir('./dummy/ckpt/')
+#
+# ##################### train graph on gpu1
+#
+# with tf.name_scope('model'):
+#     with tf.name_scope('conv'):
+#         with tf.variable_scope('conv', reuse=False):
+#             w1 = tf.get_variable('w', shape=[3, 3, 1, 3], initializer=tf.initializers.glorot_normal())
+#         out1 = tf.nn.conv2d(X_it, w1, strides=[1, 1, 1, 1], padding='SAME', name='conv')
+#         with tf.variable_scope('conv', reuse=False):
+#             out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
+#         out1 = tf.nn.relu(out1, 'relu')
+#         out1, ind1 = tf.nn.max_pool_with_argmax(out1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
+#     with tf.name_scope('dnn'):
+#         flat = tf.reshape(out1, [-1, 625 * 3])
+#         with tf.variable_scope('dnn2', reuse=False):
+#             w2 = tf.get_variable('w2', shape=[625 * 3, 625 * 3], initializer=tf.initializers.glorot_normal())
+#         dnn_out = tf.matmul(flat, w2)
+#         dnn_out = tf.nn.dropout(dnn_out, keep_prob=dropout, name='do')
+#         dnn_out = tf.nn.relu(dnn_out, name='relu')
+#         dnn_out = tf.reshape(dnn_out, shape=[-1, 25, 25, 3], name='dnn')
+#
+#     with tf.name_scope('deconv'):
+#         out1 = up_2by2_ind(dnn_out, ind1, 'up1')
+#         with tf.variable_scope('deconv', reuse=False):
+#             w3 = tf.get_variable('w', shape=[3, 3, 3, 3], initializer=tf.initializers.glorot_normal())
+#         out1 = tf.nn.conv2d(out1, w3, strides=[1, 1, 1, 1], padding='SAME', name='deconv')
+#         with tf.variable_scope('deconv', reuse=False):
+#             out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
+#         logits = tf.nn.relu(out1, 'logits')
+#
+#
+# with tf.name_scope('loss'):
+#     DSC = dice(y_true=y_it, y_pred=logits)
+#
+# with tf.name_scope('operation'):
+#     opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
+#     grads = opt.compute_gradients(DSC)
+#     train_op = opt.apply_gradients(grads, name='apply_grad')
+#
+# with tf.name_scope('train_metrics'):
+#     acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_it, predictions=logits)
+#     lss_val_op, lss_update_op = tf.metrics.mean(DSC)
+#     summ_acc = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)])
+#     summ_lss = tf.summary.merge([tf.summary.scalar('loss', lss_val_op)])
+#     grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
+#
+# with tf.name_scope('train_summary'):
+#     merged = tf.summary.merge([summ_acc, summ_lss, grad_sum, tf.summary.histogram("weights", w1)])
+#
+#
+# with tf.Session() as sess:
+#     sess.run([tf.global_variables_initializer(), tf.local_variables_initializer(), iter_init_op],
+#              feed_dict={a_ph: ['a'], b_ph: [10]})
+#     model_saver = tf.train.Saver(max_to_keep=100000)
+#     train_writer = tf.summary.FileWriter('./dummy/gpus/train/', sess.graph)
+#     test_writer = tf.summary.FileWriter('./dummy/gpus/test/', sess.graph)
+#     for i in tqdm(range(100)):
+#         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+#         if i % save_summary_step == 0:
+#             _, rlt, summary, _, _, _ = sess.run([train_op, logits, merged, acc_update_op, lss_update_op, update_ops], feed_dict={
+#                 dropout: 0.1,
+#                 BN_phase: True,
+#             })
+#
+#             print('train:', rlt)
+#             train_writer.add_summary(summary, global_step=i)
+#         else:
+#             _, rlt, _ = sess.run([train_op, logits, update_ops], feed_dict={dropout: 1, BN_phase: True})
+#             print('train:', rlt)
+
+############################################
+#
+#    verify batch norm in inference
+#
+############################################
+
+# import tensorflow as tf
+# from tqdm import tqdm
+# import numpy as np
+# from util import print_nodes_name_shape, check_N_mkdir
+# from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
+# from tensorflow.python.framework import dtypes
+#
+# inputs = np.ones((8, 2, 2, 1))
+# outputs = np.arange(8 * 2 * 2 * 3).reshape((8, 2, 2, 3))
+# input_ph = tf.placeholder(tf.float32, shape=(None, 2, 2, 1), name='input_ph')
+# output_ph = tf.placeholder(tf.float32, shape=(None, 2, 2, 3), name='output_ph')
+# is_training = tf.placeholder(tf.bool, shape=[], name='is_training')
+#
+# # build a one layer Full layer with BN and save 2 ckpts
+# with tf.name_scope('model'):
+#     out = tf.reshape(input_ph, shape=(-1, 2 * 2 * 1), name='flatten')
+#     with tf.variable_scope('dnn1', reuse=False):
+#         w1 = tf.get_variable('w1', dtype=tf.float32, shape=[4 * 1, 4 * 3], initializer=tf.initializers.glorot_normal())
+#         b1 = tf.get_variable('b1', dtype=tf.float32, shape=[4 * 3], initializer=tf.initializers.glorot_normal())
+#     out = tf.matmul(out, w1) + b1
+#     out = tf.layers.batch_normalization(out, training=is_training, name='BN')
+#     logits = tf.nn.relu(out)
+#     logits = tf.reshape(logits, shape=(-1, 2, 2, 3))
+#
+# with tf.name_scope('loss'):
+#     MSE = tf.losses.mean_squared_error(labels=output_ph, predictions=logits)
+#
+# with tf.name_scope('operations'):
+#     opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
+#     grads = opt.compute_gradients(MSE)
+#     train_op = opt.apply_gradients(grads, name='apply_grad')
+#
+# # train
+# with tf.Session() as sess:
+#     # prepare
+#     graph = tf.get_default_graph()
+#     print_nodes_name_shape(graph)
+#     saver = tf.train.Saver()
+#
+#     # init variables
+#     sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+#     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+#     saver.save(sess, './dummy/ckpt/step0')
+#     # train
+#     for i in tqdm(range(100)):
+#         with tf.variable_scope('', reuse=True):
+#             mov_avg, mov_std, beta, gamma = sess.run([tf.get_variable('BN/moving_mean'),
+#                                          tf.get_variable('BN/moving_variance'),
+#                                                       tf.get_variable('BN/beta'),
+#                                                       tf.get_variable('BN/gamma')])
+#             print('\nmov_avg: {}, \nmov_std: {}, \nbeta: {}, \ngamma: {}'.format(mov_avg, mov_std, beta, gamma))
+#         _, _ = sess.run([train_op, tf.get_collection(tf.GraphKeys.UPDATE_OPS)], feed_dict={
+#             input_ph: inputs,
+#             output_ph: outputs,
+#             is_training: True,
+#         })
+#
+#     for i in tqdm(range(100)):
+#         with tf.variable_scope('', reuse=True):
+#             mov_avg, mov_std, beta, gamma = sess.run([tf.get_variable('BN/moving_mean'),
+#                                          tf.get_variable('BN/moving_variance'),
+#                                                       tf.get_variable('BN/beta'),
+#                                                       tf.get_variable('BN/gamma')])
+#             print('\nmov_avg: {}, \nmov_std: {}, \nbeta: {}, \ngamma: {}'.format(mov_avg, mov_std, beta, gamma))
+#         _ = sess.run([graph.get_tensor_by_name('model/Reshape:0')], feed_dict={
+#             input_ph: inputs,
+#             is_training: False,
+#         })
+#
+#         # print moving avg/std
+#     saver.save(sess, './dummy/ckpt/step100')
+#
+#
+# def freeze_ckpt_for_inference(ckpt_path=None, conserve_nodes=None):
+#     # clean graph first
+#     tf.reset_default_graph()
+#     # freeze ckpt then convert to pb
+#     new_input = tf.placeholder(tf.float32, shape=[None, 10, 10, 1], name='new_input')
+#     new_is_training = tf.placeholder(tf.bool, name='new_is_training')
+#
+#     restorer = tf.train.import_meta_graph(
+#         ckpt_path + '.meta',
+#         input_map={
+#             'input_ph': new_input,
+#             'is_training': new_is_training,
+#         },
+#         clear_devices=True,
+#     )
+#
+#     input_graph_def = tf.get_default_graph().as_graph_def()
+#     check_N_mkdir('./dummy/pb/')
+#     check_N_mkdir('./dummy/tb/')
+#
+#     # freeze to pb
+#     with tf.Session() as sess:
+#         # restore variables
+#         restorer.restore(sess, './dummy/ckpt/step100')
+#         # convert variable to constant
+#         output_graph_def = tf.graph_util.convert_variables_to_constants(
+#             sess=sess,
+#             input_graph_def=input_graph_def,
+#             output_node_names=conserve_nodes,
+#         )
+#
+#         # save to pb
+#         with tf.gfile.GFile('./dummy/pb/freeze.pb', 'wb') as f:  # 'wb' stands for write binary
+#             f.write(output_graph_def.SerializeToString())
+#
+#
+# def optimize_graph_for_inference(pb_dir=None, conserve_nodes=None):
+#     tf.reset_default_graph()
+#     check_N_mkdir(pb_dir)
+#
+#     # import pb file
+#     with tf.gfile.FastGFile(pb_dir + 'freeze.pb', "rb") as f:
+#         graph_def = tf.GraphDef()
+#         graph_def.ParseFromString(f.read())
+#
+#     # optimize graph
+#     optimize_graph_def = optimize_for_inference(input_graph_def=graph_def,
+#                                                 input_node_names=['new_input', 'new_is_training'],
+#                                                 output_node_names=conserve_nodes,
+#                                                 placeholder_type_enum=[dtypes.float32.as_datatype_enum,
+#                                                                        dtypes.bool.as_datatype_enum,
+#                                                                        dtypes.float32.as_datatype_enum,
+#                                                                        ]
+#                            )
+#     with tf.gfile.GFile(pb_dir + 'optimize.pb', 'wb') as f:
+#         f.write(optimize_graph_def.SerializeToString())
+#
+# conserve_nodes = ['model/Reshape']
+# freeze_ckpt_for_inference(ckpt_path='./dummy/ckpt/step100', conserve_nodes=conserve_nodes)
+# optimize_graph_for_inference(pb_dir='./dummy/pb/', conserve_nodes=conserve_nodes)
+#
+# # cleaning
+# tf.reset_default_graph()
+#
+# # load pb
+# with tf.gfile.FastGFile('./dummy/pb/optimize.pb', "rb") as f:
+#     graph_def = tf.GraphDef()
+#     graph_def.ParseFromString(f.read())
+#
+# print('\n Now inference*******************************')
+# # inference
+# with tf.Session() as sess:
+#     tf.graph_util.import_graph_def(
+#         graph_def,
+#     )
+#     # prepare
+#     G = tf.get_default_graph()
+#     print_nodes_name_shape(G)
+#     new_input = G.get_tensor_by_name('import/new_input:0')
+#     new_is_training = G.get_tensor_by_name('import/new_is_training:0')
+#     new_output = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
+#
+#     # train
+#     for i in tqdm(range(100)):
+#         # print moving avg/std
+#         with tf.variable_scope('', reuse=True):
+#             mov_avg, mov_std, beta, gamma = sess.run([G.get_tensor_by_name('import/BN/moving_mean:0'),
+#                                                       G.get_tensor_by_name('import/BN/moving_variance:0'),
+#                                                       G.get_tensor_by_name('import/BN/beta:0'),
+#                                                       G.get_tensor_by_name('import/BN/gamma:0')])
+#             print('\nmov_avg: {}, \nmov_std: {}, \nbeta: {}, \ngamma: {}'.format(mov_avg, mov_std, beta, gamma))
+#         new_out = sess.run([new_output], feed_dict={
+#             new_input: inputs,
+#             new_output: outputs,
+#             new_is_training: False,
+#         })
+#         # print('out: {}'.format(new_out))
+
+
+
+####################################
+#
+#      Loss landscape
+#
+####################################
 import tensorflow as tf
-import numpy as np
-from tqdm import tqdm
-from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
-from tensorflow.python.framework import dtypes
-import os
 
-def up_2by2_ind(input_layer, ind, name=''):
-    with tf.name_scope(name):
-        in_shape = input_layer.get_shape().as_list()
-        out_shape = [tf.cast(tf.shape(input_layer), dtype=tf.int64)[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
-
-        # prepare
-        _pool = tf.reshape(input_layer, [-1])
-        _range = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
-        tmp = tf.ones_like(ind) * _range
-        tmp = tf.reshape(tmp, [-1, 1])
-        _ind = tf.reshape(ind, [-1, 1])
-        _ind = tf.concat([tmp, _ind], 1)
-
-        # scatter
-        unpool = tf.scatter_nd(_ind, _pool, [out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
-
-        # reshape
-        unpool = tf.reshape(unpool, out_shape)
-        return unpool
-
-def check_N_mkdir(path_to_dir):
-    if not os.path.exists(path_to_dir):
-        os.makedirs(path_to_dir, exist_ok=True)
-
-###################### input pipeline
-def wrapper(a, b):
-    return tf.py_func(
-        wrawrapper,
-        [a, b],
-        [tf.float32, tf.float32],
-    )
-
-def wrawrapper(a, b):
-    return np.ones((1, 50, 50, 1), dtype=np.float32), np.ones((1, 50, 50, 1), dtype=np.float32)
-
-a_ph = tf.placeholder(tf.string, shape=[None], name='a_ph')
-b_ph = tf.placeholder(tf.int32, shape=[None], name='b_ph')
-
-batch = tf.data.Dataset.from_tensor_slices((a_ph, b_ph))
-batch = batch.shuffle(tf.cast(tf.shape(a_ph)[0], tf.int64))
-batch = batch.map(wrapper).prefetch(10).repeat()
-it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
-iter_init_op = it.make_initializer(batch, name='iter_init_op')
-X_it, y_it = it.get_next()
-
-dropout = tf.placeholder(tf.float32, [], name='dropout')
-BN_phase = tf.placeholder(tf.bool, [], name='BN_phase')
-save_summary_step = 20
-save_model_step = 100
-check_N_mkdir('./dummy/gpus/')
-check_N_mkdir('./dummy/ckpt/')
-
-##################### train graph on gpu1
-with tf.device('/device:GPU:0'):
-    with tf.name_scope('model'):
-        with tf.name_scope('conv'):
-            with tf.variable_scope('conv', reuse=False):
-                w1 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
-            out1 = tf.nn.conv2d(X_it, w1, strides=[1, 1, 1, 1], padding='SAME', name='conv')
-            with tf.variable_scope('conv', reuse=False):
-                out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
-            out1 = tf.nn.relu(out1, 'relu')
-            out1, ind1 = tf.nn.max_pool_with_argmax(out1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
-        with tf.name_scope('dnn'):
-            flat = tf.reshape(out1, [1, 625])
-            with tf.variable_scope('dnn2', reuse=False):
-                w2 = tf.get_variable('w2', shape=[625, 625], initializer=tf.initializers.glorot_normal())
-            dnn_out = tf.matmul(flat, w2)
-            dnn_out = tf.nn.dropout(dnn_out, keep_prob=dropout, name='do')
-            dnn_out = tf.nn.relu(dnn_out, name='relu')
-            dnn_out = tf.reshape(dnn_out, shape=[1, 25, 25, 1], name='dnn')
-
-        with tf.name_scope('deconv'):
-            out1 = up_2by2_ind(dnn_out, ind1, 'up1')
-            with tf.variable_scope('deconv', reuse=False):
-                w3 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
-            out1 = tf.nn.conv2d(out1, w3, strides=[1, 1, 1, 1], padding='SAME', name='deconv')
-            with tf.variable_scope('deconv', reuse=False):
-                out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
-            logits = tf.nn.relu(out1, 'logits')
-
-        #todo: here with tabulation with tf.name_scope('operation'):
-with tf.name_scope('loss'):
-    mse = tf.losses.mean_squared_error(labels=y_it, predictions=logits)
-
-with tf.device('/device:GPU:0'):
-    with tf.name_scope('operation'):
-        opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
-        grads = opt.compute_gradients(mse)
-        train_op = opt.apply_gradients(grads, name='apply_grad')
-
-# note: like following the gradient will not be in GPU:0
-#  opt = tf.train.AdamOptimizer(learning_rate=0.0001, name='Adam')
-#  grads = opt.compute_gradients(mse)
-#  train_op = opt.apply_gradients(grads, name='apply_grad')
-
-with tf.name_scope('train_metrics'):
-    acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_it, predictions=logits)
-    summ_acc = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)])
-    grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
-
-with tf.name_scope('train_summary'):
-    merged = tf.summary.merge([summ_acc, grad_sum, tf.summary.histogram("weights", w1)])
-
-###################### test graph on gpu2
-with tf.device('/device:GPU:1'):
-    with tf.name_scope('model'):
-        with tf.name_scope('conv'):
-            with tf.variable_scope('conv', reuse=True):
-                w1 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
-            out1 = tf.nn.conv2d(X_it, w1, strides=[1, 1, 1, 1], padding='SAME', name='conv')
-            with tf.variable_scope('conv', reuse=True):
-                out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
-            out1 = tf.nn.relu(out1, 'relu')
-            out1, ind1 = tf.nn.max_pool_with_argmax(out1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
-        with tf.name_scope('dnn'):
-            flat = tf.reshape(out1, [1, 625])
-            with tf.variable_scope('dnn2', reuse=True):
-                w2 = tf.get_variable('w2', shape=[625, 625], initializer=tf.initializers.glorot_normal())
-            dnn_out = tf.matmul(flat, w2)
-            dnn_out = tf.nn.dropout(dnn_out, keep_prob=dropout, name='do')
-            dnn_out = tf.nn.relu(dnn_out, name='relu')
-            dnn_out = tf.reshape(dnn_out, shape=[1, 25, 25, 1], name='dnn')
-
-        with tf.name_scope('deconv'):
-            out1 = up_2by2_ind(dnn_out, ind1, 'up1')
-            with tf.variable_scope('deconv', reuse=True):
-                w3 = tf.get_variable('w', shape=[3, 3, 1, 1], initializer=tf.initializers.glorot_normal())
-            out1 = tf.nn.conv2d(out1, w3, strides=[1, 1, 1, 1], padding='SAME', name='deconv')
-            with tf.variable_scope('conv', reuse=True):
-                out1 = tf.layers.batch_normalization(out1, training=BN_phase, name='batch_norm')
-            logits = tf.nn.relu(out1, 'logits')
+def move_weight(sess, weight_name, leap):
+    weight = sess.graph.get_tensor_by_name(weight_name)
+    sess.run(tf.assign(weight, weight + leap))
 
 
-with tf.name_scope('test_metrics'):
-    acc_val_op2, acc_update_op2 = tf.metrics.accuracy(labels=y_it, predictions=logits)
-    summ_acc2 = tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op2)])
-
-with tf.name_scope('test_summary'):
-    merged2 = tf.summary.merge([summ_acc2, tf.summary.histogram("weights", w1), tf.summary.histogram("weights", w2)])
+#note: state includes weights, bias, BN
+def get_diff_state(state1, state2):
+    pass
 
 
-##############################################
-with tf.Session() as sess:
-    sess.run([tf.global_variables_initializer(), tf.local_variables_initializer(), iter_init_op],
-             feed_dict={a_ph: ['a'], b_ph: [10]})
-    model_saver = tf.train.Saver(max_to_keep=100000)
-    train_writer = tf.summary.FileWriter('./dummy/gpus/train/', sess.graph)
-    test_writer = tf.summary.FileWriter('./dummy/gpus/test/', sess.graph)
-    for i in tqdm(range(1000)):
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        if i % save_summary_step == 0:
-            _, rlt, summary, _, _ = sess.run([train_op, out1, merged, acc_update_op, update_ops], feed_dict={
-                dropout: 0.1,
-                BN_phase: True,
-            }
-                                          )
-            # print('train:', rlt)
-            train_writer.add_summary(summary, global_step=i)
-        else:
-            _, rlt, _ = sess.run([train_op, out1, update_ops], feed_dict={dropout: 1, BN_phase: True})
-            # print('train:', rlt)
-        if i % save_model_step == 0:
-            model_saver.save(sess, './dummy/ckpt/step{}'.format(i))
-            if i != 0:
-                for j in tqdm(range(5)):
-                    rlt, summary = sess.run([logits, merged2], feed_dict={
-                        dropout: 1,
-                        BN_phase: False,
-                    }
-                                            )
-                    # print('test:', rlt)
-                    test_writer.add_summary(summary, global_step=j)
-
-######################## inference and optimize pb
-def freeze_ckpt_for_inference(ckpt_path=None, conserve_nodes=None):
-    # clean graph first
-    tf.reset_default_graph()
-    # freeze ckpt then convert to pb
-    new_input = tf.placeholder(tf.float32, shape=[None, 50, 50, 1], name='new_input')
-    new_BN = tf.placeholder(tf.bool, name='new_BN')
-    new_dropout = tf.placeholder(tf.float32, name='new_dropout')
-
-    restorer = tf.train.import_meta_graph(
-        ckpt_path + '.meta',
-        input_map={
-            'IteratorGetNext': new_input,
-            'BN_phase': new_BN,
-            'dropout': new_dropout,
-        },
-        clear_devices=True,
-    )
-
-    input_graph_def = tf.get_default_graph().as_graph_def()
-    check_N_mkdir('./dummy/pb/')
-    check_N_mkdir('./dummy/tb/')
-
-    # freeze to pb
-    with tf.Session() as sess:
-        # restore variables
-        restorer.restore(sess, './dummy/ckpt/step900')
-        # convert variable to constant
-        output_graph_def = tf.graph_util.convert_variables_to_constants(
-            sess=sess,
-            input_graph_def=input_graph_def,
-            output_node_names=conserve_nodes,
-        )
-
-        # save to pb
-        with tf.gfile.GFile('./dummy/pb/freeze.pb', 'wb') as f:  # 'wb' stands for write binary
-            f.write(output_graph_def.SerializeToString())
+def get_random_state(state1, state2):
+    pass
 
 
-def optimize_graph_for_inference(pb_dir=None, conserve_nodes=None):
-    tf.reset_default_graph()
-    check_N_mkdir(pb_dir)
+def extract_weights_from_ckpt():
+    pass
 
-    # import pb file
-    with tf.gfile.FastGFile(pb_dir + 'freeze.pb', "rb") as f:
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString(f.read())
+def feed_forward_for_loss_acc():
+    pass
 
-    # optimize graph
-    optimize_graph_def = optimize_for_inference(input_graph_def=graph_def,
-                                                input_node_names=['new_input', 'new_BN', 'new_dropout'],
-                                                output_node_names=conserve_nodes,
-                                                placeholder_type_enum=[dtypes.float32.as_datatype_enum,
-                                                                       dtypes.bool.as_datatype_enum,
-                                                                       dtypes.float32.as_datatype_enum,
-                                                                       ]
-                           )
-    with tf.gfile.GFile(pb_dir + 'optimize.pb', 'wb') as f:
-        f.write(optimize_graph_def.SerializeToString())
+# get 2 ckpts
 
+# get random directions
 
-def visualize_pb_file(pb_path):
-    tf.reset_default_graph()
+# normalize directions by weights
 
-    with tf.gfile.FastGFile(pb_path, "rb") as f:
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString(f.read())
+# calculate loss/acc for each point on the surface
 
-    #fixme: ValueError: NodeDef expected inputs '' do not match 1 inputs specified; Op<name=Const; signature= -> output:dtype; attr=value:tensor; attr=dtype:type>; NodeDef: {{node import/model/conv1/batch_norm/cond/Const}}
-    # https://github.com/tensorflow/tensorflow/issues/19838
-    # solution: https://github.com/tensorflow/tensorflow/issues/19838#issuecomment-559775353
-    tf.graph_util.import_graph_def(
-        graph_def,
-    )
-
-    with tf.Session() as sess:
-        tf.summary.FileWriter('./dummy/tb/optimize', sess.graph)
-
-conserve_nodes = ['model/deconv/logits']
-freeze_ckpt_for_inference(ckpt_path='./dummy/ckpt/step900', conserve_nodes=conserve_nodes)
-optimize_graph_for_inference(pb_dir='./dummy/pb/', conserve_nodes=conserve_nodes)
-visualize_pb_file('./dummy/pb/optimize.pb')
-
+########################################
+#
+#      Softmax vs sparse softmax
+#
+########################################
+#
+# # https://stackoverflow.com/a/43577900/9217178
+# import tensorflow as tf
+# from random import randint
+#
+# dims = 8
+# pos = randint(0, dims - 1)
+#
+# logits = tf.random_uniform([dims], maxval=3, dtype=tf.float32)
+# labels = tf.one_hot(pos, dims)
+#
+# res1 = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+# res2 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=tf.constant(pos))
+#
+# with tf.Session() as sess:
+#     a, b = sess.run([res1, res2])
+#     print(a, b)
+#     print(a == b)
