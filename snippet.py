@@ -2403,6 +2403,8 @@ import numpy as np
 from tqdm import tqdm
 from util import check_N_mkdir, print_nodes_name_shape
 import h5py as h5
+import copy
+import matplotlib.pyplot as plt
 
 
 def move_state(sess, name, leap):
@@ -2414,12 +2416,12 @@ def move_state(sess, name, leap):
 def get_diff_state(state1, state2):
     assert isinstance(state1, dict)
     assert isinstance(state2, dict)
-    return [v2 - v1 for _, (v1, v2) in zip(state1.items(), state2.items())]
+    return {k: v2 - v1 for (k, _), (v1, v2) in zip(state1.items(), state2.items())}
 
 
 def get_random_state(state):
     assert isinstance(state, dict)
-    return [np.random.randn(v.size()) for _, v in state.items()]
+    return {k: np.random.randn(v.size) for k, v in state.items()}
 
 def set_state(sess, states, directions=None, step=None):
     # get dx in x direction
@@ -2432,15 +2434,20 @@ def set_state(sess, states, directions=None, step=None):
 
 
 def _normalize_direction(direction, weights):
-    assert isinstance(direction, list)
-    assert isinstance(weights, list)
-    for d, w in zip(direction, weights):
+    assert isinstance(direction, dict)
+    assert isinstance(weights, dict)
+    for d, w in zip(direction.values(), weights.values):
         d *= w.linalg.norm() / (d.linalg.norm() + 1e-10)
+    return direction, weights
 
 
 def normalize_state(directions, state):
-    for direct, (name, weight) in zip(directions, state):
+    assert isinstance(directions, dict)
+    assert isinstance(state, dict)
+    backup = copy.deepcopy(directions)
+    for direct, (name, weight) in zip(backup, state):
         _normalize_direction(direct, weight)
+    return backup, state
 
 
 ################## model
@@ -2525,20 +2532,44 @@ with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess2:
 
     # get weights/bias
     for k in ckpt2_weight_names:
-        v = sess1.run(k)
+        v = sess2.run(k)
         state2[k] = v
 
 # get random directions
 rand_direct1 = get_random_state(state1)
 rand_direct2 = get_random_state(state2)
 # normalize directions by weights
-normalize_state(rand_direct1, state1)
-normalize_state(rand_direct2, state2)
+normalized_ds1, _ = normalize_state(rand_direct1, state1)
+normalized_ds2, _ = normalize_state(rand_direct2, state2)
 
 # create direction and surface .h5
+loss_landscape_file_path = './dummy/loss_land.h5'
+x_min, x_max, x_nb = -1, 1, 51
+y_min, y_max, y_nb = -1, 1, 51
+xcoord = np.linspace(x_min, x_max, x_nb).ravel()
+ycoord = np.linspace(y_min, y_max, y_nb).ravel()
+xm, ym = np.meshgrid(xcoord, ycoord)
+loss = np.zeros(xm.shape).ravel()
+acc = np.zeros(xm.shape).ravel()
 
-# calculate loss/acc for each point on the surface
+# calculate loss/acc for each point on the surface (try first with only for loop)
+def feed_forward(skeleton, state, direction, xcoord, ycoord, inputs):
+    '''return loss and acc'''
+    # change state in the neural network (skeleton)
+    # feed forward with batches
+    # return loss/acc
+    pass
 
+
+# start feeding
+for i in tqdm(range(loss.size)):
+    loss[i], acc[i] = feed_forward
 
 # plot surface
+fig, (ax1, ax2) = plt.subplot(122)
+ax1.contour(xm, ym, loss)
+ax2.contour(xm, ym, acc)
+plt.show()
+
+# calculate loss/acc for each point on the surface (try with MPI4py)
 
