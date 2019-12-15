@@ -3,8 +3,8 @@ import pandas as pd
 from scipy.interpolate import interp2d
 import matplotlib.pyplot as plt
 
-input_path = './dummy/lss_step4999.csv'
-output_path = './dummy/lss_step4999_interp.csv'
+input_path = './dummy/lss_step9999.csv'
+output_path = './dummy/lss_step9999_interp_log.csv'
 
 ##################
 #
@@ -17,12 +17,12 @@ def csv_interp(x_mesh, y_mesh, metrics_tensor, out_path, interp_scope=5):
     newxx, newyy = np.meshgrid(new_xmesh, new_ymesh)
 
     # interpolation
-    interpolation = interp2d(x_mesh, y_mesh, metrics_tensor, kind='cubic')
+    interpolation = interp2d(x_mesh, y_mesh, metrics_tensor, kind='linear')  #note: cubic doesn't work
     zval = interpolation(new_xmesh, new_ymesh)
     pd.DataFrame({'xcoord': newxx.ravel(),
                   'ycoord': newyy.ravel(),
                   'zval': zval.ravel()}
-                 ).to_csv(out_path, index=False, header=False)
+                 ).to_csv(out_path, index=False, header=True)
 
 def clean(array):
     assert isinstance(array, np.ndarray)
@@ -32,7 +32,10 @@ def clean(array):
     array[np.where(array == -np.inf)] = -1e9
     return array
 
-lss = np.asarray(pd.read_csv(input_path, sep=','))
+lss = np.asarray(pd.read_csv(input_path))
+print('Loss/Acc range: {} - {}'.format(np.min(lss), np.max(lss)))
+print('Out range: {} - {}'.format(np.min(np.log(lss)), np.max(np.log(lss))))
+lss = np.log(lss)
 x_mesh = np.linspace(-1, 1, 51)
 y_mesh = np.linspace(-1, 1, 51)
 xx, yy = np.meshgrid(x_mesh, y_mesh)
@@ -44,13 +47,13 @@ csv_interp(xx, yy, lss, output_path)
 # plot
 #
 ##################
-lss = np.asarray(pd.read_csv(output_path))
+lss_interp = np.asarray(pd.read_csv(output_path))
 x_mesh = np.linspace(-1, 1, 51 * 5)
 y_mesh = np.linspace(-1, 1, 51 * 5)
 xx, yy = np.meshgrid(x_mesh, y_mesh)
 
 fig, ax = plt.subplots(1)
-cs = ax.contour(xx, yy, lss[:, -1].reshape(255, 255))
+cs = ax.contour(xx, yy, lss_interp[:, -1].reshape(255, 255))
 plt.clabel(cs, inline=1, fontsize=10)
 plt.show()
 

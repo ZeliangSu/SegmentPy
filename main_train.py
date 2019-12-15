@@ -26,13 +26,13 @@ hyperparams = {
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
     'device_option': 'specific_gpu:0',
-    'second_device': 'specific_gpu:1',
+    'second_device': None,
     'augmentation': True,
     'activation': 'leaky',
     'save_step': 500,
     'save_summary_step': 50,
     'folder_name': None,
-    'model': 'LRCS',
+    'model': 'ind_3c_3b_3c',
     'mode': 'classification',
 }
 
@@ -76,8 +76,7 @@ train_nodes = classification_nodes(pipeline=train_inputs,
                                    activation=hyperparams['activation'],
                                    is_training=True,
                                    loss_option='cross_entropy'
-
-                    )
+                                   )
 
 test_nodes = classification_nodes(pipeline=test_inputs,
                                   placeholders=list_placeholders,
