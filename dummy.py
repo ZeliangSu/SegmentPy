@@ -3,8 +3,8 @@ import pandas as pd
 from scipy.interpolate import interp2d
 import matplotlib.pyplot as plt
 
-input_path = './dummy/lss_step9999.csv'
-output_path = './dummy/lss_step9999_interp_log.csv'
+input_path = './dummy/acc_step9999.csv'
+output_path = './dummy/acc_step9999_interp_log.csv'
 
 ##################
 #
