@@ -5,11 +5,10 @@ import multiprocessing as mp
 import warnings
 from PIL import Image
 from augmentation import random_aug
-from proc import _stride
 import logging
 import log
 logger = log.setup_custom_logger('root')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
     """
@@ -66,54 +65,55 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
                       'patch_size_ph': patch_size_ph}
 
     else:
-        # inference: 1 img
-        with tf.name_scope('input_pipeline_' + suffix):
-            # placeholders
-            fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
-            patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
-
-            # init and shuffle list of files
-            batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
-
-            # read img and stride
-            batch = batch.map(_pyfn_stride_wrapper, num_parallel_calls=ncores)
-
-            # simply batch it
-            # note: check the last batch results
-            batch = batch.batch(batch_size, drop_remainder=False).prefetch(ncores).repeat()
-
-            # construct iterator
-            it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
-            iter_init_op = it.make_initializer(batch, name='iter_init_op')
-
-            # get next img and label
-            X_it = it.get_next()
-
-            # dict
-            inputs = {'batch': X_it,
-                      'iterator_init_op': iter_init_op,
-                      'fnames_ph': fnames_ph,
-                      'patch_size_ph': patch_size_ph,
-                      }
+        raise NotImplementedError('Inference input need to be debug')
+    # inference: 1 img
+    #     with tf.name_scope('input_pipeline_' + suffix):
+    #         # placeholders
+    #         fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
+    #         patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
+    #
+    #         # init and shuffle list of files
+    #         batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
+    #
+    #         # read img and stride
+    #         batch = batch.map(_pyfn_stride_wrapper, num_parallel_calls=ncores)
+    #
+    #         # simply batch it
+    #         # note: check the last batch results
+    #         batch = batch.batch(batch_size, drop_remainder=False).prefetch(ncores).repeat()
+    #
+    #         # construct iterator
+    #         it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+    #         iter_init_op = it.make_initializer(batch, name='iter_init_op')
+    #
+    #         # get next img and label
+    #         X_it = it.get_next()
+    #
+    #         # dict
+    #         inputs = {'batch': X_it,
+    #                   'iterator_init_op': iter_init_op,
+    #                   'fnames_ph': fnames_ph,
+    #                   'patch_size_ph': patch_size_ph,
+    #                   }
 
     return inputs
 
 
-def _pyfn_stride_wrapper(fname, patch_size):
-    '''designed for inference'''
-    return tf.py_func(
-        stride,
-        [fname, patch_size],
-        [tf.float32]
-    )
+# def _pyfn_stride_wrapper(fname, patch_size):
+#     '''designed for inference'''
+#     return tf.py_func(
+#         stride,
+#         [fname, patch_size],
+#         [tf.float32]
+#     )
 
 
-def stride(fname, patch_size):
-    '''designed for inference'''
-    # stride outside name_scope
-    with Image.open(fname) as img:
-        patches = _stride(np.array(img), 1, patch_size)
-    return patches
+# def stride(fname, patch_size):
+#     '''designed for inference'''
+#     # stride outside name_scope
+#     with Image.open(fname) as img:
+#         patches = _stride(np.array(img), 1, patch_size)
+#     return patches
 
 
 def _pyfn_parser_wrapper(fname, patch_size):
@@ -162,16 +162,11 @@ def parse_h5_one_hot(fname, patch_size):
         y = f['y'][:].reshape(patch_size, patch_size, 1)
         # if y is saved as float, convert to int
 
-        y = y.astype(np.int32)
-        # get how many classes
-        nb_classes = len(np.unique(y))
-        _y = np.zeros((*y.shape[:3], nb_classes))
-        # one hot
-        for i in range(nb_classes):
-            _y[np.where(y == i), i] = 1
-            # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
-        logger.debug('y shape: {}, nb_class: {}'.format(y.shape, nb_classes))
-        return _minmaxscalar(X), _y.astype(np.int64)
+        # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
+        y = _one_hot(y)
+        logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  #B, H, W, C
+
+        return _minmaxscalar(X), y.astype(np.int64)
 
 
 def parse_h5(fname, patch_size):
@@ -211,4 +206,49 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     return scaled
 
 
+def _one_hot(tensor):
+    ''' (batch, H, W) --> one hot to --> (batch, H, W, nb_class)'''
+    assert isinstance(tensor, np.ndarray), 'Expect input as a np ndarray'
+    logger.debug('tensor shape:{}'.format(tensor.shape))
+    if tensor.ndim == 4:
+        #note: (Batch, H, W, C)
+        tensor = tensor.astype(np.int32)
+        # get how many classes
+        nb_classes = len(np.unique(tensor))
+        # one hot
+        out = []
+        for i in range(nb_classes):
+            tmp = np.zeros(tensor.shape)
+            out.append(tmp)
+        # stack along the last channel
+        out = np.concatenate(out, axis=3)
 
+    elif tensor.ndim == 3:
+        #note: (H, W, C)
+        tensor = tensor.astype(np.int32)
+        # get how many classes
+        nb_classes = len(np.unique(tensor))
+        # one hot
+        out = []
+        for i in range(nb_classes):
+            tmp = np.zeros(tensor.shape)
+            out.append(tmp)
+        # stack along the last channel
+        out = np.concatenate(out, axis=2)
+    else:
+        logger.warning('Oupss!')
+        raise NotImplementedError('Oupss!')
+    return out
+
+
+def _inverse_one_hot(tensor):
+    assert tensor.dim == 4, 'Expected a tensor of shape (batch, H, W, class)'
+
+    if tensor.dtype == (np.float or np.float32 or np.float64):
+        # make a vote
+        out = np.argmax(tensor, axis=3)
+
+    elif tensor.dtype == (np.int or np.int8 or np.int32 or np.int64):
+        raise NotImplementedError('Implement a mechanism that if several classes is possible, randomly choose one')
+
+    return out

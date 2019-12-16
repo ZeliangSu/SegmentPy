@@ -35,7 +35,7 @@ def regression_nodes(pipeline,
 
     with tf.device('/cpu:0'):
         with tf.name_scope('Loss'):
-            loss = DSC(pipeline['label'], logits, name='loss_fn')
+            loss = MSE(pipeline['label'], logits, name='loss_fn')
     # loss function
     if is_training:
         with tf.device('/device:GPU:0'):
@@ -50,7 +50,7 @@ def regression_nodes(pipeline,
                 train_op = opt.apply_gradients(grads, name='train_op')
 
         with tf.name_scope('train_metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training, mode='regression')
 
         with tf.name_scope('summary'):
             grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
@@ -65,7 +65,7 @@ def regression_nodes(pipeline,
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
         with tf.name_scope('test_metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training, mode='regression')
         with tf.name_scope('summary'):
             tmp = []
             for layer_param in list_params:
@@ -119,11 +119,11 @@ def classification_nodes(pipeline,
     with tf.device('/cpu:0'):
         with tf.name_scope('Loss'):
             if loss_option == 'DSC':
-                softmax = tf.nn.softmax(logits, name='softmax')
-                loss = DSC(pipeline['label'], softmax, name='loss_fn')
+                softmax = tf.nn.softmax(logits)
+                loss = DSC(y_true=pipeline['label'], logits=softmax,  name='loss_fn')
             elif loss_option == 'cross_entropy':
-                softmax = tf.nn.softmax(logits, name='softmax')
-                loss = Cross_Entropy(pipeline['label'], softmax, name='CE')
+                softmax = tf.nn.softmax(logits)
+                loss = Cross_Entropy(y_true=pipeline['label'], logits=softmax, name='CE')
             else:
                 raise NotImplementedError('Cannot find the loss option')
 

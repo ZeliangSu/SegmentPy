@@ -2,13 +2,14 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import os
-from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape
+from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean
 from tsne import tsne, compare_tsne_2D, compare_tsne_3D
 from inference import freeze_ckpt_for_inference
 from PIL import Image
 from scipy import interpolate
 from writer import _resultWriter
 import h5py as h5
+from input import _one_hot
 
 if os.name == 'posix':  #to fix MAC openMP bug
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -76,9 +77,9 @@ LRCS_conserve_nodes = [
     'LRCS/encoder/conv4/leaky',
     'LRCS/encoder/conv4bis/leaky',
     'LRCS/encoder/conv4bisbis/leaky',
-    'LRCS/dnn/dnn1/relu',
-    'LRCS/dnn/dnn2/relu',
-    'LRCS/dnn/dnn3/relu',
+    'LRCS/dnn/dnn1/leaky',
+    'LRCS/dnn/dnn2/leaky',
+    'LRCS/dnn/dnn3/leaky',
     'LRCS/decoder/deconv5/leaky',
     'LRCS/decoder/deconv5bis/leaky',
     'LRCS/decoder/deconv6/leaky',
@@ -193,24 +194,34 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             for layer_name, tensors in zip(conserve_nodes, res):
                 try:
                     if tensors.ndim == 4 or 2:
-                        if layer_name.split('/')[-2] != 'logits':
+                        if 'logit' in layer_name:
                             tensors = tensors[0]  # todo: should generalize to batch
                         else:
                             _tensors = [np.squeeze(tensors[i]) for i in range(tensors.shape[0])]
                             tensors = _tensors
-                except:
+                except Exception as e:
+                    print(e)
                     pass
                 _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
                               path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
                 activations.append(tensors)
 
     # calculate diff by numpy
-    res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(label))
-    res_diff = np.asarray(res_diff, dtype=np.int)
+    if hyper['mode'] == 'regression':
+        res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(label))
+        res_diff = np.asarray(res_diff, dtype=np.int)
+        # note: save diff of all imgs
+        _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
+                      path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
+    else:
+        # one-hot the label
+        label = _one_hot(np.asarray(label))
+        logits = np.asarray(res[-1], dtype=np.int)
+        res_diff = np.equal(clean(logits), np.asarray(label)[-1])
+        _resultWriter(res_diff.astype(int), 'diff',
+                      path=rlt_dir)  # for diff output shape: [batch, w, h, 3]
 
-    # note: save diff of all imgs
-    _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
-                  path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
+
 
     # return
     return activations
@@ -737,9 +748,10 @@ if __name__ == '__main__':
         'nb_patch': None,
         'stride': 1,
         'device_option': 'cpu',
+        'mode': 'classification',
     }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2019_12_3_bs8_ps512_lr0.0001_cs9_nc48_do0.1_act_leaky_aug_True_commentLRCS_lite_BN/hour17/'
+    graph_def_dir = './logs/2019_12_13_bs8_ps512_lr1_cs3_nc48_do0.1_act_leaky_aug_True_mdl_LRCS_mode_classification_comment_Cross_entropy_on_hot_1/hour16/'
     step = 0
     step_init = 0
     paths = {
@@ -757,10 +769,10 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    # visualize_weights(params=paths)
+    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+    visualize_weights(params=paths)
 
-    step = 16888
+    step = 174964
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50
@@ -777,10 +789,10 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    # tsne_on_weights(params=paths, mode='2D')
-    # tsne_on_bias(params=paths, mode='2D')
-    # visualize_weights(params=paths)
+    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+    tsne_on_weights(params=paths, mode='2D')
+    tsne_on_bias(params=paths, mode='2D')
+    visualize_weights(params=paths)
     weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])

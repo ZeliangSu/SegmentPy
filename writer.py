@@ -3,8 +3,10 @@ import h5py
 import numpy as np
 import multiprocessing as mp
 from PIL import Image
-from util import check_N_mkdir
+from util import check_N_mkdir, clean
 from itertools import repeat
+from input import _inverse_one_hot
+
 import logging
 import log
 logger = log.setup_custom_logger('root')
@@ -170,11 +172,26 @@ def _resultWriter(tensor, layer_name='', path=None):
     # for writting inference partial rlt
     if isinstance(tensor, list):
         for i, elt in enumerate(tensor):
-            Image.fromarray(np.array(elt)).save(path + '{}/{}.tif'.format(layer_name, i))
+            logger.debug('layer_name: {}'.format(layer_name))
+            if (True in np.isnan(elt)) or (True in np.isinf(elt)):
+                elt = clean(elt)
+            try:
+                Image.fromarray(np.array(elt)).save(path + '{}/{}.tif'.format(layer_name, i))
+            except Exception as e:
+                logger.debug(e)
+                logger.warning('Clean function cannot clean the nan value from the layer {}! But code continues!'.format(layer_name))
+                pass
     else:
         #  treat dnn
         if tensor.ndim == 1:
             Image.fromarray(np.expand_dims(tensor, axis=0)).save(path + '{}/dnn.tif'.format(layer_name))
+
+        #  for one-hoted tensor
+        elif tensor.ndim == 4:
+            stack = _inverse_one_hot(tensor)
+            for i in range(stack.shape[0]):
+                Image.fromarray(stack[i]).save([path + '{}/{}.tif'.format(layer_name, i)])
+
         #  for cnn
         else:
             for i in range(tensor.shape[2]):

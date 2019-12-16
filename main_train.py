@@ -8,10 +8,11 @@ from model import *
 from train import train_test
 from util import check_N_mkdir
 
+# logging
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # params
 hyperparams = {
@@ -32,7 +33,7 @@ hyperparams = {
     'save_step': 500,
     'save_summary_step': 50,
     'folder_name': None,
-    'model': 'ind_3c_3b_3c',
+    'model': 'LRCS',
     'mode': 'classification',
 }
 
@@ -48,7 +49,7 @@ hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug
     str(hyperparams['augmentation']),
     hyperparams['model'],
     hyperparams['mode'],
-    'Cross_entropy',  #note: here put your special comment
+    'Cross_entropy_correct_the_one_hot_func',  #note: here put your special comment
     hyperparams['hour'],
 )
 

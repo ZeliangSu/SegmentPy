@@ -2409,141 +2409,141 @@ import pandas as pd
 from scipy.interpolate import interp2d
 import os
 # prevent GPU
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
-
-#note: state includes weights, bias, BN
-def get_diff_state(state1, state2):
-    assert isinstance(state1, dict)
-    assert isinstance(state2, dict)
-    return {k: v2 - v1 for (k, _), (v1, v2) in zip(state1.items(), state2.items())}
-
-
-def get_random_state(state):
-    assert isinstance(state, dict)
-    return {k: np.random.randn(*v.shape) for k, v in state.items()}
-
-
-def get_state(ckpt_path):
-    tf.reset_default_graph()
-    loader = tf.train.import_meta_graph(ckpt_path + '.meta', clear_devices=True)
-    state = {}
-    with tf.Session() as sess:
-        loader.restore(sess, ckpt_path)
-        # print_nodes_name_shape(tf.get_default_graph())
-        ckpt_weight_names = []
-        for node in tf.get_default_graph().as_graph_def().node:
-            if node.name.endswith('w1') or \
-                    node.name.endswith('b1') or \
-                    node.name.endswith('beta') or \
-                    node.name.endswith('gamma'):
-                ckpt_weight_names.append(node.name + ':0')
-
-        # get weights/bias
-        for k in ckpt_weight_names:
-            v = sess.run(k)
-            state[k] = v
-    return state
-
-
-def _normalize_direction(perturbation, weight):
-    assert isinstance(perturbation, np.ndarray)
-    assert isinstance(weight, np.ndarray)
-    norm_w = np.linalg.norm(weight)
-    norm_pert = np.linalg.norm(perturbation)
-    print('norm_w, norm_pert: {}, {}'.format(norm_w, norm_pert))
-    perturbation *= norm_w / (norm_pert)
-    return perturbation, weight
-
-
-def normalize_state(directions, state):
-    assert isinstance(directions, dict)
-    assert isinstance(state, dict)
-    backup = copy.deepcopy(directions)
-    for (d_name, direct), (name, weight) in zip(backup.items(), state.items()):
-        _normalize_direction(direct, weight)
-    return backup
-
-
-def move_state(sess, name, value, leap):
-    # if ('beta' not in name) and ('gamma' not in name):
-    weight = sess.graph.get_tensor_by_name(name)
-    try:
-        # print('leap: {}'.format(leap))
-        # initial = sess.run(weight)
-        # print('\n{} init: {}'.format(name, initial))
-        # assign = sess.run(tf.assign(weight, value))
-        # print('\n{} Assigned: {}'.format(name, assign))
-        after = sess.run(tf.assign(weight, value + leap))
-        # print('\nAfter: {}'.format(after))
-    except Exception as e:
-        print('initial shape: \n', sess.run(value).shape)
-        print('leap shape: \n', leap.shape)
-        print('\nError threw while trying to move weight: {}'.format(name))
-        print(e)
-
-
-
-def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outputs, comm=None):
-    '''return loss and acc'''
-    assert isinstance(direction_2D, list), 'dir should be list'
-    assert isinstance(xcoord, float), 'xcoord should be float'
-    assert isinstance(ycoord, float), 'ycoord should be float'
-    # print('inputs: {}'.format(inputs))
-    # print('outputs: {}'.format(outputs))
-    # print('xcoord:', xcoord)
-    sess.run([tf.local_variables_initializer()])  # note: should initialize here otherwise it will keep cumulating for the average
-    # change state in the neural network
-    new_logits = graph.get_tensor_by_name('model/MLP/logits:0')
-    loss_tensor = graph.get_tensor_by_name('metrics/loss/value:0')
-    acc_tensor = graph.get_tensor_by_name('metrics/acc/value:0')
-    new_loss_update_op = graph.get_operation_by_name('metrics/loss/update_op')
-    new_acc_update_op = graph.get_operation_by_name('metrics/acc/update_op')
-    new_input_ph = graph.get_tensor_by_name('input_ph:0')
-    new_output_ph = graph.get_tensor_by_name('output_ph:0')
-    new_BN_ph = graph.get_tensor_by_name('BN_phase:0')
-
-    # print('inputs avg: {}, outputs avg: {}'.format(np.mean(inputs), np.mean(outputs)))
-
-    dx = {k: xcoord * v for k, v in direction_2D[0].items()}  # step size * direction x
-    dy = {k: ycoord * v for k, v in direction_2D[1].items()}  # step size * direction y
-    change = {k: _dx + _dy for (k, _dx), (_, _dy) in zip(dx.items(), dy.items())}
-    # calculate the perturbation
-    for k, v in state.items():
-        move_state(sess, name=k, value=v, leap=change[k])
-
-    # feed forward with batches
-    for repeat in range(2):
-        #note: (TF intrisic: at least 2 times, or loss/acc 0.0)should iterate at least several time, Or loss=acc=0, since there's a counter for the average
-        new_log, loss, acc, _, _ = sess.run([new_logits, loss_tensor, acc_tensor, new_acc_update_op, new_loss_update_op],
-                                   feed_dict={new_input_ph: inputs,
-                                              new_output_ph: outputs,
-                                              new_BN_ph: True,
-                                              #note: (TF1.14)WTF? here should be True while producing loss-landscape
-                                              #fixme: should check if the mov_avg/mov_std/beta/gamma change
-                                              })
-    if comm is not None:
-        if comm.Get_rank() != 0:
-            comm.send(1, dest=0, tag=tag_compute)
-
-    # print('lss:{}, acc:{}, predict:{}'.format(loss, acc, np.mean(new_log)))
-    return loss, acc
-
-
-def csv_interp(x_mesh, y_mesh, metrics_tensor, out_path, interp_scope=5):
-    new_xmesh = np.linspace(np.min(x_mesh), np.max(x_mesh), interp_scope * x_mesh.shape[0])
-    new_ymesh = np.linspace(np.min(y_mesh), np.max(y_mesh), interp_scope * x_mesh.shape[1])
-    newxx, newyy = np.meshgrid(new_xmesh, new_ymesh)
-
-    # interpolation
-    interpolation = interp2d(x_mesh, y_mesh, metrics_tensor, kind='cubic')
-    zval = interpolation(new_xmesh, new_ymesh)
-    pd.DataFrame({'xcoord': newxx.ravel(),
-                  'ycoord': newyy.ravel(),
-                  'zval': zval.ravel()}
-                 ).to_csv(out_path, index=False)
-
-
-config = tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
+# os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+#
+# #note: state includes weights, bias, BN
+# def get_diff_state(state1, state2):
+#     assert isinstance(state1, dict)
+#     assert isinstance(state2, dict)
+#     return {k: v2 - v1 for (k, _), (v1, v2) in zip(state1.items(), state2.items())}
+#
+#
+# def get_random_state(state):
+#     assert isinstance(state, dict)
+#     return {k: np.random.randn(*v.shape) for k, v in state.items()}
+#
+#
+# def get_state(ckpt_path):
+#     tf.reset_default_graph()
+#     loader = tf.train.import_meta_graph(ckpt_path + '.meta', clear_devices=True)
+#     state = {}
+#     with tf.Session() as sess:
+#         loader.restore(sess, ckpt_path)
+#         # print_nodes_name_shape(tf.get_default_graph())
+#         ckpt_weight_names = []
+#         for node in tf.get_default_graph().as_graph_def().node:
+#             if node.name.endswith('w1') or \
+#                     node.name.endswith('b1') or \
+#                     node.name.endswith('beta') or \
+#                     node.name.endswith('gamma'):
+#                 ckpt_weight_names.append(node.name + ':0')
+#
+#         # get weights/bias
+#         for k in ckpt_weight_names:
+#             v = sess.run(k)
+#             state[k] = v
+#     return state
+#
+#
+# def _normalize_direction(perturbation, weight):
+#     assert isinstance(perturbation, np.ndarray)
+#     assert isinstance(weight, np.ndarray)
+#     norm_w = np.linalg.norm(weight)
+#     norm_pert = np.linalg.norm(perturbation)
+#     print('norm_w, norm_pert: {}, {}'.format(norm_w, norm_pert))
+#     perturbation *= norm_w / (norm_pert)
+#     return perturbation, weight
+#
+#
+# def normalize_state(directions, state):
+#     assert isinstance(directions, dict)
+#     assert isinstance(state, dict)
+#     backup = copy.deepcopy(directions)
+#     for (d_name, direct), (name, weight) in zip(backup.items(), state.items()):
+#         _normalize_direction(direct, weight)
+#     return backup
+#
+#
+# def move_state(sess, name, value, leap):
+#     # if ('beta' not in name) and ('gamma' not in name):
+#     weight = sess.graph.get_tensor_by_name(name)
+#     try:
+#         # print('leap: {}'.format(leap))
+#         # initial = sess.run(weight)
+#         # print('\n{} init: {}'.format(name, initial))
+#         # assign = sess.run(tf.assign(weight, value))
+#         # print('\n{} Assigned: {}'.format(name, assign))
+#         after = sess.run(tf.assign(weight, value + leap))
+#         # print('\nAfter: {}'.format(after))
+#     except Exception as e:
+#         print('initial shape: \n', sess.run(value).shape)
+#         print('leap shape: \n', leap.shape)
+#         print('\nError threw while trying to move weight: {}'.format(name))
+#         print(e)
+#
+#
+#
+# def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outputs, comm=None):
+#     '''return loss and acc'''
+#     assert isinstance(direction_2D, list), 'dir should be list'
+#     assert isinstance(xcoord, float), 'xcoord should be float'
+#     assert isinstance(ycoord, float), 'ycoord should be float'
+#     # print('inputs: {}'.format(inputs))
+#     # print('outputs: {}'.format(outputs))
+#     # print('xcoord:', xcoord)
+#     sess.run([tf.local_variables_initializer()])  # note: should initialize here otherwise it will keep cumulating for the average
+#     # change state in the neural network
+#     new_logits = graph.get_tensor_by_name('model/MLP/logits:0')
+#     loss_tensor = graph.get_tensor_by_name('metrics/loss/value:0')
+#     acc_tensor = graph.get_tensor_by_name('metrics/acc/value:0')
+#     new_loss_update_op = graph.get_operation_by_name('metrics/loss/update_op')
+#     new_acc_update_op = graph.get_operation_by_name('metrics/acc/update_op')
+#     new_input_ph = graph.get_tensor_by_name('input_ph:0')
+#     new_output_ph = graph.get_tensor_by_name('output_ph:0')
+#     new_BN_ph = graph.get_tensor_by_name('BN_phase:0')
+#
+#     # print('inputs avg: {}, outputs avg: {}'.format(np.mean(inputs), np.mean(outputs)))
+#
+#     dx = {k: xcoord * v for k, v in direction_2D[0].items()}  # step size * direction x
+#     dy = {k: ycoord * v for k, v in direction_2D[1].items()}  # step size * direction y
+#     change = {k: _dx + _dy for (k, _dx), (_, _dy) in zip(dx.items(), dy.items())}
+#     # calculate the perturbation
+#     for k, v in state.items():
+#         move_state(sess, name=k, value=v, leap=change[k])
+#
+#     # feed forward with batches
+#     for repeat in range(2):
+#         #note: (TF intrisic: at least 2 times, or loss/acc 0.0)should iterate at least several time, Or loss=acc=0, since there's a counter for the average
+#         new_log, loss, acc, _, _ = sess.run([new_logits, loss_tensor, acc_tensor, new_acc_update_op, new_loss_update_op],
+#                                    feed_dict={new_input_ph: inputs,
+#                                               new_output_ph: outputs,
+#                                               new_BN_ph: True,
+#                                               #note: (TF1.14)WTF? here should be True while producing loss-landscape
+#                                               #fixme: should check if the mov_avg/mov_std/beta/gamma change
+#                                               })
+#     if comm is not None:
+#         if comm.Get_rank() != 0:
+#             comm.send(1, dest=0, tag=tag_compute)
+#
+#     # print('lss:{}, acc:{}, predict:{}'.format(loss, acc, np.mean(new_log)))
+#     return loss, acc
+#
+#
+# def csv_interp(x_mesh, y_mesh, metrics_tensor, out_path, interp_scope=5):
+#     new_xmesh = np.linspace(np.min(x_mesh), np.max(x_mesh), interp_scope * x_mesh.shape[0])
+#     new_ymesh = np.linspace(np.min(y_mesh), np.max(y_mesh), interp_scope * x_mesh.shape[1])
+#     newxx, newyy = np.meshgrid(new_xmesh, new_ymesh)
+#
+#     # interpolation
+#     interpolation = interp2d(x_mesh, y_mesh, metrics_tensor, kind='cubic')
+#     zval = interpolation(new_xmesh, new_ymesh)
+#     pd.DataFrame({'xcoord': newxx.ravel(),
+#                   'ycoord': newyy.ravel(),
+#                   'zval': zval.ravel()}
+#                  ).to_csv(out_path, index=False)
+#
+#
+# config = tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
 
 ################## model
 # inputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 3  # noise + avg:3
@@ -2554,58 +2554,63 @@ config = tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
 #   note: uncomment below to train a model
 #
 ##########################
-# input_ph = tf.placeholder(tf.float32, [None, 20, 20, 1], name='input_ph')
-# output_ph = tf.placeholder(tf.float32, [None, 20, 20, 1], name='output_ph')
-# BN_phase = tf.placeholder(tf.bool, [], name='BN_phase')
-# # model
-#
-# with tf.variable_scope('model'):
-#     with tf.name_scope('MLP'):
-#         w1 = tf.get_variable('w1', [400 * 1, 400 * 1])
-#         # b1 = tf.get_variable('b1', [400 * 1])
-#         flatten = tf.reshape(input_ph, [-1, 400])
-#         layer = tf.matmul(flatten, w1)
-#         # layer = layer + b1
-#         layer = tf.layers.batch_normalization(layer, training=BN_phase)
-#         logits = tf.nn.relu(layer)
-#         logits = tf.reshape(logits, [-1, 20, 20, 1], name='logits')
-#
-# with tf.name_scope('operation'):
-#     loss = tf.losses.mean_squared_error(labels=output_ph, predictions=logits, scope='MSE')
-#     opt = tf.train.AdamOptimizer(learning_rate=1)
-#     grads = opt.compute_gradients(loss)
-#     train_op = opt.apply_gradients(grads)
-#
-# with tf.name_scope('metrics'):
-#     loss_val_op, loss_update_op = tf.metrics.mean(loss, name='loss')
-#     acc_val_op, acc_update_op = tf.metrics.accuracy(labels=tf.cast(output_ph, tf.int32), predictions=tf.cast(logits, tf.int32), name='acc')
-#
-#
-# ################## trainning
-# check_N_mkdir('./dummy/ckpt/')
-#
-# with tf.Session(config=config) as sess:
-#     saver = tf.train.Saver(max_to_keep=10000)
-#     sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-#     saver.save(sess, './dummy/ckpt/step0')
-#     for step in tqdm(range(10000)):
-#         inputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 8  # noise + avg:3
-#         outputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 64  # avg: 9
-#         _, logit, _acc, _loss, _, _, = sess.run(
-#             [train_op, logits, acc_val_op, loss_val_op, acc_update_op, loss_update_op], feed_dict={
-#                 input_ph: inputs,
-#                 output_ph: outputs,
-#                 BN_phase: True,
-#             }
-#         )
-#         print('acc {} lss {} log {}'.format(_acc, _loss, np.mean(logit)))
-#         # note: acc 0.004492355510592461 lss 4655.95654296875 log -22.420454025268555 (with b1)
-#         #  acc 0.1409694403409958 lss 12.473745346069336 log 9.876103401184082 (with BN)
-#         #  acc 0.1338576078414917 lss 13.37901782989502 log 9.91382122039795(with BN then b1)
-#         #  acc 0.14119061827659607 lss 12.39465045928955 log 10.003917694091797 (with b1 then BN)
-#         #  acc acc 0.1074141189455986 lss 21.29730224609375 log 9.910054206848145(with BN, lr=5)
-#         if step == 4999 or step == 9999:
-#             saver.save(sess, './dummy/ckpt/step{}'.format(step))
+input_ph = tf.placeholder(tf.float32, [None, 20, 20, 1], name='input_ph')
+output_ph = tf.placeholder(tf.float32, [None, 20, 20, 1], name='output_ph')
+BN_phase = tf.placeholder(tf.bool, [], name='BN_phase')
+# model
+
+with tf.variable_scope('model'):
+    with tf.name_scope('MLP'):
+        w1 = tf.get_variable('w1', [400 * 1, 400 * 1])
+        # b1 = tf.get_variable('b1', [400 * 1])
+        flatten = tf.reshape(input_ph, [-1, 400])
+        layer = tf.matmul(flatten, w1)
+        # layer = layer + b1
+        layer = tf.layers.batch_normalization(layer, training=BN_phase)
+        logits = tf.nn.relu(layer)
+        logits = tf.reshape(logits, [-1, 20, 20, 1], name='logits')
+
+with tf.name_scope('operation'):
+    loss = tf.losses.mean_squared_error(labels=output_ph, predictions=logits, scope='MSE')
+    opt = tf.train.AdamOptimizer(learning_rate=1)
+    grads = opt.compute_gradients(loss)
+    train_op = opt.apply_gradients(grads)
+
+with tf.name_scope('metrics'):
+    loss_val_op, loss_update_op = tf.metrics.mean(loss, name='loss')
+    acc_val_op, acc_update_op = tf.metrics.accuracy(labels=tf.cast(output_ph, tf.int32), predictions=tf.cast(logits, tf.int32), name='acc')
+
+
+################## trainning
+check_N_mkdir('./dummy/ckpt/')
+
+with tf.Session() as sess:
+    saver = tf.train.Saver(max_to_keep=10000)
+    sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+    saver.save(sess, './dummy/ckpt/step0')
+    dict = {'step':[], 'loss': [], 'accuracy': []}
+    for step in tqdm(range(10000)):
+        inputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 8  # noise + avg:3
+        outputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 64  # avg: 9
+        _, logit, _acc, _loss, _, _, = sess.run(
+            [train_op, logits, acc_val_op, loss_val_op, acc_update_op, loss_update_op], feed_dict={
+                input_ph: inputs,
+                output_ph: outputs,
+                BN_phase: True,
+            }
+        )
+        print('acc {} lss {} log {}'.format(_acc, _loss, np.mean(logit)))
+        dict['loss'].append(_loss)
+        dict['accuracy'].append(_acc)
+        dict['step'].append(step)
+        # note: acc 0.004492355510592461 lss 4655.95654296875 log -22.420454025268555 (with b1)
+        #  acc 0.1409694403409958 lss 12.473745346069336 log 9.876103401184082 (with BN)
+        #  acc 0.1338576078414917 lss 13.37901782989502 log 9.91382122039795(with BN then b1)
+        #  acc 0.14119061827659607 lss 12.39465045928955 log 10.003917694091797 (with b1 then BN)
+        #  acc acc 0.1074141189455986 lss 21.29730224609375 log 9.910054206848145(with BN, lr=5)
+        if step % 1000 == 0:
+            saver.save(sess, './dummy/ckpt/step{}'.format(step))
+    pd.DataFrame(dict).to_csv('./dummy/loss_acc.csv', index=False, sep=';')
 
 ##########################
 #
@@ -2616,75 +2621,79 @@ config = tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
 
 ################## restore 2 ckpts and calculate directions
 
-# get 2 ckpts
-ckpt1_path = './dummy/ckpt/step0'
-ckpt2_path = './dummy/ckpt/step4999'
-ckpt3_path = './dummy/ckpt/step9999'
-
-# get state 1, 2
-state1 = get_state(ckpt1_path)
-state2 = get_state(ckpt2_path)
-state3 = get_state(ckpt3_path)
-
-# get random directions
-rand_direct1 = get_random_state(state1)
-rand_direct1_bis = get_random_state(state1)
-rand_direct2 = get_random_state(state2)
-rand_direct2_bis = get_random_state(state2)
-rand_direct3 = get_random_state(state3)
-rand_direct3_bis = get_random_state(state3)
-
-# normalize directions by weights
-normalized_ds1 = normalize_state(rand_direct1, state1)
-normalized_ds1_bis = normalize_state(rand_direct1_bis, state1)
-normalized_ds2 = normalize_state(rand_direct2, state2)
-normalized_ds2_bis = normalize_state(rand_direct2_bis, state2)
-normalized_ds3 = normalize_state(rand_direct3, state3)
-normalized_ds3_bis = normalize_state(rand_direct3_bis, state3)
+# # get 2 ckpts
+# ckpt1_path = './dummy/ckpt/step0'
+# ckpt2_path = './dummy/ckpt/step4999'
+# ckpt3_path = './dummy/ckpt/step9999'
+#
+# # get state 1, 2
+# state1 = get_state(ckpt1_path)
+# state2 = get_state(ckpt2_path)
+# state3 = get_state(ckpt3_path)
+#
+# # get random directions
+# rand_direct1 = get_random_state(state1)
+# rand_direct1_bis = get_random_state(state1)
+# rand_direct2 = get_random_state(state2)
+# rand_direct2_bis = get_random_state(state2)
+# rand_direct3 = get_random_state(state3)
+# rand_direct3_bis = get_random_state(state3)
+#
+# # normalize directions by weights
+# normalized_ds1 = normalize_state(rand_direct1, state1)
+# normalized_ds1_bis = normalize_state(rand_direct1_bis, state1)
+# normalized_ds2 = normalize_state(rand_direct2, state2)
+# normalized_ds2_bis = normalize_state(rand_direct2_bis, state2)
+# normalized_ds3 = normalize_state(rand_direct3, state3)
+# normalized_ds3_bis = normalize_state(rand_direct3_bis, state3)
 
 # create direction and surface .h5
-loss_landscape_file_path = './dummy/loss_land.h5'
-x_min, x_max, x_nb = -1, 1, 51
-y_min, y_max, y_nb = -1, 1, 51
-xcoord = np.linspace(x_min, x_max, x_nb).ravel()
-ycoord = np.linspace(y_min, y_max, y_nb).ravel()
-xm, ym = np.meshgrid(xcoord, ycoord)
+# loss_landscape_file_path = './dummy/loss_land.h5'
+# x_min, x_max, x_nb = -1, 1, 51
+# y_min, y_max, y_nb = -1, 1, 51
+# xcoord = np.linspace(x_min, x_max, x_nb).ravel()
+# ycoord = np.linspace(y_min, y_max, y_nb).ravel()
+# xm, ym = np.meshgrid(xcoord, ycoord)
 
 
-# get the model skeleton
-tf.reset_default_graph()
-loader = tf.train.import_meta_graph(ckpt3_path + '.meta', clear_devices=True)
+
 
 # calculate loss/acc for each point on the surface (try first with only for loop)
 # start feeding
-l_states = [
-    state3,
-    state2,
-    state1
-]
-l_ckpts = [
-    ckpt3_path,
-    ckpt2_path,
-    ckpt1_path
-]
-l_steps = [
-    '9999',
-    '4999',
-    '0'
-]
 
-l_directions = [
-    normalized_ds3,
-    normalized_ds2,
-    normalized_ds1,
-]
 
-l_directions_bis = [
-    normalized_ds3_bis,
-    normalized_ds2_bis,
-    normalized_ds1_bis,
-]
+# l_states = [
+#     state3,
+#     state2,
+#     state1
+# ]
+# l_ckpts = [
+#     ckpt3_path,
+#     ckpt2_path,
+#     ckpt1_path
+# ]
+# l_steps = [
+#     '9999',
+#     '4999',
+#     '0'
+# ]
+#
+# l_directions = [
+#     normalized_ds3,
+#     normalized_ds2,
+#     normalized_ds1,
+# ]
+#
+# l_directions_bis = [
+#     normalized_ds3_bis,
+#     normalized_ds2_bis,
+#     normalized_ds1_bis,
+# ]
 
+
+# get the model skeleton
+# tf.reset_default_graph()
+# loader = tf.train.import_meta_graph(l_ckpts[-1] + '.meta', clear_devices=True)
 
 ###########################
 #
@@ -2843,6 +2852,151 @@ l_directions_bis = [
 #################################################
 from mpi4py import MPI
 import matplotlib.pyplot as plt
+import tensorflow as tf
+import numpy as np
+from tqdm import tqdm
+from util import print_nodes_name_shape
+import copy
+import pandas as pd
+from scipy.interpolate import interp2d
+from scipy.spatial.distance import cosine, euclidean
+import os
+# prevent GPU
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
+#note: state includes weights, bias, BN
+def get_diff_state(state1, state2):
+    assert isinstance(state1, dict)
+    assert isinstance(state2, dict)
+    return {k: v2 - v1 for (k, _), (v1, v2) in zip(state1.items(), state2.items())}
+
+
+def get_random_state(state):
+    assert isinstance(state, dict)
+    return {k: np.random.randn(*v.shape) for k, v in state.items()}
+
+
+def get_state(ckpt_path):
+    tf.reset_default_graph()
+    loader = tf.train.import_meta_graph(ckpt_path + '.meta', clear_devices=True)
+    state = {}
+    with tf.Session() as sess:
+        loader.restore(sess, ckpt_path)
+        # print_nodes_name_shape(tf.get_default_graph())
+        ckpt_weight_names = []
+        for node in tf.get_default_graph().as_graph_def().node:
+            if node.name.endswith('w1') or \
+                    node.name.endswith('b1') or \
+                    node.name.endswith('beta') or \
+                    node.name.endswith('gamma'):
+                ckpt_weight_names.append(node.name + ':0')
+
+        # get weights/bias
+        for k in ckpt_weight_names:
+            v = sess.run(k)
+            state[k] = v
+    return state
+
+
+def _normalize_direction(perturbation, weight):
+    assert isinstance(perturbation, np.ndarray)
+    assert isinstance(weight, np.ndarray)
+    norm_w = np.linalg.norm(weight)
+    norm_pert = np.linalg.norm(perturbation)
+    print('norm_w, norm_pert: {}, {}'.format(norm_w, norm_pert))
+    perturbation *= norm_w / (norm_pert)
+    return perturbation, weight
+
+
+def normalize_state(directions, state):
+    assert isinstance(directions, dict)
+    assert isinstance(state, dict)
+    backup = copy.deepcopy(directions)
+    for (d_name, direct), (name, weight) in zip(backup.items(), state.items()):
+        _normalize_direction(direct, weight)
+    return backup
+
+
+def move_state(sess, name, value, leap):
+    # if ('beta' not in name) and ('gamma' not in name):
+    weight = sess.graph.get_tensor_by_name(name)
+    try:
+        # print('leap: {}'.format(leap))
+        # initial = sess.run(weight)
+        # print('\n{} init: {}'.format(name, initial))
+        # assign = sess.run(tf.assign(weight, value))
+        # print('\n{} Assigned: {}'.format(name, assign))
+        after = sess.run(tf.assign(weight, value + leap))
+        # print('\nAfter: {}'.format(after))
+    except Exception as e:
+        print('initial shape: \n', sess.run(value).shape)
+        print('leap shape: \n', leap.shape)
+        print('\nError threw while trying to move weight: {}'.format(name))
+        print(e)
+
+
+def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outputs, comm=None):
+    '''return loss and acc'''
+    assert isinstance(direction_2D, list), 'dir should be list'
+    assert isinstance(xcoord, float), 'xcoord should be float'
+    assert isinstance(ycoord, float), 'ycoord should be float'
+    # print('inputs: {}'.format(inputs))
+    # print('outputs: {}'.format(outputs))
+    # print('xcoord:', xcoord)
+    sess.run([tf.local_variables_initializer()])  # note: should initialize here otherwise it will keep cumulating for the average
+    # print(sess.run(tf.local_variables()))  #note: uncomment this line to see if local_variables(metrics/loss/count...) are well init
+    # change state in the neural network
+    new_logits = graph.get_tensor_by_name('model/MLP/logits:0')
+    loss_tensor = graph.get_tensor_by_name('metrics/loss/value:0')
+    acc_tensor = graph.get_tensor_by_name('metrics/acc/value:0')
+    new_loss_update_op = graph.get_operation_by_name('metrics/loss/update_op')
+    new_acc_update_op = graph.get_operation_by_name('metrics/acc/update_op')
+    new_input_ph = graph.get_tensor_by_name('input_ph:0')
+    new_output_ph = graph.get_tensor_by_name('output_ph:0')
+    new_BN_ph = graph.get_tensor_by_name('BN_phase:0')
+
+    # print('inputs avg: {}, outputs avg: {}'.format(np.mean(inputs), np.mean(outputs)))
+
+    dx = {k: xcoord * v for k, v in direction_2D[0].items()}  # step size * direction x
+    dy = {k: ycoord * v for k, v in direction_2D[1].items()}  # step size * direction y
+    change = {k: _dx + _dy for (k, _dx), (_, _dy) in zip(dx.items(), dy.items())}
+    # calculate the perturbation
+    for k, v in state.items():
+        move_state(sess, name=k, value=v, leap=change[k])
+
+    # feed forward with batches
+    for repeat in range(2):
+        #note: (TF intrisic: at least 2 times, or loss/acc 0.0)should iterate at least several time, Or loss=acc=0, since there's a counter for the average
+        new_log, loss_ff, acc_ff, _, _ = sess.run([new_logits, loss_tensor, acc_tensor, new_acc_update_op, new_loss_update_op],
+                                   feed_dict={new_input_ph: inputs,
+                                              new_output_ph: outputs,
+                                              new_BN_ph: True,
+                                              #note: (TF1.14)WTF? here should be True while producing loss-landscape
+                                              #fixme: should check if the mov_avg/mov_std/beta/gamma change
+                                              })
+    if comm is not None:
+        if comm.Get_rank() != 0:
+            comm.send(1, dest=0, tag=tag_compute)
+
+    # print('lss:{}, acc:{}, predict:{}'.format(loss, acc, np.mean(new_log)))
+    return loss_ff, acc_ff
+
+
+def csv_interp(x_mesh, y_mesh, metrics_tensor, out_path, interp_scope=5):
+    new_xmesh = np.linspace(np.min(x_mesh), np.max(x_mesh), interp_scope * x_mesh.shape[0])
+    new_ymesh = np.linspace(np.min(y_mesh), np.max(y_mesh), interp_scope * x_mesh.shape[1])
+    newxx, newyy = np.meshgrid(new_xmesh, new_ymesh)
+
+    # interpolation
+    interpolation = interp2d(x_mesh, y_mesh, metrics_tensor, kind='cubic')
+    zval = interpolation(new_xmesh, new_ymesh)
+    pd.DataFrame({'xcoord': newxx.ravel(),
+                  'ycoord': newyy.ravel(),
+                  'zval': zval.ravel()}
+                 ).to_csv(out_path, index=False)
+
+
+config = tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
 
 # mac OS
 import os
@@ -2870,10 +3024,10 @@ def feed_forward_MP(ckpt_path, state, direction_2D, x_mesh, y_mesh, comm=None):
 
     with tf.Session() as sess:
         sess.run([tf.local_variables_initializer()])
-        print(sess.run(tf.local_variables()))  #note: local_variables include metrics/acc/total; metrics/loss/count; metrics/acc/count...
+        # print(sess.run(tf.local_variables()))  #note: local_variables include metrics/acc/total; metrics/loss/count; metrics/acc/count...
         loader.restore(sess, ckpt_path)
         graph = tf.get_default_graph()
-        print_nodes_name_shape(graph)
+        # print_nodes_name_shape(graph)
         for i in range(x_mesh.size):
             inputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 8  # noise + avg:8
             outputs = np.ones((8, 20, 20, 1)) * 64   # avg: 9
@@ -2891,36 +3045,35 @@ def feed_forward_MP(ckpt_path, state, direction_2D, x_mesh, y_mesh, comm=None):
     # print('\nacc', tmp_acc)
     return tmp_loss.astype(np.float32), tmp_acc.astype(np.float32)
 
+l_steps = [str(i * 1000) for i in range(10)]
+l_ckpts = ['./dummy/ckpt/step{}'.format(i) for i in l_steps]
+l_states = [get_state(_c) for _c in l_ckpts]
+l_directions = [normalize_state(get_random_state(_s), _s) for _s in l_states]
+l_directions_bis = [normalize_state(get_random_state(_s), _s) for _s in l_states]
 
-# get 2 ckpts
-ckpt1_path = './dummy/ckpt/step0'
-ckpt2_path = './dummy/ckpt/step4999'
-ckpt3_path = './dummy/ckpt/step9999'
+# compute l2-norm and cos
+l_angles = []
+for i, (dict1, dict2) in enumerate(zip(l_directions, l_directions_bis)):
+    tmp = {}
+    for (k1, v1), (k2, v2) in zip(dict1.items(), dict2.items()):
+        assert k1 == k2, 'Found different weights names'
+        tmp[k1] = cosine(v1, v2)
+    l_angles.append(tmp)
 
-# get state 1, 2
-state1 = get_state(ckpt1_path)
-state2 = get_state(ckpt2_path)
-state3 = get_state(ckpt3_path)
+l_L2norm = []
+for i, (dict1, dict2) in enumerate(zip(l_directions, l_directions_bis)):
+    tmp = {}
+    for (k1, v1), (k2, v2) in zip(dict1.items(), dict2.items()):
+        assert k1 == k2, 'Found different weights names'
+        tmp[k1] = euclidean(v1, v2)
+    l_angles.append(tmp)
 
-# get random directions
-rand_direct1 = get_random_state(state1)
-# print('avg rand state:{}'.format(np.mean([np.mean(v) for v in rand_direct1.values()])))
-rand_direct1_bis = get_random_state(state1)
-rand_direct2 = get_random_state(state2)
-rand_direct2_bis = get_random_state(state2)
-rand_direct3 = get_random_state(state3)
-rand_direct3_bis = get_random_state(state3)
-
-# normalize directions by weights
-normalized_ds1 = normalize_state(rand_direct1, state1)
-normalized_ds1_bis = normalize_state(rand_direct1_bis, state1)
-normalized_ds2 = normalize_state(rand_direct2, state2)
-normalized_ds2_bis = normalize_state(rand_direct2_bis, state2)
-normalized_ds3 = normalize_state(rand_direct3, state3)
-normalized_ds3_bis = normalize_state(rand_direct3_bis, state3)
+# write cos and l2-norm to xlsw
+for i, angle in enumerate(l_angles):
+    with pd.ExcelWriter('./dummy/cosin.xlsx', engine='xlsxwriter') as writer:
+        angle['step{}'.format(i * 1000)].to_excel(writer, index=False, header=False)
 
 # create direction and surface .h5
-loss_landscape_file_path = './dummy/loss_land.h5'
 x_min, x_max, x_nb = -1, 1, 51
 y_min, y_max, y_nb = -1, 1, 51
 xcoord = np.linspace(x_min, x_max, x_nb).ravel()
@@ -2930,50 +3083,12 @@ xm = xm.astype(np.float32)
 ym = ym.astype(np.float32)
 
 # get the model skeleton
-tf.reset_default_graph()
-loader = tf.train.import_meta_graph(ckpt1_path + '.meta', clear_devices=True)
+# tf.reset_default_graph()
+# loader = tf.train.import_meta_graph(ckpt1_path + '.meta', clear_devices=True)
 
 # calculate loss/acc for each point on the surface (try first with only for loop)
 # start feeding
-l_states = [
-    state3,
-    state2,
-    state1
-]
-l_ckpts = [
-    ckpt3_path,
-    ckpt2_path,
-    ckpt1_path
-]
-l_steps = [
-    '9999',
-    '4999',
-    '0'
-]
 
-l_directions = [
-    rand_direct3,  # normalized_ds3,
-    rand_direct2,  # normalized_ds2,
-    rand_direct1,  # normalized_ds1,
-]
-#
-# l_directions = [
-#     normalized_ds3,
-#     normalized_ds2,
-#     normalized_ds1,
-# ]
-#
-l_directions_bis = [
-    rand_direct3_bis,  # normalized_ds3_bis,
-    rand_direct2_bis,  # normalized_ds2_bis,
-    rand_direct1_bis,  # normalized_ds1_bis,
-]
-#
-# l_directions_bis = [
-#     normalized_ds3_bis,
-#     normalized_ds2_bis,
-#     normalized_ds1_bis,
-# ]
 
 communicator = MPI.COMM_WORLD
 rank = communicator.Get_rank()

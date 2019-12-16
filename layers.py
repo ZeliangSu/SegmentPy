@@ -357,7 +357,9 @@ def DSC(y_true, logits, name='Dice_Similarity_Coefficient'):
 
 
 def Cross_Entropy(y_true, logits, name='cross_entropy'):
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=y_true), name=name)
+    y_true = tf.cast(y_true, tf.float32) #(8, 512, 512, 3)
+    inter = tf.log(tf.clip_by_value(logits, 1e-10, 1.0))  #(8, 512, 512, 3)
+    loss = -tf.reduce_mean(y_true * inter, name=name)
     return loss
 
 
@@ -376,7 +378,7 @@ def batch_norm(input_layer, is_train, name='', reuse=False):
         )
 
 
-def metrics(y_pred, y_true, loss_op, is_training):
+def metrics(y_pred, y_true, loss_op, is_training, mode='classification'):
     """
     input:
     -------
@@ -388,14 +390,24 @@ def metrics(y_pred, y_true, loss_op, is_training):
     -------
         merged summaries of loss and accuracy
     """
-    y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')
+    # y_true_bis = tf.cast(y_true, tf.int32, name='ytruebis')
     if is_training:
         loss_val_op, loss_update_op = tf.metrics.mean(loss_op, name='ls_train')
-        acc_val_op, acc_update_op =tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_train')
+        if mode == 'classification':
+            correct_pred = tf.equal(tf.argmax(y_pred), tf.argmax(y_true))
+            acc_val_op = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+            acc_update_op = tf.no_op(name='fake_acc_update_op')
+        else:
+            acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_train')
 
     else:
         loss_val_op, loss_update_op = tf.metrics.mean(loss_op, name='ls_test')
-        acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true_bis, predictions=y_pred, name='acc_test')
+        if mode == 'classification':
+            correct_pred = tf.equal(tf.argmax(y_pred), tf.argmax(y_true))
+            acc_val_op = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+            acc_update_op = tf.no_op(name='fake_acc_update_op')
+        else:
+            acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_test')
 
     return tf.summary.merge([tf.summary.scalar("loss", loss_val_op)]), loss_update_op,\
            tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op
@@ -429,4 +441,12 @@ def train_operation(adam, gradients, name='train_op'):
     """
     with tf.name_scope(name):
         return adam.apply_gradients(gradients, name='applyGrads')
+
+
+def pixel_wise_softmax(inputs):
+    with tf.name_scope("pixel_wise_softmax"):
+        max_axis = tf.reduce_max(inputs, axis=3, keepdims=True)
+        exponential_map = tf.exp(inputs - max_axis)
+        normalize = tf.reduce_sum(exponential_map, axis=3, keepdims=True)
+        return exponential_map / normalize
 

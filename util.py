@@ -1,6 +1,14 @@
 import tensorflow as tf
 from tensorflow.core.framework import graph_pb2
+import numpy as np
 import os
+from math import nan
+
+# logging
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.INFO)  #changeHere: debug level
 
 
 def print_nodes_name(graph):
@@ -14,10 +22,10 @@ def print_nodes_name(graph):
     """
     if isinstance(graph, graph_pb2.GraphDef):
         for n in graph.node:
-            print(n.name)
+            logger.info(n.name)
     else:
         for n in graph.as_graph_def().node:
-            print(n.name)
+            logger.info(n.name)
 
 
 def print_nodes_name_shape(graph):
@@ -37,7 +45,7 @@ def print_nodes_name_shape(graph):
     for i in graph.get_operations():
         if len(i.outputs) is not 0:  #eliminate nodes like 'initializer' without tensor output
             for j in i.outputs:
-                print('{}: {}'.format(i.name, j.get_shape()))
+                logger.info('{}: {}'.format(i.name, j.get_shape()))
 
 
 def get_all_trainable_variables(metagraph_path):
@@ -82,4 +90,14 @@ def check_N_mkdir(path_to_dir):
     if not os.path.exists(path_to_dir):
         os.makedirs(path_to_dir, exist_ok=True)
 
+
+def clean(array, clean_zeros=False):
+    assert isinstance(array, np.ndarray)
+    array[np.where(array == np.nan)] = 1e-10
+    array[np.where(array == nan)] = 1e-10
+    if clean_zeros:
+        array[np.where(array == 0)] = 1e-10
+    array[np.where(array == np.inf)] = 1e9
+    array[np.where(array == -np.inf)] = -1e9
+    return array
 
