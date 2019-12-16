@@ -22,7 +22,7 @@ hyperparams = {
     'nb_batch': None,
     'conv_size': 3,
     'nb_conv': 48,
-    'learning_rate': 1e-4,  #float or np.array of programmed learning rate
+    'learning_rate': 1,  #float or np.array of programmed learning rate
     'dropout': 0.1,
     'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
     'hour': '{}'.format(datetime.datetime.now().hour),
@@ -33,8 +33,9 @@ hyperparams = {
     'save_step': 500,
     'save_summary_step': 50,
     'folder_name': None,
-    'model': 'LRCS',
+    'model': 'Xlearn',
     'mode': 'classification',
+    'loss_option': 'cross_entropy',
 }
 
 hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_mdl_{}_mode_{}_comment_{}/hour{}/'.format(
@@ -76,7 +77,7 @@ train_nodes = classification_nodes(pipeline=train_inputs,
                                    nb_conv=hyperparams['nb_conv'],
                                    activation=hyperparams['activation'],
                                    is_training=True,
-                                   loss_option='cross_entropy'
+                                   loss_option=hyperparams['loss_option'],
                                    )
 
 test_nodes = classification_nodes(pipeline=test_inputs,
@@ -88,7 +89,7 @@ test_nodes = classification_nodes(pipeline=test_inputs,
                                   nb_conv=hyperparams['nb_conv'],
                                   activation=hyperparams['activation'],
                                   is_training=False,
-                                  loss_option='cross_entropy',
+                                  loss_option=hyperparams['loss_option'],
                                   )
 
 

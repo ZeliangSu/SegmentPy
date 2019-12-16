@@ -14,6 +14,7 @@ def regression_nodes(pipeline,
           is_training=False,
           ):
 
+    # todo: correct
     # check entries
     assert isinstance(placeholders, list), 'placeholders should be a list.'
     # get placeholder
@@ -61,7 +62,7 @@ def regression_nodes(pipeline,
             m_param = tf.summary.merge(tmp)
             merged = tf.summary.merge([m_param, m_loss, m_acc, grad_sum])
     else:
-        with tf.device('/device:GPU:0'):
+        with tf.device('/device:GPU:1'):
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
         with tf.name_scope('test_metrics'):
@@ -119,11 +120,11 @@ def classification_nodes(pipeline,
     with tf.device('/cpu:0'):
         with tf.name_scope('Loss'):
             if loss_option == 'DSC':
-                softmax = tf.nn.softmax(logits)
-                loss = DSC(y_true=pipeline['label'], logits=softmax,  name='loss_fn')
+                softmax = pixel_wise_softmax(logits)
+                loss = DSC(pipeline['label'], softmax, name='loss_fn')
             elif loss_option == 'cross_entropy':
-                softmax = tf.nn.softmax(logits)
-                loss = Cross_Entropy(y_true=pipeline['label'], logits=softmax, name='CE')
+                softmax = pixel_wise_softmax(logits)
+                loss = Cross_Entropy(pipeline['label'], softmax, name='CE')
             else:
                 raise NotImplementedError('Cannot find the loss option')
 
@@ -152,7 +153,7 @@ def classification_nodes(pipeline,
             m_param = tf.summary.merge(tmp)
             merged = tf.summary.merge([m_param, m_loss, m_acc, grad_sum])
     else:
-        with tf.device('/device:GPU:0'):
+        with tf.device('/device:GPU:1'):
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
         with tf.name_scope('test_metrics'):
@@ -287,7 +288,7 @@ def model_LRCS(pipeline,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
-
+        print_nodes_name_shape(tf.get_default_graph())
         return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8bb]
 
 
@@ -352,7 +353,7 @@ def model_Unet(pipeline,
 
                 conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
                                          is_train=BN_phase, activation=activation, name='conv4', reuse=reuse)
-                conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, 8],
+                conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
                                                  is_train=BN_phase, activation=activation,
                                                  name='conv4bisbis', reuse=reuse)
                 conv4_pooling = max_pool_2by2(conv4bis, name='maxp4')
@@ -368,7 +369,7 @@ def model_Unet(pipeline,
                                                       stride=2, activation=activation, name='deconv1', reuse=reuse)
 
             with tf.name_scope('decontractor'):
-                concat1 = concat([deconv1, conv4_pooling], name='concat1')
+                concat1 = concat([deconv1, conv4bis], name='concat1')
                 conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8],
                                           activation=activation, name='conv6', reuse=reuse)  #[height, width, in_channels, output_channels]
                 conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8],
@@ -409,7 +410,7 @@ def model_Unet(pipeline,
                 logits, m8bb = conv2d_layer(deconv_9bis,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False, is_train=BN_phase, name='logits', reuse=reuse)
-
+        print_nodes_name_shape(tf.get_default_graph())
         return logits, [m3b, m4b, m5, m5b, m5u, m6, m9b]
 
 
@@ -475,9 +476,9 @@ def model_xlearn(pipeline,
 
                 conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
                                          is_train=BN_phase, activation=activation, name='conv4', reuse=reuse)
-                conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, 8],
+                conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
                                                  is_train=BN_phase, activation=activation,
-                                                 name='conv4bisbis', reuse=reuse)
+                                                 name='conv4bis', reuse=reuse)
                 conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 8, 1],
                                                  is_train=BN_phase, activation=activation,
                                                  name='conv4bisbis', reuse=reuse)
@@ -542,13 +543,13 @@ def model_xlearn(pipeline,
                                                           is_train=BN_phase, name='deconv8bis',
                                                           activation=activation, reuse=reuse)
 
-                logits, m8bb = conv2d_layer(deconv_8bis,
+                logits, m8bb = conv2d_transpose_layer(deconv_8bis,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             # fixme: batch_size here might not be automatic while inference
                                             [batch_size, patch_size, patch_size, 1],
                                             if_BN=False, is_train=BN_phase,
                                             name='logits', reuse=reuse)
-
+        print_nodes_name_shape(tf.get_default_graph())
         return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8b]
 
 

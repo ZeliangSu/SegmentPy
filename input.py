@@ -128,7 +128,7 @@ def _pyfn_parser_wrapper(fname, patch_size):
     """
     return tf.py_func(parse_h5,  #wrapped pythonic function
                       [fname, patch_size],
-                      [tf.float32, tf.int64]  #[output, output] dtype
+                      [tf.float32, tf.int32]  #[output, output] dtype
                       )
 
 
@@ -136,7 +136,7 @@ def _pyfn_classification_parser_wrapper(fname, patch_size):
     return tf.py_func(
         parse_h5_one_hot,
         [fname, patch_size],
-        [tf.float32, tf.int64]
+        [tf.float32, tf.int32]
     )
 
 
@@ -152,7 +152,7 @@ def _pyfn_aug_wrapper(X_img, y_img):
     """
     return tf.py_func(random_aug,
                       [X_img, y_img],
-                      [tf.float32, tf.int64]  #[output, output] dtype
+                      [tf.float32, tf.int32]  #[output, output] dtype
                       )
 
 
@@ -160,6 +160,7 @@ def parse_h5_one_hot(fname, patch_size):
     with h5py.File(fname.decode('utf-8', 'r'), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
+
         # if y is saved as float, convert to int
 
         # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
@@ -186,7 +187,7 @@ def parse_h5(fname, patch_size):
     with h5py.File(fname.decode('utf-8'), 'r') as f:
         X = f['X'][:].reshape(patch_size, patch_size, 1)
         y = f['y'][:].reshape(patch_size, patch_size, 1)
-        return _minmaxscalar(X), y.astype(np.int64)  #can't do minmaxscalar for y
+        return _minmaxscalar(X), y.astype(np.int32)  #can't do minmaxscalar for y
 
 
 def _minmaxscalar(ndarray, dtype=np.float32):

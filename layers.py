@@ -149,14 +149,17 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
     """
     with tf.name_scope(name):
         W = init_weights(shape, name, reuse=reuse)  # [conv_height, conv_width, in_channels, output_channels]
-        b = init_bias([shape[3]], name, reuse=reuse)
-        output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv') + b
+        output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv')
         if 'logit' in name:
-            output_activation = tf.identity(output, name='identity')
+            b = init_bias([shape[3]], name, reuse=reuse)
+            output_activation = tf.identity(output + b, name='identity')
         else:
             # Batch normalization
             if if_BN:
                 output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
+            else:
+                b = init_bias([shape[3]], name, reuse=reuse)
+                output = output + b
 
             # Activation
             if activation == 'relu':
@@ -171,7 +174,11 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
-        return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+        try:
+            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+        except Exception as e:
+            print(e)
+            return output_activation, {name + '_W': W, name + '_activation': output_activation}
 
 
 def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
@@ -191,7 +198,7 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
     with tf.name_scope(name):
         shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name, reuse=reuse)
-        b = init_bias([shape[2]], name, reuse=reuse)
+
 
         # get batch_size
         dyn_input_shape = tf.shape(input_layer)
@@ -201,15 +208,18 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
         transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=[batch_size, output_shape[1], output_shape[2], output_shape[3]],
                                            strides=[1, stride, stride, 1], padding='SAME', name='transpose')
 
-        output = transpose + b
 
         # add activation function
         if 'logit' in name:
-            output_activation = tf.identity(output, name='identity')
+            b = init_bias([shape[2]], name, reuse=reuse)
+            output_activation = tf.identity(transpose + b, name='identity')
         else:
             # Batch Normalization
             if if_BN:
-                output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
+                output = batch_norm(transpose, is_train=is_train, name=name + '_BN', reuse=reuse)
+            else:
+                b = init_bias([shape[2]], name, reuse=reuse)
+                output = transpose + b
 
             # activation
             if activation == 'relu':
@@ -224,7 +234,11 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
                 output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
             else:
                 raise NotImplementedError('Activation function not found!')
-        return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+        try:
+            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+        except Exception as e:
+            print(e)
+            return output_activation, {name + '_W': W, name + '_activation': output_activation}
 
 
 def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
@@ -244,12 +258,14 @@ def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='
         # Matmul
         input_size = int(input_layer.get_shape()[1])
         W = init_weights([input_size, size], name, reuse=reuse)
-        b = init_bias([size], name, reuse=reuse)
-        output = tf.matmul(input_layer, W) + b
+        output = tf.matmul(input_layer, W)
 
         # BN
         if if_BN:
             output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
+        else:
+            b = init_bias([size], name, reuse=reuse)
+            output = output + b
 
         # activation
         if activation == 'relu':
@@ -262,7 +278,11 @@ def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='
             output_activation = tf.nn.leaky_relu(output, name='leaky')
         else:
             raise NotImplementedError('Activation function not found!')
-        return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+        try:
+            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+        except Exception as e:
+            print(e)
+            return output_activation, {name + '_W': W, name + '_activation': output_activation}
 
 
 def dropout(input_layer, hold_prob, name=''):
