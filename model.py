@@ -4,15 +4,16 @@ from util import print_nodes_name_shape
 
 
 def regression_nodes(pipeline,
-          placeholders=None,
-          model_name='LRCS',
-          patch_size=512,
-          batch_size=200,
-          conv_size=9,
-          nb_conv=80,
-          activation='relu',
-          is_training=False,
-          ):
+                     placeholders=None,
+                     model_name='LRCS',
+                     patch_size=512,
+                     batch_size=200,
+                     conv_size=9,
+                     nb_conv=80,
+                     activation='relu',
+                     batch_norm=True,
+                     is_training=False,
+                     ):
 
     # todo: correct
     # check entries
@@ -95,13 +96,17 @@ def classification_nodes(pipeline,
                          conv_size=9,
                          nb_conv=80,
                          activation='relu',
+                         batch_norm=True,
+                         loss_option='cross_entropy',
                          is_training=False,
-                         loss_option='cross_entropy'):
+                         ):
 
     # check entries
     assert isinstance(placeholders, list), 'placeholders should be a list.'
     # get placeholder
+
     drop_prob, lr, BN_phase = placeholders
+
 
     # build model
     logits, list_params = model_dict[model_name](pipeline=pipeline,
@@ -111,19 +116,21 @@ def classification_nodes(pipeline,
                                                  nb_conv=nb_conv,
                                                  drop_prob=drop_prob,
                                                  activation=activation,
+                                                 if_BN=batch_norm,
                                                  BN_phase=BN_phase,
                                                  reuse=not is_training,
                                                  mode='classification',
                                                  nb_classes=3,
                                                  )
 
+    # logits shape [B, H, W, nb_class]
     with tf.device('/cpu:0'):
         with tf.name_scope('Loss'):
             if loss_option == 'DSC':
-                softmax = pixel_wise_softmax(logits)
+                softmax = customized_softmax(logits)
                 loss = DSC(pipeline['label'], softmax, name='loss_fn')
             elif loss_option == 'cross_entropy':
-                softmax = pixel_wise_softmax(logits)
+                softmax = customized_softmax(logits)
                 loss = Cross_Entropy(pipeline['label'], softmax, name='CE')
             else:
                 raise NotImplementedError('Cannot find the loss option')
@@ -184,7 +191,8 @@ def model_LRCS(pipeline,
                conv_size,
                nb_conv,
                drop_prob,
-               BN_phase,
+               if_BN=True,
+               BN_phase=None,
                activation='relu',
                reuse=False,
                mode='regression',
@@ -219,70 +227,73 @@ def model_LRCS(pipeline,
     with tf.device('/device:GPU:0' if reuse==False else '/device:GPU:1'):
         with tf.name_scope('LRCS'):
             with tf.name_scope('encoder'):
-                conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],
+                conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], if_BN=if_BN,
                                         is_train=BN_phase, activation=activation,
                                         name='conv1', reuse=reuse)  # [height, width, in_channels, output_channels]
-                conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv],
+                conv1bis, _ = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation,
                                            name='conv1bis', reuse=reuse)
                 conv1_pooling, ind1 = max_pool_2by2_with_arg(conv1bis, name='maxp1')
 
-                conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2],
+                conv2, _ = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2], if_BN=if_BN,
                                         is_train=BN_phase, activation=activation, name='conv2', reuse=reuse)
-                conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                conv2bis, _ = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation, name='conv2bis', reuse=reuse)
                 conv2_pooling, ind2 = max_pool_2by2_with_arg(conv2bis, name='maxp2')
 
                 conv3, _ = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
-                                        is_train=BN_phase,
+                                        if_BN=if_BN, is_train=BN_phase,
                                         activation=activation, name='conv3', reuse=reuse)
                 conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
-                                             is_train=BN_phase, activation=activation, name='conv3bis', reuse=reuse)
+                                             if_BN=if_BN, is_train=BN_phase,
+                                             activation=activation, name='conv3bis', reuse=reuse)
                 conv3_pooling, ind3 = max_pool_2by2_with_arg(conv3bis, name='maxp3')
 
                 conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
-                                         is_train=BN_phase, activation=activation, name='conv4', reuse=reuse)
+                                         if_BN=if_BN, is_train=BN_phase,
+                                         activation=activation, name='conv4', reuse=reuse)
                 conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
-                                             is_train=BN_phase, activation=activation, name='conv4bis', reuse=reuse)
+                                             if_BN=if_BN, is_train=BN_phase,
+                                             activation=activation, name='conv4bis', reuse=reuse)
                 conv4bisbis, m4bb = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 8, 1],
-                                                 is_train=BN_phase, activation=activation,
-                                                 name='conv4bisbis', reuse=reuse)
+                                                 if_BN=if_BN, is_train=BN_phase,
+                                                 activation=activation, name='conv4bisbis', reuse=reuse)
 
             with tf.name_scope('dnn'):
                 conv4_flat = reshape(conv4bisbis, [-1, patch_size ** 2 // 64], name='flatten')
-                full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation=activation,
-                                                      is_train=BN_phase, name='dnn1', reuse=reuse)
+                full_layer_1, mf1 = normal_full_layer(conv4_flat, patch_size ** 2 // 128, activation=activation,  # OOM: //128 --> //512
+                                                      if_BN=if_BN, is_train=BN_phase, name='dnn1', reuse=reuse)
                 full_dropout1 = dropout(full_layer_1, drop_prob, name='dropout1')
-                full_layer_2, mf2 = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation=activation,
-                                                      is_train=BN_phase, name='dnn2', reuse=reuse)
+                full_layer_2, mf2 = normal_full_layer(full_dropout1, patch_size ** 2 // 128, activation=activation,  # OOM: //128 --> //512
+                                                      if_BN=if_BN, is_train=BN_phase, name='dnn2', reuse=reuse)
                 full_dropout2 = dropout(full_layer_2, drop_prob, name='dropout2')
-                full_layer_3, mf3 = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation=activation,
-                                                      is_train=BN_phase, name='dnn3', reuse=reuse)
+                full_layer_3, mf3 = normal_full_layer(full_dropout2, patch_size ** 2 // 64, activation=activation,  # OOM: //64 --> //512
+                                                      if_BN=if_BN, is_train=BN_phase, name='dnn3', reuse=reuse)
                 full_dropout3 = dropout(full_layer_3, drop_prob, name='dropout1')
                 dnn_reshape = reshape(full_dropout3, [-1, patch_size // 8, patch_size // 8, 1], name='reshape')
 
             with tf.name_scope('decoder'):
-                deconv_5, m5 = conv2d_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 8],
+                deconv_5, m5 = conv2d_layer(dnn_reshape, [conv_size, conv_size, 1, nb_conv * 8], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation, name='deconv5', reuse=reuse)  # [height, width, in_channels, output_channels]
-                deconv_5bis, _ = conv2d_layer(deconv_5, [conv_size, conv_size, nb_conv * 8, nb_conv * 4],
+                deconv_5bis, _ = conv2d_layer(deconv_5, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], if_BN=if_BN,
                                               is_train=BN_phase, activation=activation, name='deconv5bis', reuse=reuse)
 
                 up1 = up_2by2_ind(deconv_5bis, ind3, name='up1')
-                deconv_6, _ = conv2d_layer(up1, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                deconv_6, _ = conv2d_layer(up1, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation, name='deconv6', reuse=reuse)
-                deconv_6bis, _ = conv2d_layer(deconv_6, [conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+                deconv_6bis, _ = conv2d_layer(deconv_6, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], if_BN=if_BN,
                                               is_train=BN_phase, activation=activation, name='deconv6bis', reuse=reuse)
 
                 up2 = up_2by2_ind(deconv_6bis, ind2, name='up2')
-                deconv_7, _ = conv2d_layer(up2, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                deconv_7, _ = conv2d_layer(up2, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation, name='deconv7', reuse=reuse)
-                deconv_7bis, _ = conv2d_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv],
+                deconv_7bis, _ = conv2d_layer(deconv_7, [conv_size, conv_size, nb_conv * 2, nb_conv], if_BN=if_BN,
                                               is_train=BN_phase, activation=activation, name='deconv7bis', reuse=reuse)
 
                 up3 = up_2by2_ind(deconv_7bis, ind1, name='up3')
-                deconv_8, _ = conv2d_layer(up3, [conv_size, conv_size, nb_conv, nb_conv],
+                deconv_8, _ = conv2d_layer(up3, [conv_size, conv_size, nb_conv, nb_conv], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation, name='deconv8', reuse=reuse)
-                deconv_8bis, _ = conv2d_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv],
+                deconv_8bis, _ = conv2d_layer(deconv_8, [conv_size, conv_size, nb_conv, nb_conv], if_BN=if_BN,
                                               is_train=BN_phase, activation=activation, name='deconv8bis', reuse=reuse)
                 logits, m8bb = conv2d_layer(deconv_8bis,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
@@ -546,7 +557,7 @@ def model_xlearn(pipeline,
                 logits, m8bb = conv2d_transpose_layer(deconv_8bis,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             # fixme: batch_size here might not be automatic while inference
-                                            [batch_size, patch_size, patch_size, 1],
+                                            [batch_size, patch_size, patch_size, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False, is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())

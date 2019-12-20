@@ -85,16 +85,21 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                     # train
                     try:
                         # save summary
+                        # distinguish if use BN and DO
+                        feed_dict = {
+                            train_nodes['learning_rate']: learning_rate,
+                            train_nodes['drop']: hyperparams['dropout'],
+                        }
+
+                        if hyperparams['batch_normalization']:
+                            feed_dict[train_nodes['BN_phase']] = True
+
                         if step % hyperparams['save_summary_step'] == 0:
                             _, _, _, summary, _ = sess.run([
                                 train_nodes['train_op'], train_nodes['loss_update_op'], train_nodes['acc_update_op'],
                                 train_nodes['summary'], update_ops,
                             ],
-                                feed_dict={
-                                    train_nodes['drop']: hyperparams['dropout'],
-                                    train_nodes['learning_rate']: learning_rate,
-                                    train_nodes['BN_phase']: True,
-                                })
+                                feed_dict=feed_dict)
 
                             train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
                             summary_saved_at.append(step)
@@ -102,11 +107,7 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                             _, _, _, _ = sess.run([
                                 train_nodes['train_op'], train_nodes['loss_update_op'], train_nodes['acc_update_op'], update_ops
                             ],
-                                feed_dict={
-                                    train_nodes['drop']: hyperparams['dropout'],
-                                    train_nodes['learning_rate']: learning_rate,
-                                    train_nodes['BN_phase']: True,
-                                })
+                                feed_dict=feed_dict)
 
                     except tf.errors.OutOfRangeError as e:
                         saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
@@ -127,6 +128,16 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                             #
                             ########################
                             if step != 0:
+                                # change feed dict
+                                feed_dict = {
+                                    train_nodes['learning_rate']: 1.0,
+                                    train_nodes['drop']: 1.0,
+                                }
+
+                                if hyperparams['batch_normalization']:
+                                    feed_dict[train_nodes['BN_phase']] = False
+
+                                # load graph in the second device
                                 loader = tf.train.Saver()
                                 # change
                                 ckpt_saved_path = folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step)
@@ -139,11 +150,7 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                                             test_nodes['loss_update_op'],
                                             test_nodes['acc_update_op']
                                         ],
-                                        feed_dict={
-                                            test_nodes['drop']: 1.0,
-                                            test_nodes['learning_rate']: 0,
-                                            test_nodes['BN_phase']: False,
-                                        }
+                                        feed_dict=feed_dict
                                     )
                                     if i_batch == hyperparams['save_step'] // 10 - 1:
                                         test_writer.add_summary(summary, _ep * hyperparams['nb_batch'] + _step)

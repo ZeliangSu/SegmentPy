@@ -3,6 +3,7 @@ from tensorflow.core.framework import graph_pb2
 import numpy as np
 import os
 from math import nan
+from PIL import Image
 
 # logging
 import logging
@@ -100,4 +101,67 @@ def clean(array, clean_zeros=False):
     array[np.where(array == np.inf)] = 1e9
     array[np.where(array == -np.inf)] = -1e9
     return array
+
+
+class plot_input_logit_label_diff():
+    def __init__(self):
+        self.input = None
+        self.logit = None
+        self.label = None
+        self.diff = None
+        self.out_path = None
+
+    def add_input(self, input):
+        assert isinstance(input, np.ndarray)
+        self.input = np.squeeze(input)
+
+    def add_logit(self, logit):
+        assert isinstance(logit, np.ndarray)
+        self.logit = np.squeeze(logit)
+
+    def add_label(self, label):
+        assert isinstance(label, np.ndarray)
+        self.label = np.squeeze(label)
+
+    def add_diff(self, diff):
+        assert isinstance(diff, np.ndarray)
+        self.diff = np.squeeze(diff)
+
+    def plot(self, out_path):
+        self.out_path = out_path
+        assert self.input.shape == self.logit.shape == self.diff.shape == self.label.shape, 'Shapes of in/out/lab/diff not match, or lack of one element'
+        assert self.out_path is not None, 'Need to indicate a out path.'
+        if self.input.ndim == 2:
+            final = np.zeros((self.input.shape[0] * 2 + 10, self.input.shape[1] * 2 + 10))
+            final[:self.input.shape[0], :self.input.shape[1]] = self.input
+            final[:self.input.shape[0], self.input.shape[1] + 10:] = self.logit
+            final[self.input.shape[0] + 10:, self.input.shape[1]:] = self.label
+            final[self.input.shape[0] + 10:, :self.input.shape[1] + 10] = self.diff
+            Image.fromarray(final).save(self.out_path)
+
+        elif self.input.ndim == 3:
+            # should be shape of (id, H, W)
+            for i in range(self.input.shape[0]):
+                final = np.zeros((self.input[i].shape[0] * 2 + 10, self.input[i].shape[1] * 2 + 10))
+                final[:self.input.shape[1], :self.input.shape[2]] = self.input[i]
+                final[:self.input.shape[1], self.input.shape[2] + 10:] = self.logit[i]
+                final[self.input.shape[1] + 10:, self.input.shape[2]:] = self.label[i]
+                final[self.input.shape[1] + 10:, self.input.shape[2] + 10:] = self.diff[i]
+                Image.fromarray(final).save(self.out_path)
+                Image.fromarray(final).save(self.out_path.replace('.tif', '{}.tif'.format(i)))
+
+        else:
+            raise ValueError('Expected an image or a stack of image')
+
+
+
+
+
+
+
+
+
+
+
+
 

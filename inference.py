@@ -6,10 +6,16 @@ from itertools import product
 from PIL import Image
 from proc import _stride
 from tqdm import tqdm
+from input import _minmaxscalar
 from util import print_nodes_name
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from tensorflow.python.framework import dtypes
 
+# logging
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.INFO)
 
 class reconstructor_V2():
     def __init__(self, image_size, patch_size, stride):
@@ -75,34 +81,39 @@ def reconstruct(stack, image_size=None, stride=None):
 def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     assert isinstance(hyper, dict), 'The hyper parameter expected a dictionnay but other type is provided'
+    assert isinstance(conserve_nodes, list), 'The name of the conserve node should be in a list'
 
     # clean graph first
     tf.reset_default_graph()
 
     # freeze ckpt then convert to pb
     new_input = tf.placeholder(tf.float32, shape=[None, hyper['patch_size'], hyper['patch_size'], 1], name='new_input')
-    new_BN = tf.placeholder(tf.bool, name='new_BN')
+    new_BN = tf.placeholder_with_default(False, [], name='new_BN')  #note: it seems like T/F after freezing isn't important
 
     # load meta graph
+    input_map = {
+        'input_pipeline_train/IteratorGetNext': new_input,
+    }
     try:
-        new_dropout = tf.placeholder(tf.float32, shape=[], name='new_dropout')
+        new_dropout = tf.placeholder_with_default(1.0, [],
+                                                  name='new_dropout')  # note: use ph_with_default so during inference dont need to call
+        input_map['dropout_prob'] = new_dropout
+        if hyper['batch_normalization']:
+            input_map['BN_phase'] = new_BN
+
         restorer = tf.train.import_meta_graph(
             paths['ckpt_path'] + '.meta',
-            input_map={
-                'input_pipeline_train/IteratorGetNext': new_input,
-                'dropout_prob': new_dropout,
-                'BN_phase': new_BN,
-            },
+            input_map=input_map,
             clear_devices=True,
         )
     except Exception as e:
-        print('Error(msg):', e)
+        if hyper['batch_normalization']:
+            input_map['BN_phase'] = new_BN
+
+        logger.warning('Error(msg):', e)
         restorer = tf.train.import_meta_graph(
             paths['ckpt_path'] + '.meta',
-            input_map={
-                'input_pipeline_train/IteratorGetNext': new_input,
-                'BN_phase': new_BN,
-            },
+            input_map=input_map,
             clear_devices=True,
         )
 
@@ -144,15 +155,6 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
     # clean graph first
     tf.reset_default_graph()
     check_N_mkdir(paths['optimized_pb_dir'])
-    # #fixme: the following won't throw error
-    # os.system(
-    #     "python -m tensorflow.python.tools.optimize_for_inference --input {} --output {} --input_names={} --output_names={}".format(
-    #         paths['save_pb_path'],
-    #         paths['optimized_pb_path'],
-    #         'input_ph,new_BN_phase',#fixme: change here
-    #         conserve_nodes[-1]
-    #     )
-    # )
 
     # load protobuff
     with tf.gfile.FastGFile(paths['save_pb_path'], "rb") as f:
@@ -213,8 +215,8 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
         #todo: replacee X with a inputpipeline
         X = G.get_tensor_by_name('import/' + 'new_input:0')
         y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
-        bn = G.get_tensor_by_name('import/' + 'new_BN:0')
-        do = G.get_tensor_by_name('import/' + 'new_dropout:0')
+        # bn = G.get_tensor_by_name('import/' + 'new_BN:0')  #note: not needed anymore
+        # do = G.get_tensor_by_name('import/' + 'new_dropout:0')  #note: not needed anymore
 
         # compute the dimensions of the patches array
         for i, _input in tqdm(enumerate(inputs), desc='image'):
@@ -224,9 +226,9 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
             n_h, n_w = output.get_nb_patch()
             hyper['nb_batch'] = n_h * n_w // hyper['batch_size']
             last_batch_len = n_h * n_w % hyper['batch_size']
-            print('\nnumber of batch: {}'.format(hyper['nb_batch']))
-            print('\nbatch size: {}'.format(hyper['batch_size']))
-            print('\nlast batch size: {}'.format(last_batch_len))
+            logger.info('\nnumber of batch: {}'.format(hyper['nb_batch']))
+            logger.info('\nbatch size: {}'.format(hyper['batch_size']))
+            logger.info('\nlast batch size: {}'.format(last_batch_len))
 
             # inference
             for i_batch in tqdm(range(hyper['nb_batch'] + 1), desc='batch'):
@@ -238,9 +240,9 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
                     for id in np.nditer(id_list):
                         b = id // n_h
                         a = id % n_h
-                        print('\n id: {}'.format(id))
-                        print('\n row coordinations: {} - {}'.format(a * hyper['stride'], a * hyper['stride'] + hyper['patch_size']))
-                        print('\n colomn coordinations: {} - {}'.format(b * hyper['stride'], b * hyper['stride'] + hyper['patch_size']))
+                        logger.debug('\n id: {}'.format(id))
+                        logger.debug('\n row coordinations: {} - {}'.format(a * hyper['stride'], a * hyper['stride'] + hyper['patch_size']))
+                        logger.debug('\n colomn coordinations: {} - {}'.format(b * hyper['stride'], b * hyper['stride'] + hyper['patch_size']))
                         # concat patch to batch
                         batch.append(_input[
                                      a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
@@ -248,17 +250,17 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
                                      ])
 
                     # inference
-                    batch = np.asarray(batch)
+                    batch = np.asarray(_minmaxscalar(batch))  #note: don't forget the minmaxscalar, since during training we put it
                     batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
                     feed_dict = {
                         X: batch,
-                        do: 1.0,
-                        bn: False,
+                        # do: 1.0,  #note: not needed anymore
+                        # bn: False,  #note: not needed anymore
                     }
                     _out = sess.run(y, feed_dict=feed_dict)
                     output.add_batch(np.squeeze(_out), start_id)
                 else:
-                    print('last batch')
+                    logger.info('last batch')
                     start_id = i_batch * hyper['batch_size']
                     batch = []
                     # construct input
@@ -272,7 +274,7 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
                                      ])
 
                     # 0-padding batch
-                    batch = np.asarray(batch)
+                    batch = np.asarray(_minmaxscalar(batch))
                     batch = np.expand_dims(batch, axis=3)
                     batch = np.concatenate([batch, np.zeros(
                         (hyper['batch_size'] - last_batch_len + 1, *batch.shape[1:])
@@ -280,8 +282,8 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
 
                     feed_dict = {
                         X: batch,
-                        do: 1.0,
-                        bn: False,
+                        # do: 1.0,  #note: not needed anymore
+                        # bn: False,  #note: not needed anymore
                     }
                     _out = sess.run(y, feed_dict=feed_dict)
                     output.add_batch(np.squeeze(_out[:last_batch_len]), start_id)

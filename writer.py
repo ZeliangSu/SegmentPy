@@ -174,26 +174,123 @@ def _resultWriter(tensor, layer_name='', path=None):
         for i, elt in enumerate(tensor):
             logger.debug('layer_name: {}'.format(layer_name))
             if (True in np.isnan(elt)) or (True in np.isinf(elt)):
-                elt = clean(elt)
-            try:
-                Image.fromarray(np.array(elt)).save(path + '{}/{}.tif'.format(layer_name, i))
-            except Exception as e:
-                logger.debug(e)
-                logger.warning('Clean function cannot clean the nan value from the layer {}! But code continues!'.format(layer_name))
-                pass
+                try:
+                    elt = clean(elt)
+                except Exception as e:
+                    logger.debug(e)
+                    logger.warning('Clean function cannot clean the nan value from the layer {}! '.format(layer_name))
+                    break
+
+            # scope: conv p_infer: (ps, ps, nc)
+            if elt.ndim == 3:
+                # note: save only the first
+                for j in range(elt.shape[-1]):
+                    Image.fromarray(np.asarray(elt[:, :, j])).save(path + '{}/{}.tif'.format(layer_name, j))
+
+            elif elt.ndim == 2:
+                Image.fromarray(np.asarray(elt)).save(path + '{}/{}.tif'.format(layer_name, i))
+
+            # scope: dnn p_infer: (nb_post neuron)
+            elif elt.ndim == 1:
+                # reshape the 1D array
+                ceil = int(np.ceil(np.sqrt(elt.size)))
+                tmp = np.zeros((ceil ** 2), np.float32).ravel()
+                tmp[:elt.size] = elt
+                tmp = tmp.reshape(ceil, ceil)
+
+                Image.fromarray(tmp).save(path + '{}/dnn.tif'.format(layer_name))
+
     else:
-        #  treat dnn
+        #  treat dnn weights
         if tensor.ndim == 1:
-            Image.fromarray(np.expand_dims(tensor, axis=0)).save(path + '{}/dnn.tif'.format(layer_name))
+            # reshape the 1D array
+            ceil = int(np.ceil(np.sqrt(tensor.size)))
+            tmp = np.zeros((ceil ** 2), np.float32).ravel()
+            tmp[:tensor.size] = tensor
+            tmp = tmp.reshape(ceil, ceil)
 
-        #  for one-hoted tensor
+            Image.fromarray(tmp).save(path + '{}/dnn.tif'.format(layer_name))
+
+        #  scope: not I_1_hoted tensor: (B, H, W, C)
         elif tensor.ndim == 4:
-            stack = _inverse_one_hot(tensor)
-            for i in range(stack.shape[0]):
-                Image.fromarray(stack[i]).save([path + '{}/{}.tif'.format(layer_name, i)])
+            tensor = np.squeeze(tensor.astype(np.float32))
+            if 'diff' in layer_name:
+                for i in range(tensor.shape[0]):
+                    Image.fromarray(tensor[i]).save(path + '{}/{}.tif'.format(layer_name, i))
 
-        #  for cnn
-        else:
+        #  for cnn ndim=3
+        elif tensor.ndim == 3:
             for i in range(tensor.shape[2]):
                 Image.fromarray(np.asarray(tensor[:, :, i], dtype=np.float)).save(path + '{}/{}.tif'.format(layer_name, i))
 
+        else:
+            logger.warn('Not implement writer for this kind of data in layer :{}'.format(layer_name))
+            raise NotImplementedError('Ouppss {}'.format(layer_name))
+
+
+def _weighttWriter(tensor, layer_name='', path=None):
+    '''
+    tensor: images(numpy array or list of image) to save of (Height, Width, nth_Conv)
+    path: path(string)
+    layer_name: name of the layer(string)
+    '''
+    # mkdir
+    check_N_mkdir(path + layer_name)
+
+    # for writting inference partial rlt
+    if isinstance(tensor, list):
+        for i, elt in enumerate(tensor):
+            logger.debug('layer_name: {}'.format(layer_name))
+            if (True in np.isnan(elt)) or (True in np.isinf(elt)):
+                try:
+                    elt = clean(elt)
+                except Exception as e:
+                    logger.debug(e)
+                    logger.warning('Clean function cannot clean the nan value from the layer {}! '.format(layer_name))
+                    break
+
+            # scope: conv p_infer: (ps, ps, nc)
+            if elt.ndim == 3:
+                # note: save only the first
+                for j in range(elt.shape[-1]):
+                    Image.fromarray(np.asarray(elt[:, :, j])).save(path + '{}/{}.tif'.format(layer_name, j))
+
+            elif elt.ndim == 2:
+                Image.fromarray(np.asarray(elt)).save(path + '{}/{}.tif'.format(layer_name, i))
+
+            # scope: dnn p_infer: (nb_post neuron)
+            elif elt.ndim == 1:
+                # reshape the 1D array
+                ceil = int(np.ceil(np.sqrt(elt.size)))
+                tmp = np.zeros((ceil ** 2), np.float32).ravel()
+                tmp[:elt.size] = elt
+                tmp = tmp.reshape(ceil, ceil)
+
+                Image.fromarray(tmp).save(path + '{}/dnn.tif'.format(layer_name))
+
+    else:
+        #  treat dnn weights
+        if tensor.ndim == 1:
+            # reshape the 1D array
+            ceil = int(np.ceil(np.sqrt(tensor.size)))
+            tmp = np.zeros((ceil ** 2), np.float32).ravel()
+            tmp[:tensor.size] = tensor
+            tmp = tmp.reshape(ceil, ceil)
+
+            Image.fromarray(tmp).save(path + '{}/dnn.tif'.format(layer_name))
+
+        #  scope: not I_1_hoted tensor: (B, H, W, C)
+        elif tensor.ndim == 4:
+            tensor = np.squeeze(tensor.astype(np.float32))
+            if 'diff' in layer_name:
+                for i in range(tensor.shape[0]):
+                    Image.fromarray(tensor[i]).save(path + '{}/{}.tif'.format(layer_name, i))
+
+        #  for cnn ndim=3
+        elif tensor.ndim == 3:
+            for i in range(tensor.shape[2]):
+                Image.fromarray(np.asarray(tensor[:, :, i], dtype=np.float)).save(path + '{}/{}.tif'.format(layer_name, i))
+
+        else:
+            logger.warn('Not implement writer for this kind of data in layer :{}'.format(layer_name))
+            raise NotImplementedError('Ouppss {}'.format(layer_name))

@@ -1,5 +1,11 @@
 import tensorflow as tf
+import numpy as np
 
+# logging
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.INFO)
 
 def init_weights(shape, name='weights', reuse=False):
     """
@@ -153,32 +159,19 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
         if 'logit' in name:
             b = init_bias([shape[3]], name, reuse=reuse)
             output_activation = tf.identity(output + b, name='identity')
+            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
         else:
             # Batch normalization
             if if_BN:
                 output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
+                output_activation = _activatioin(output, type=activation)
+                return output_activation, {name + '_W': W, name + '_activation': output_activation}
+
             else:
                 b = init_bias([shape[3]], name, reuse=reuse)
                 output = output + b
-
-            # Activation
-            if activation == 'relu':
-                output_activation = tf.nn.relu(output, name='relu')
-            elif activation == 'sigmoid':
-                output_activation = tf.nn.sigmoid(output, name='sigmoid')
-            elif activation == 'tanh':
-                output_activation = tf.nn.tanh(output, name='tanh')
-            elif activation == 'leaky':
-                output_activation = tf.nn.leaky_relu(output, name='leaky')
-            elif '-leaky' in activation:
-                output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
-            else:
-                raise NotImplementedError('Activation function not found!')
-        try:
-            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
-        except Exception as e:
-            print(e)
-            return output_activation, {name + '_W': W, name + '_activation': output_activation}
+                output_activation = _activatioin(output, type=activation)
+                return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
 def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
@@ -199,7 +192,6 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
         shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
         W = init_weights(shape, name, reuse=reuse)
 
-
         # get batch_size
         dyn_input_shape = tf.shape(input_layer)
         batch_size = dyn_input_shape[0]
@@ -208,37 +200,22 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
         transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=[batch_size, output_shape[1], output_shape[2], output_shape[3]],
                                            strides=[1, stride, stride, 1], padding='SAME', name='transpose')
 
-
         # add activation function
         if 'logit' in name:
             b = init_bias([shape[2]], name, reuse=reuse)
             output_activation = tf.identity(transpose + b, name='identity')
+            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
         else:
             # Batch Normalization
             if if_BN:
                 output = batch_norm(transpose, is_train=is_train, name=name + '_BN', reuse=reuse)
+                output_activation = _activatioin(output, type=activation)
+                return output_activation, {name + '_W': W, name + '_activation': output_activation}
             else:
                 b = init_bias([shape[2]], name, reuse=reuse)
                 output = transpose + b
-
-            # activation
-            if activation == 'relu':
-                output_activation = tf.nn.relu(output, name='relu')
-            elif activation == 'sigmoid':
-                    output_activation = tf.nn.sigmoid(output, name='sigmoid')
-            elif activation == 'tanh':
-                output_activation = tf.nn.tanh(output, name='tanh')
-            elif activation == 'leaky':
-                output_activation = tf.nn.leaky_relu(output, name='leaky')
-            elif '-leaky' in activation:
-                output_activation = tf.nn.leaky_relu(output, alpha=float(activation.split('-')[0]), name='leaky')
-            else:
-                raise NotImplementedError('Activation function not found!')
-        try:
-            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
-        except Exception as e:
-            print(e)
-            return output_activation, {name + '_W': W, name + '_activation': output_activation}
+                output_activation = _activatioin(output, type=activation)
+                return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
 def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
@@ -260,29 +237,21 @@ def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='
         W = init_weights([input_size, size], name, reuse=reuse)
         output = tf.matmul(input_layer, W)
 
-        # BN
-        if if_BN:
-            output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
-        else:
+        if 'logit' in name:
             b = init_bias([size], name, reuse=reuse)
-            output = output + b
-
-        # activation
-        if activation == 'relu':
-            output_activation = tf.nn.relu(output, name='relu')
-        elif activation == 'sigmoid':
-            output_activation = tf.nn.sigmoid(output, name='sigmoid')
-        elif activation == 'tanh':
-            output_activation = tf.nn.tanh(output, name='tanh')
-        elif activation == 'leaky':
-            output_activation = tf.nn.leaky_relu(output, name='leaky')
-        else:
-            raise NotImplementedError('Activation function not found!')
-        try:
+            output_activation = tf.identity(output + b, name='identity')
             return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
-        except Exception as e:
-            print(e)
-            return output_activation, {name + '_W': W, name + '_activation': output_activation}
+        else:
+            # BN
+            if if_BN:
+                output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
+                output_activation = _activatioin(output, type=activation)
+                return output_activation, {name + '_W': W, name + '_activation': output_activation}
+            else:
+                b = init_bias([size], name, reuse=reuse)
+                output = output + b
+                output_activation = _activatioin(output, type=activation)
+                return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
 def dropout(input_layer, hold_prob, name=''):
@@ -463,10 +432,42 @@ def train_operation(adam, gradients, name='train_op'):
         return adam.apply_gradients(gradients, name='applyGrads')
 
 
-def pixel_wise_softmax(inputs):
-    with tf.name_scope("pixel_wise_softmax"):
-        max_axis = tf.reduce_max(inputs, axis=3, keepdims=True)
-        exponential_map = tf.exp(inputs - max_axis)
-        normalize = tf.reduce_sum(exponential_map, axis=3, keepdims=True)
-        return exponential_map / normalize
+def customized_softmax(inputs):
+    with tf.name_scope("customized_softmax"):
+        # todo: inputs = tf.clip_by_value(inputs, min=1e-10)  # to avoid exploding
+        reduce_max = tf.reduce_max(inputs, axis=3, keepdims=True)  #note: ???
+        # note: keepdims=True, max_axis.shape = (B, H, W, 1)
+        # note: keepdims=False max_axis.shape = (B, H, W)
+        nominator = tf.exp(inputs - reduce_max)  #note: here can avoid the loss becoming too big as the number of pixel increases with the number of class
+                                                 # can be demonstrated easily: sum(log(small proba)_i) = inf
+        # nominator = tf.exp(inputs)  #note: shape = (B, H, W, 3)
+        denominator = tf.reduce_sum(nominator, axis=3, keepdims=True)  #note: shape = (B, H, W, 1)
+        return nominator / denominator
 
+
+def _activatioin(output, type='relu'):
+    if type == 'relu':
+        output_activation = tf.nn.relu(output, name='relu')
+    elif type == 'sigmoid':
+        output_activation = tf.nn.sigmoid(output, name='sigmoid')
+    elif type == 'tanh':
+        output_activation = tf.nn.tanh(output, name='tanh')
+    elif type == 'leaky':
+        output_activation = tf.nn.leaky_relu(output, name='leaky')
+    elif '-leaky' in type:
+        output_activation = tf.nn.leaky_relu(output, alpha=float(type.split('-')[0]), name='leaky')
+    else:
+        raise NotImplementedError('Activation function not found!')
+    return output_activation
+
+
+def customized_softmax_np(inputs):
+    # todo: inputs = tf.clip_by_value(inputs, min=1e-10)  # to avoid exploding
+    reduce_max = np.max(inputs, axis=3, keepdims=True)  #note: ???
+    # note: keepdims=True, max_axis.shape = (B, H, W, 1)
+    # note: keepdims=False max_axis.shape = (B, H, W)
+    nominator = np.exp(inputs - reduce_max)  #note: here can avoid the loss becoming too big as the number of pixel increases with the number of class
+                                             # can be demonstrated easily: sum(log(small proba)_i) = inf
+    # nominator = tf.exp(inputs)  #note: shape = (B, H, W, 3)
+    denominator = np.sum(nominator, axis=3, keepdims=True)  #note: shape = (B, H, W, 1)
+    return nominator / denominator

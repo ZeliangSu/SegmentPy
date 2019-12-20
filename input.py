@@ -8,7 +8,7 @@ from augmentation import random_aug
 import logging
 import log
 logger = log.setup_custom_logger('root')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO )
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
     """
@@ -167,7 +167,7 @@ def parse_h5_one_hot(fname, patch_size):
         y = _one_hot(y)
         logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  #B, H, W, C
 
-        return _minmaxscalar(X), y.astype(np.int64)
+        return _minmaxscalar(X), y.astype(np.int32)
 
 
 def parse_h5(fname, patch_size):
@@ -210,7 +210,7 @@ def _minmaxscalar(ndarray, dtype=np.float32):
 def _one_hot(tensor):
     ''' (batch, H, W) --> one hot to --> (batch, H, W, nb_class)'''
     assert isinstance(tensor, np.ndarray), 'Expect input as a np ndarray'
-    logger.debug('tensor shape:{}'.format(tensor.shape))
+    logger.debug('input tensor shape:{}, unique: {}'.format(tensor.shape, np.unique(tensor)))
     if tensor.ndim == 4:
         #note: (Batch, H, W, C)
         tensor = tensor.astype(np.int32)
@@ -225,7 +225,7 @@ def _one_hot(tensor):
         out = np.concatenate(out, axis=3)
 
     elif tensor.ndim == 3:
-        #note: (H, W, C)
+        #note: (H, W, C) no batch size
         tensor = tensor.astype(np.int32)
         # get how many classes
         nb_classes = len(np.unique(tensor))
@@ -233,23 +233,31 @@ def _one_hot(tensor):
         out = []
         for i in range(nb_classes):
             tmp = np.zeros(tensor.shape)
+            tmp[np.where(tensor == i)] = 1
             out.append(tmp)
         # stack along the last channel
         out = np.concatenate(out, axis=2)
     else:
         logger.warning('Oupss!')
         raise NotImplementedError('Oupss!')
+
+    logger.debug('np.shape(out): {}, unique: {}'.format(np.shape(out), np.unique(out)))
     return out
 
 
 def _inverse_one_hot(tensor):
-    assert tensor.dim == 4, 'Expected a tensor of shape (batch, H, W, class)'
-
-    if tensor.dtype == (np.float or np.float32 or np.float64):
+    assert tensor.ndim == 4, 'Expected a tensor of shape (batch, H, W, class)'
+    if tensor.dtype == np.float or tensor.dtype == np.float32 or tensor.dtype == np.float64:
         # make a vote
-        out = np.argmax(tensor, axis=3)
+        output = np.argmax(tensor, axis=3)
+        output = np.expand_dims(output, axis=3)
 
-    elif tensor.dtype == (np.int or np.int8 or np.int32 or np.int64):
+    elif tensor.dtype == np.int or tensor.dtype == np.int8 or tensor.dtype == np.int32 or tensor.dtype == np.int64:
+        output = np.argmax(tensor, axis=3)
+        output = np.expand_dims(output, axis=3)
+
+    else:
         raise NotImplementedError('Implement a mechanism that if several classes is possible, randomly choose one')
 
-    return out
+    return output.astype(np.int32)
+

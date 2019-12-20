@@ -2,40 +2,47 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import os
-from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean
+from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean, plot_input_logit_label_diff
 from tsne import tsne, compare_tsne_2D, compare_tsne_3D
 from inference import freeze_ckpt_for_inference
 from PIL import Image
 from scipy import interpolate
 from writer import _resultWriter
 import h5py as h5
-from input import _one_hot
+from input import _one_hot, _minmaxscalar, _inverse_one_hot
+from layers import customized_softmax_np
+
+import logging
+import log
+logger = log.setup_custom_logger('root')
+logger.setLevel(logging.DEBUG)
 
 if os.name == 'posix':  #to fix MAC openMP bug
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
+
 # Xlearn
 Xlearn_conserve_nodes = [
-    'model/encoder/conv1/leaky',
-    'model/encoder/conv1bis/leaky',
-    'model/encoder/conv2/leaky',
-    'model/encoder/conv2bis/leaky',
-    'model/encoder/conv3/leaky',
-    'model/encoder/conv3bis/leaky',
-    'model/encoder/conv4/leaky',
-    'model/encoder/conv4bis/leaky',
-    'model/encoder/conv4bisbis/leaky',
+    'model/encoder/conv1/relu',
+    'model/encoder/conv1bis/relu',
+    'model/encoder/conv2/relu',
+    'model/encoder/conv2bis/relu',
+    'model/encoder/conv3/relu',
+    'model/encoder/conv3bis/relu',
+    'model/encoder/conv4/relu',
+    'model/encoder/conv4bis/relu',
+    'model/encoder/conv4bisbis/relu',
     'model/dnn/dnn1/relu',
     'model/dnn/dnn2/relu',
     'model/dnn/dnn3/relu',
-    'model/decoder/deconv5/leaky',
-    'model/decoder/deconv5bis/leaky',
-    'model/decoder/deconv6/leaky',
-    'model/decoder/deconv6bis/leaky',
-    'model/decoder/deconv7bis/leaky',
-    'model/decoder/deconv7bis/leaky',
-    'model/decoder/deconv8/leaky',
-    'model/decoder/deconv8bis/leaky',
+    'model/decoder/deconv5/relu',
+    'model/decoder/deconv5bis/relu',
+    'model/decoder/deconv6/relu',
+    'model/decoder/deconv6bis/relu',
+    'model/decoder/deconv7bis/relu',
+    'model/decoder/deconv7bis/relu',
+    'model/decoder/deconv8/relu',
+    'model/decoder/deconv8bis/relu',
     'model/decoder/logits/add',
 ]
 
@@ -68,26 +75,26 @@ Unet_conserve_nodes = [
 
 # LRCS
 LRCS_conserve_nodes = [
-    'LRCS/encoder/conv1/leaky',
-    'LRCS/encoder/conv1bis/leaky',
-    'LRCS/encoder/conv2/leaky',
-    'LRCS/encoder/conv2bis/leaky',
-    'LRCS/encoder/conv3/leaky',
-    'LRCS/encoder/conv3bis/leaky',
-    'LRCS/encoder/conv4/leaky',
-    'LRCS/encoder/conv4bis/leaky',
-    'LRCS/encoder/conv4bisbis/leaky',
-    'LRCS/dnn/dnn1/leaky',
-    'LRCS/dnn/dnn2/leaky',
-    'LRCS/dnn/dnn3/leaky',
-    'LRCS/decoder/deconv5/leaky',
-    'LRCS/decoder/deconv5bis/leaky',
-    'LRCS/decoder/deconv6/leaky',
-    'LRCS/decoder/deconv6bis/leaky',
-    'LRCS/decoder/deconv7/leaky',
-    'LRCS/decoder/deconv7bis/leaky',
-    'LRCS/decoder/deconv8/leaky',
-    'LRCS/decoder/deconv8bis/leaky',
+    'LRCS/encoder/conv1/relu',
+    'LRCS/encoder/conv1bis/relu',
+    'LRCS/encoder/conv2/relu',
+    'LRCS/encoder/conv2bis/relu',
+    'LRCS/encoder/conv3/relu',
+    'LRCS/encoder/conv3bis/relu',
+    'LRCS/encoder/conv4/relu',
+    'LRCS/encoder/conv4bis/relu',
+    'LRCS/encoder/conv4bisbis/relu',
+    'LRCS/dnn/dnn1/relu',
+    'LRCS/dnn/dnn2/relu',
+    'LRCS/dnn/dnn3/relu',
+    'LRCS/decoder/deconv5/relu',
+    'LRCS/decoder/deconv5bis/relu',
+    'LRCS/decoder/deconv6/relu',
+    'LRCS/decoder/deconv6bis/relu',
+    'LRCS/decoder/deconv7/relu',
+    'LRCS/decoder/deconv7bis/relu',
+    'LRCS/decoder/deconv8/relu',
+    'LRCS/decoder/deconv8bis/relu',
     'LRCS/decoder/logits/identity',
 ]
 
@@ -132,7 +139,7 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
     return g_main, ops_dict
 
 
-def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, ):
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None):
     """
 
     Parameters
@@ -157,30 +164,36 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             log_device_placement=False,
             )
     with g_main.as_default() as g_main:
+        # init a writer class
+        plt_illd = plot_input_logit_label_diff()
+
         new_input = g_main.get_tensor_by_name('new_input:0')
 
         # write firstly input and output images
-        imgs = [h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(hyper['batch_size'])]
+        imgs = [_minmaxscalar(h5.File(input_dir + '{}.h5'.format(i))['X']) for i in range(hyper['batch_size'])]
+        plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
-        label = [h5.File(input_dir + '{}.h5'.format(i))['y'] for i in range(hyper['batch_size'])]
-        _resultWriter(label, 'label', path=rlt_dir)
+
+        labels = [np.asarray(h5.File(input_dir + '{}.h5'.format(i))['y']) for i in range(hyper['batch_size'])]
+        plt_illd.add_label(np.asarray(labels))
+        _resultWriter(labels, 'label', path=rlt_dir)
+
         img_size = hyper['patch_size']
+
+        # prepare feed_dict
+        feed_dict = {
+            new_input: np.array(imgs).reshape((hyper['batch_size'], img_size, img_size, 1)),
+        }
+        if hyperparams['batch_normalization']:
+            new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
+            feed_dict[new_BN_phase] = False
 
         try:
             dropout_input = g_main.get_tensor_by_name('new_dropout:0')
-            new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
-            feed_dict = {
-                new_input: np.array(imgs).reshape((hyper['batch_size'], img_size, img_size, 1)),
-                dropout_input: 1.0,
-                new_BN_phase: False,
-            }
+            feed_dict[dropout_input] = 1.0
+
         except Exception as e:
             print('Error(message):', e)
-            new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
-            feed_dict = {
-                new_input: np.array(imgs).reshape((hyper['batch_size'], img_size, img_size, 1)),
-                new_BN_phase: False,
-            }
             pass
 
         # run inference
@@ -195,10 +208,12 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                 try:
                     if tensors.ndim == 4 or 2:
                         if 'logit' in layer_name:
-                            tensors = tensors[0]  # todo: should generalize to batch
+                            tensors = customized_softmax_np(tensors)
+                            tensors = _inverse_one_hot(tensors)  # note: apply the softmax here
+                            plt_illd.add_logit(tensors)
+
                         else:
-                            _tensors = [np.squeeze(tensors[i]) for i in range(tensors.shape[0])]
-                            tensors = _tensors
+                            tensors = [np.squeeze(tensors[i]) for i in range(tensors.shape[0])]
                 except Exception as e:
                     print(e)
                     pass
@@ -207,22 +222,25 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                 activations.append(tensors)
 
     # calculate diff by numpy
+    # res[-1] final result
     if hyper['mode'] == 'regression':
-        res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(label))
+        res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(labels))
         res_diff = np.asarray(res_diff, dtype=np.int)
         # note: save diff of all imgs
+        plt_illd.add_diff(np.asarray(res_diff))
         _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
                       path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
     else:
         # one-hot the label
-        label = _one_hot(np.asarray(label))
-        logits = np.asarray(res[-1], dtype=np.int)
-        res_diff = np.equal(clean(logits), np.asarray(label)[-1])
-        _resultWriter(res_diff.astype(int), 'diff',
-                      path=rlt_dir)  # for diff output shape: [batch, w, h, 3]
+        labels = np.expand_dims(np.asarray(labels), axis=3)  # list --> array --> (B, H, W, 1)
+        labels = _one_hot(labels)  # (B, H, W, 3)
+        logits = customized_softmax_np(np.asarray(res[-1], dtype=np.int))  # (B, H, W, 3)
+        res_diff = np.equal(_inverse_one_hot(clean(logits)), _inverse_one_hot(np.asarray(labels)))  #(B, H, W)
+        plt_illd.add_diff(res_diff.astype(int))
+        _resultWriter(res_diff.astype(int), 'diff', path=rlt_dir)  # for diff output shape: [batch, w, h, 3]
 
-
-
+    check_N_mkdir(rlt_dir + 'illd/')
+    plt_illd.plot(out_path=rlt_dir + 'illd/illd.tif')
     # return
     return activations
 
@@ -597,7 +615,12 @@ def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
     dic_b['total_std'] = l_total_b_std
 
     # create df
-    dfs = {'weight': pd.DataFrame(dic_w), 'bias': pd.DataFrame(dic_b)}
+    try:
+        dfs = {'weight': pd.DataFrame(dic_w), 'bias': pd.DataFrame(dic_b)}
+    except Exception as e:
+        #note: in a BN network, there are less bias
+        logger.info(e)
+        dfs = {'weight': pd.DataFrame(dic_w)}
 
     # write into excel
     with pd.ExcelWriter(rlt_dir + 'euclidean_dist.xlsx', engine='xlsxwriter') as writer:
@@ -698,7 +721,12 @@ def weights_angularity(ckpt_dir=None, rlt_dir=None):
     dic_b['total_std'] = l_total_b_std
 
     # create df
-    dfs = {'weight': pd.DataFrame(dic_w), 'bias': pd.DataFrame(dic_b)}
+    try:
+        dfs = {'weight': pd.DataFrame(dic_w), 'bias': pd.DataFrame(dic_b)}
+    except Exception as e:
+        #note: in a BN network, there are less bias
+        logger.info(e)
+        dfs = {'weight': pd.DataFrame(dic_w)}
 
     # write into excel
     with pd.ExcelWriter(rlt_dir + 'angularity.xlsx', engine='xlsxwriter') as writer:
@@ -731,7 +759,7 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 
     # run nodes and save results
     inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
-                                   input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'step{}/'.format(paths['step']),
+                                   input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']),
                                    hyper=hyperparams)
 
     # plt
@@ -741,6 +769,9 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 
 
 if __name__ == '__main__':
+    # disable the GPU if there's a traning
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
     hyperparams = {
         'patch_size': 512,
         'batch_size': 8,
@@ -749,9 +780,10 @@ if __name__ == '__main__':
         'stride': 1,
         'device_option': 'cpu',
         'mode': 'classification',
+        'batch_normalization': False,
     }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2019_12_13_bs8_ps512_lr1_cs3_nc48_do0.1_act_leaky_aug_True_mdl_LRCS_mode_classification_comment_Cross_entropy_on_hot_1/hour16/'
+    graph_def_dir = './logs/2019_12_18_bs8_ps512_lr1e-05_cs3_nc48_do0.1_act_relu_aug_True_mdl_LRCS_mode_classification_comment_Cross_entropy_correct_the_one_hot_func/hour9/'
     step = 0
     step_init = 0
     paths = {
@@ -769,10 +801,10 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
+    # visualize_weights(params=paths)
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    visualize_weights(params=paths)
 
-    step = 174964
+    step = 19155
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50
@@ -789,10 +821,10 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
+    # visualize_weights(params=paths)
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    tsne_on_weights(params=paths, mode='2D')
-    tsne_on_bias(params=paths, mode='2D')
-    visualize_weights(params=paths)
-    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    # tsne_on_weights(params=paths, mode='2D')
+    # tsne_on_bias(params=paths, mode='2D')
+    # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    # weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
