@@ -149,7 +149,10 @@ def classification_nodes(pipeline,
                 train_op = opt.apply_gradients(grads, name='train_op')
 
         with tf.name_scope('train_metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits, pipeline['label'], loss, is_training)
+            m_loss, loss_up_op, m_acc, acc_up_op = metrics(logits,  #[B, W, H, 3]
+                                                           pipeline['label'],  #[B, W, H, 1]
+                                                           loss,
+                                                           is_training)
 
         with tf.name_scope('summary'):
             grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
