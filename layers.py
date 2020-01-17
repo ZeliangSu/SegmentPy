@@ -383,18 +383,24 @@ def metrics(y_pred, y_true, loss_op, is_training, mode='classification'):
     if is_training:
         loss_val_op, loss_update_op = tf.metrics.mean(loss_op, name='ls_train')
         if mode == 'classification':
-            correct_pred = tf.equal(tf.argmax(y_pred), y_true)
-            acc_val_op = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
-            acc_update_op = tf.no_op(name='fake_acc_update_op')
+            y_pred = tf.cast(tf.argmax(y_pred, axis=3), tf.int32)  #[B, W, H, 1]
+            y_true = tf.cast(tf.argmax(y_true, axis=3), tf.int32)  #[B, W, H, 1]
+            # correct_pred = tf.equal(y_pred, y_true)
+            # acc_val_op = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+            # acc_update_op = tf.no_op(name='fake_acc_update_op')
+            acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_train')
         else:
             acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_train')
 
     else:
         loss_val_op, loss_update_op = tf.metrics.mean(loss_op, name='ls_test')
         if mode == 'classification':
-            correct_pred = tf.equal(tf.argmax(y_pred), y_true)
-            acc_val_op = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
-            acc_update_op = tf.no_op(name='fake_acc_update_op')
+            y_pred = tf.cast(tf.argmax(y_pred, axis=3), tf.int32)
+            y_true = tf.cast(tf.argmax(y_true, axis=3), tf.int32)
+            acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_test')
+            # correct_pred = tf.equal(y_pred, y_true)
+            # acc_val_op = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+            # acc_update_op = tf.no_op(name='fake_acc_update_op')
         else:
             acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_test')
 

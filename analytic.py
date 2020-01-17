@@ -233,9 +233,8 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
     else:
         # one-hot the label
         labels = np.expand_dims(np.asarray(labels), axis=3)  # list --> array --> (B, H, W, 1)
-        labels = _one_hot(labels)  # (B, H, W, 3)
         logits = customized_softmax_np(np.asarray(res[-1], dtype=np.int))  # (B, H, W, 3)
-        res_diff = np.equal(_inverse_one_hot(clean(logits)), _inverse_one_hot(np.asarray(labels)))  #(B, H, W)
+        res_diff = np.equal(_inverse_one_hot(clean(logits)), labels)  #(B, H, W)
         plt_illd.add_diff(res_diff.astype(int))
         _resultWriter(res_diff.astype(int), 'diff', path=rlt_dir)  # for diff output shape: [batch, w, h, 3]
 
@@ -783,7 +782,7 @@ if __name__ == '__main__':
         'batch_normalization': False,
     }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2019_12_18_bs8_ps512_lr1e-05_cs3_nc48_do0.1_act_relu_aug_True_mdl_LRCS_mode_classification_comment_Cross_entropy_correct_the_one_hot_func/hour9/'
+    graph_def_dir = './logs/2019_12_22_bs8_ps512_lr0.001_cs3_nc36_do0.1_act_relu_aug_True_BN_True_mdl_LRCS_mode_classification_comment_Cross_entropy_correct_the_one_hot_func/hour21/'
     step = 0
     step_init = 0
     paths = {
@@ -801,10 +800,10 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    # visualize_weights(params=paths)
+    visualize_weights(params=paths)
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
 
-    step = 19155
+    step = 28219
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50
@@ -821,7 +820,7 @@ if __name__ == '__main__':
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    # visualize_weights(params=paths)
+    visualize_weights(params=paths)
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
     # tsne_on_weights(params=paths, mode='2D')
     # tsne_on_bias(params=paths, mode='2D')

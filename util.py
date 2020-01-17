@@ -145,7 +145,7 @@ class plot_input_logit_label_diff():
                 final = np.zeros((self.input[i].shape[0] * 2 + 10, self.input[i].shape[1] * 2 + 10))
                 final[:self.input.shape[1], :self.input.shape[2]] = self.input[i]
                 final[:self.input.shape[1], self.input.shape[2] + 10:] = self.logit[i]
-                final[self.input.shape[1] + 10:, self.input.shape[2]:] = self.label[i]
+                final[self.input.shape[1] + 10:, :self.input.shape[2]] = self.label[i]
                 final[self.input.shape[1] + 10:, self.input.shape[2] + 10:] = self.diff[i]
                 Image.fromarray(final).save(self.out_path)
                 Image.fromarray(final).save(self.out_path.replace('.tif', '{}.tif'.format(i)))

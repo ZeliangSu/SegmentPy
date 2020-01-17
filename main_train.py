@@ -12,121 +12,123 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
 
-l_nc = [8, 16, 36]
+l_nc = []
+l_cs = [9, 7, 5]
 l_lr = [1e-5, 1e-4, 1e-3]
 l_BN = [True, False]
-l_do = [0.1, 1.0]
+l_do = [0.1]
 
 for _do in l_do:
     for _BN in l_BN:
         for _lr in l_lr:
-            for _nc in l_nc:
-                tf.reset_default_graph()
-                # params
-                hyperparams = {
-                    'patch_size': 512,
-                    'batch_size': 8,  #Xlearn < 20, Unet < 20 saturate GPU memory
-                    'nb_epoch': 5,
-                    'nb_batch': None,
-                    'conv_size': 3,
-                    'nb_conv': _nc,
-                    'learning_rate': _lr,  #float or np.array of programmed learning rate
-                    'dropout': _do,
-                    'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
-                    'hour': '{}'.format(datetime.datetime.now().hour),
-                    'device_option': 'specific_gpu:0',
-                    'second_device': 'specific_gpu:1',
-                    'augmentation': True,
-                    'activation': 'relu',
-                    'batch_normalization': _BN,
-                    'save_step': 500,
-                    'save_summary_step': 50,
-                    'folder_name': None,
-                    'model': 'LRCS',
-                    'mode': 'classification',
-                    'loss_option': 'cross_entropy',
-                }
+            for _cs in l_cs:
+                for _nc in l_nc:
+                    tf.reset_default_graph()
+                    # params
+                    hyperparams = {
+                        'patch_size': 512,
+                        'batch_size': 8,  #Xlearn < 20, Unet < 20 saturate GPU memory
+                        'nb_epoch': 5,
+                        'nb_batch': None,
+                        'conv_size': _cs,
+                        'nb_conv': _nc,
+                        'learning_rate': _lr,  #float or np.array of programmed learning rate
+                        'dropout': _do,
+                        'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
+                        'hour': '{}'.format(datetime.datetime.now().hour),
+                        'device_option': 'specific_gpu:0',
+                        'second_device': 'specific_gpu:1',
+                        'augmentation': True,
+                        'activation': 'relu',
+                        'batch_normalization': _BN,
+                        'save_step': 500,
+                        'save_summary_step': 50,
+                        'folder_name': None,
+                        'model': 'LRCS',
+                        'mode': 'classification',
+                        'loss_option': 'cross_entropy',
+                    }
 
-                hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_comment_{}/hour{}/'.format(
-                    hyperparams['date'],
-                    hyperparams['batch_size'],
-                    hyperparams['patch_size'],
-                    hyperparams['learning_rate'] if not isinstance(hyperparams['learning_rate'], np.ndarray) else 'programmed',
-                    hyperparams['conv_size'],
-                    hyperparams['nb_conv'],
-                    hyperparams['dropout'],
-                    hyperparams['activation'],
-                    str(hyperparams['augmentation']),
-                    str(hyperparams['batch_normalization']),
-                    hyperparams['model'],
-                    hyperparams['mode'],
-                    'Cross_entropy_correct_the_one_hot_func',  #note: here put your special comment
-                    hyperparams['hour'],
-                )
+                    hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_comment_{}/hour{}/'.format(
+                        hyperparams['date'],
+                        hyperparams['batch_size'],
+                        hyperparams['patch_size'],
+                        hyperparams['learning_rate'] if not isinstance(hyperparams['learning_rate'], np.ndarray) else 'programmed',
+                        hyperparams['conv_size'],
+                        hyperparams['nb_conv'],
+                        hyperparams['dropout'],
+                        hyperparams['activation'],
+                        str(hyperparams['augmentation']),
+                        str(hyperparams['batch_normalization']),
+                        hyperparams['model'],
+                        hyperparams['mode'],
+                        'Cross_entropy_correct_the_one_hot_func',  #note: here put your special comment
+                        hyperparams['hour'],
+                    )
 
-                # get list of file names
-                hyperparams['totrain_files'] = [os.path.join('./proc/train/{}/'.format(hyperparams['patch_size']),
-                                              f) for f in os.listdir('./proc/train/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
-                hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams['patch_size']),
-                                             f) for f in os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
+                    # get list of file names
+                    hyperparams['totrain_files'] = [os.path.join('./proc/train/{}/'.format(hyperparams['patch_size']),
+                                                  f) for f in os.listdir('./proc/train/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
+                    hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams['patch_size']),
+                                                 f) for f in os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
 
-                # init input pipeline
-                train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
-                test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test', mode='classification')
+                    # init input pipeline
+                    train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
+                    test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test', mode='classification')
 
-                # define placeholder
-                if hyperparams['dropout'] is not None:
-                    drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
-                else:
-                    drop_prob = tf.placeholder_with_default(1.0, [], name='dropout_prob')
+                    # define placeholder
+                    if hyperparams['dropout'] is not None:
+                        drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
+                    else:
+                        drop_prob = tf.placeholder_with_default(1.0, [], name='dropout_prob')
 
-                if hyperparams['batch_normalization']:
-                    BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
-                else:
-                    BN_phase = False
+                    if hyperparams['batch_normalization']:
+                        BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
+                    else:
+                        BN_phase = False
 
-                lr = tf.placeholder(tf.float32, name='learning_rate')
+                    lr = tf.placeholder(tf.float32, name='learning_rate')
 
-                list_placeholders = [drop_prob, lr, BN_phase]
-                # init model
-                train_nodes = classification_nodes(pipeline=train_inputs,
-                                                   placeholders=list_placeholders,
-                                                   model_name=hyperparams['model'],
-                                                   patch_size=hyperparams['patch_size'],
-                                                   batch_size=hyperparams['batch_size'],
-                                                   conv_size=hyperparams['conv_size'],
-                                                   nb_conv=hyperparams['nb_conv'],
-                                                   activation=hyperparams['activation'],
-                                                   batch_norm=hyperparams['batch_normalization'],
-                                                   loss_option=hyperparams['loss_option'],
-                                                   is_training=True,
-                                                   )
+                    list_placeholders = [drop_prob, lr, BN_phase]
+                    # init model
+                    train_nodes = classification_nodes(pipeline=train_inputs,
+                                                       placeholders=list_placeholders,
+                                                       model_name=hyperparams['model'],
+                                                       patch_size=hyperparams['patch_size'],
+                                                       batch_size=hyperparams['batch_size'],
+                                                       conv_size=hyperparams['conv_size'],
+                                                       nb_conv=hyperparams['nb_conv'],
+                                                       activation=hyperparams['activation'],
+                                                       batch_norm=hyperparams['batch_normalization'],
+                                                       loss_option=hyperparams['loss_option'],
+                                                       is_training=True,
+                                                       )
 
-                test_nodes = classification_nodes(pipeline=test_inputs,
-                                                  placeholders=list_placeholders,
-                                                  model_name=hyperparams['model'],
-                                                  patch_size=hyperparams['patch_size'],
-                                                  batch_size=hyperparams['batch_size'],
-                                                  conv_size=hyperparams['conv_size'],
-                                                  nb_conv=hyperparams['nb_conv'],
-                                                  activation=hyperparams['activation'],
-                                                  batch_norm=hyperparams['batch_normalization'],
-                                                  loss_option=hyperparams['loss_option'],
-                                                  is_training=False,
-                                                  )
+                    test_nodes = classification_nodes(pipeline=test_inputs,
+                                                      placeholders=list_placeholders,
+                                                      model_name=hyperparams['model'],
+                                                      patch_size=hyperparams['patch_size'],
+                                                      batch_size=hyperparams['batch_size'],
+                                                      conv_size=hyperparams['conv_size'],
+                                                      nb_conv=hyperparams['nb_conv'],
+                                                      activation=hyperparams['activation'],
+                                                      batch_norm=hyperparams['batch_normalization'],
+                                                      loss_option=hyperparams['loss_option'],
+                                                      is_training=False,
+                                                      )
 
 
-                # print number of params
-                print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
+                    # print number of params
+                    print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
-                # create logs folder
-                check_N_mkdir('./logs/')
+                    # create logs folder
+                    check_N_mkdir('./logs/')
 
-                # calculate nb_batch
-                hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
+                    # calculate nb_batch
+                    hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
-                # start training
-                train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
+                    # start training
+                    train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
 
 
 
