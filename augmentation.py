@@ -25,7 +25,8 @@ def random_aug(X_img, y_img):
     ]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
     y_img.astype(np.int32)
-    return _minmaxscalar(X_img).astype('float32'), y_img
+    # return _minmaxscalar(X_img).astype('float32'), y_img  #note: minmaxscal will alternate if not all classes are present
+    return X_img.astype('float32'), y_img
 
 
 def gaussian_noise(X_img, y_img, sigma=0.1):
