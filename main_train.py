@@ -4,7 +4,7 @@ import os
 from input import inputpipeline
 from model import *
 from train import train_test
-from util import check_N_mkdir
+from util import check_N_mkdir, exponential_decay, ramp_decay
 
 # logging
 import logging
@@ -12,10 +12,11 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
 
-l_nc = []
-l_cs = [9, 7, 5]
-l_lr = [1e-5, 1e-4, 1e-3]
-l_BN = [True, False]
+l_nc = [56]
+l_cs = [3]
+l_lr = ['ramp']
+init_lr = 1e-4; k = 0.2  #exp: k=1e-5 strong decay after 4 epoch ramp: 0.5
+l_BN = [True]
 l_do = [0.1]
 
 for _do in l_do:
@@ -28,11 +29,10 @@ for _do in l_do:
                     hyperparams = {
                         'patch_size': 512,
                         'batch_size': 8,  #Xlearn < 20, Unet < 20 saturate GPU memory
-                        'nb_epoch': 5,
+                        'nb_epoch': 20,
                         'nb_batch': None,
                         'conv_size': _cs,
                         'nb_conv': _nc,
-                        'learning_rate': _lr,  #float or np.array of programmed learning rate
                         'dropout': _do,
                         'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
                         'hour': '{}'.format(datetime.datetime.now().hour),
@@ -46,9 +46,43 @@ for _do in l_do:
                         'folder_name': None,
                         'model': 'LRCS',
                         'mode': 'classification',
-                        'loss_option': 'cross_entropy',
+                        'loss_option': 'DSC',
                     }
 
+                    # get list of file names
+                    hyperparams['totrain_files'] = [os.path.join('./proc/train/{}/'.format(hyperparams['patch_size']),
+                                                                 f) for f in
+                                                    os.listdir('./proc/train/{}/'.format(hyperparams['patch_size'])) if
+                                                    f.endswith('.h5')]
+                    hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams['patch_size']),
+                                                                f) for f in
+                                                   os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if
+                                                   f.endswith('.h5')]
+
+                    # calculate nb_batch
+                    hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
+
+                    # get learning rate schedule
+                    if isinstance(_lr, str):
+                        if _lr == 'exp':
+                            hyperparams['learning_rate'] = exponential_decay(
+                                hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
+                                init_lr,
+                                k=k
+                            )  # float or np.array of programmed learning rate
+                        elif _lr == 'ramp':
+                            hyperparams['learning_rate'] = ramp_decay(
+                                hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
+                                hyperparams['nb_batch'],
+                                init_lr,
+                                k=k
+                            )  # float or np.array of programmed learning rate
+                        else:
+                            raise NotImplementedError('Not implemented learning rate schedule: {}'.format(_lr))
+                    else:
+                        hyperparams['learning_rate'] = _lr
+
+                    # name the log directory
                     hyperparams['folder_name'] = './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_comment_{}/hour{}/'.format(
                         hyperparams['date'],
                         hyperparams['batch_size'],
@@ -62,15 +96,9 @@ for _do in l_do:
                         str(hyperparams['batch_normalization']),
                         hyperparams['model'],
                         hyperparams['mode'],
-                        'Cross_entropy_correct_the_one_hot_func',  #note: here put your special comment
+                        'DSC_and_ramp_decay_1e-4_k_0.2',  #note: here put your special comment
                         hyperparams['hour'],
                     )
-
-                    # get list of file names
-                    hyperparams['totrain_files'] = [os.path.join('./proc/train/{}/'.format(hyperparams['patch_size']),
-                                                  f) for f in os.listdir('./proc/train/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
-                    hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams['patch_size']),
-                                                 f) for f in os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
 
                     # init input pipeline
                     train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
@@ -87,10 +115,9 @@ for _do in l_do:
                     else:
                         BN_phase = False
 
-                    lr = tf.placeholder(tf.float32, name='learning_rate')
-
-                    list_placeholders = [drop_prob, lr, BN_phase]
                     # init model
+                    lr = tf.placeholder(tf.float32, name='learning_rate')
+                    list_placeholders = [drop_prob, lr, BN_phase]
                     train_nodes = classification_nodes(pipeline=train_inputs,
                                                        placeholders=list_placeholders,
                                                        model_name=hyperparams['model'],
@@ -117,15 +144,11 @@ for _do in l_do:
                                                       is_training=False,
                                                       )
 
-
                     # print number of params
                     print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
                     # create logs folder
                     check_N_mkdir('./logs/')
-
-                    # calculate nb_batch
-                    hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
 
                     # start training
                     train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)

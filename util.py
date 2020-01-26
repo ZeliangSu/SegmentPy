@@ -154,14 +154,14 @@ class plot_input_logit_label_diff():
             raise ValueError('Expected an image or a stack of image')
 
 
+def exponential_decay(total_step, initial_lr, k=0.1):
+    steps = np.linspace(0, total_step, total_step)
+    lr_np = initial_lr * np.exp(- k * steps)
+    return lr_np
 
 
-
-
-
-
-
-
-
-
+def ramp_decay(total_step, nb_batch, initial_lr, k=0.5):
+    epochs = np.linspace(0, total_step, total_step) // nb_batch
+    lr_np = initial_lr * pow(k, epochs)
+    return lr_np
 

@@ -236,6 +236,7 @@ def _one_hot(tensor):
         for i in range(nb_classes):
             tmp = np.zeros(tensor.shape)
             tmp[np.where(tensor == i)] = 1
+            # tmp[np.where(tensor == i)] = 5  # uncomment this line to do 5-hot
             out.append(tmp)
         # stack along the last channel
         out = np.concatenate(out, axis=2)
