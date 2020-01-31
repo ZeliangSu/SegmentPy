@@ -154,14 +154,28 @@ class plot_input_logit_label_diff():
             raise ValueError('Expected an image or a stack of image')
 
 
+def get_list_fnames(directory):
+    l_fname = os.listdir(directory)
+    return [directory + fname for fname in l_fname]
+
+
 def exponential_decay(total_step, initial_lr, k=0.1):
     steps = np.linspace(0, total_step, total_step)
     lr_np = initial_lr * np.exp(- k * steps)
-    return lr_np
+    return lr_np.astype(float)
 
 
-def ramp_decay(total_step, nb_batch, initial_lr, k=0.5):
-    epochs = np.linspace(0, total_step, total_step) // nb_batch
+def ramp_decay(total_step, nb_batch, initial_lr, k=0.5, period=1):
+    epochs = np.linspace(0, total_step, total_step) // int(nb_batch * period)  #e.g. period = 3: every 3 epochs decrease the lr
     lr_np = initial_lr * pow(k, epochs)
-    return lr_np
+    return lr_np.astype(float)  # the placeholder of lr is float32 mysterious using float get better accuracy
+
+
+class check_identical():
+    pass
+
+
+class ckpt():
+    def here(self):
+        print("I'm here")
 

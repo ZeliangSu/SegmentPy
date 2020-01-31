@@ -476,4 +476,4 @@ def customized_softmax_np(inputs):
                                              # can be demonstrated easily: sum(log(small proba)_i) = inf
     # nominator = tf.exp(inputs)  #note: shape = (B, H, W, 3)
     denominator = np.sum(nominator, axis=3, keepdims=True)  #note: shape = (B, H, W, 1)
-    return nominator / denominator
+    return nominator / denominator  #note: shape = (B, H, W, 3)

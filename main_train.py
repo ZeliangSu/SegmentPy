@@ -12,16 +12,16 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
 
-l_nc = [56]
+l_nc = [16, 48]
 l_cs = [3]
-l_lr = ['ramp']
-init_lr = 1e-4; k = 0.2  #exp: k=1e-5 strong decay after 4 epoch ramp: 0.5
+l_lr = ['ramp']  #1e-5, 'ramp', 'exp'
+init_lr = [1e-4]; k = [0.1]; period = [1]   #exp: k=1e-5 strong decay after 4 epoch ramp: 0.5
 l_BN = [True]
 l_do = [0.1]
 
 for _do in l_do:
     for _BN in l_BN:
-        for _lr in l_lr:
+        for n, _lr in enumerate(l_lr):
             for _cs in l_cs:
                 for _nc in l_nc:
                     tf.reset_default_graph()
@@ -29,7 +29,7 @@ for _do in l_do:
                     hyperparams = {
                         'patch_size': 512,
                         'batch_size': 8,  #Xlearn < 20, Unet < 20 saturate GPU memory
-                        'nb_epoch': 20,
+                        'nb_epoch': 5,
                         'nb_batch': None,
                         'conv_size': _cs,
                         'nb_conv': _nc,
@@ -39,7 +39,7 @@ for _do in l_do:
                         'device_option': 'specific_gpu:0',
                         'second_device': 'specific_gpu:1',
                         'augmentation': True,
-                        'activation': 'relu',
+                        'activation': 'leaky',
                         'batch_normalization': _BN,
                         'save_step': 500,
                         'save_summary_step': 50,
@@ -67,16 +67,17 @@ for _do in l_do:
                         if _lr == 'exp':
                             hyperparams['learning_rate'] = exponential_decay(
                                 hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
-                                init_lr,
-                                k=k
-                            )  # float or np.array of programmed learning rate
+                                init_lr[n],
+                                k=k[n]
+                            )  # float32 or np.array of programmed learning rate
                         elif _lr == 'ramp':
                             hyperparams['learning_rate'] = ramp_decay(
                                 hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
                                 hyperparams['nb_batch'],
-                                init_lr,
-                                k=k
-                            )  # float or np.array of programmed learning rate
+                                init_lr[n],
+                                k=k[n],
+                                period=period[n],
+                            )  # float32 or np.array of programmed learning rate
                         else:
                             raise NotImplementedError('Not implemented learning rate schedule: {}'.format(_lr))
                     else:
@@ -96,7 +97,8 @@ for _do in l_do:
                         str(hyperparams['batch_normalization']),
                         hyperparams['model'],
                         hyperparams['mode'],
-                        'DSC_and_ramp_decay_1e-4_k_0.2',  #note: here put your special comment
+                        'DSC_rampdecay{}_k{}_p{}_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar'.format(init_lr[n], k[n], period[n]),
+                        #note: here put your special comment
                         hyperparams['hour'],
                     )
 

@@ -75,26 +75,26 @@ Unet_conserve_nodes = [
 
 # LRCS
 LRCS_conserve_nodes = [
-    'LRCS/encoder/conv1/relu',
-    'LRCS/encoder/conv1bis/relu',
-    'LRCS/encoder/conv2/relu',
-    'LRCS/encoder/conv2bis/relu',
-    'LRCS/encoder/conv3/relu',
-    'LRCS/encoder/conv3bis/relu',
-    'LRCS/encoder/conv4/relu',
-    'LRCS/encoder/conv4bis/relu',
-    'LRCS/encoder/conv4bisbis/relu',
-    'LRCS/dnn/dnn1/relu',
-    'LRCS/dnn/dnn2/relu',
-    'LRCS/dnn/dnn3/relu',
-    'LRCS/decoder/deconv5/relu',
-    'LRCS/decoder/deconv5bis/relu',
-    'LRCS/decoder/deconv6/relu',
-    'LRCS/decoder/deconv6bis/relu',
-    'LRCS/decoder/deconv7/relu',
-    'LRCS/decoder/deconv7bis/relu',
-    'LRCS/decoder/deconv8/relu',
-    'LRCS/decoder/deconv8bis/relu',
+    'LRCS/encoder/conv1/leaky',
+    'LRCS/encoder/conv1bis/leaky',
+    'LRCS/encoder/conv2/leaky',
+    'LRCS/encoder/conv2bis/leaky',
+    'LRCS/encoder/conv3/leaky',
+    'LRCS/encoder/conv3bis/leaky',
+    'LRCS/encoder/conv4/leaky',
+    'LRCS/encoder/conv4bis/leaky',
+    'LRCS/encoder/conv4bisbis/leaky',
+    'LRCS/dnn/dnn1/leaky',
+    'LRCS/dnn/dnn2/leaky',
+    'LRCS/dnn/dnn3/leaky',
+    'LRCS/decoder/deconv5/leaky',
+    'LRCS/decoder/deconv5bis/leaky',
+    'LRCS/decoder/deconv6/leaky',
+    'LRCS/decoder/deconv6bis/leaky',
+    'LRCS/decoder/deconv7/leaky',
+    'LRCS/decoder/deconv7bis/leaky',
+    'LRCS/decoder/deconv8/leaky',
+    'LRCS/decoder/deconv8bis/leaky',
     'LRCS/decoder/logits/identity',
 ]
 
@@ -170,7 +170,10 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
         new_input = g_main.get_tensor_by_name('new_input:0')
 
         # write firstly input and output images
-        imgs = [_minmaxscalar(h5.File(input_dir + '{}.h5'.format(i))['X']) for i in range(hyper['batch_size'])]
+        imgs = [
+            h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(hyper['batch_size'])
+            # _minmaxscalar(h5.File(input_dir + '{}.h5'.format(i))['X']) for i in range(hyper['batch_size'])  #note: uncomment here to use minmaxscaler
+        ]
         plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
 
@@ -782,7 +785,7 @@ if __name__ == '__main__':
         'batch_normalization': False,
     }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2019_12_22_bs8_ps512_lr0.001_cs3_nc36_do0.1_act_relu_aug_True_BN_True_mdl_LRCS_mode_classification_comment_Cross_entropy_correct_the_one_hot_func/hour21/'
+    graph_def_dir = './logs/2020_1_31_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.1_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour9/'
     step = 0
     step_init = 0
     paths = {
@@ -803,7 +806,7 @@ if __name__ == '__main__':
     visualize_weights(params=paths)
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
 
-    step = 28219
+    step = 28220
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50

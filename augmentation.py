@@ -21,7 +21,7 @@ def random_aug(X_img, y_img):
         speckle_noise,
         non_noise,
         # contrast,
-        # grayscale_var
+        grayscale_var
     ]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
     y_img.astype(np.int32)
@@ -119,7 +119,7 @@ def non_noise(X_img, y_img):
 
 def grayscale_var(X_img, y_img):
     std = X_img.std()
-    X_img += std * np.random.uniform(-5, 5)
+    X_img += std * np.random.uniform(-1, 1)
     return X_img, y_img
 
 

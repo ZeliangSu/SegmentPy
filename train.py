@@ -77,9 +77,10 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                     _step = step
 
                     if isinstance(hyperparams['learning_rate'], np.ndarray):
-                        learning_rate = hyperparams['learning_rate'][ep * hyperparams['nb_batch'] + step]
+                        learning_rate = hyperparams['learning_rate'][_ep * hyperparams['nb_batch'] + _step]
                     else:
                         learning_rate = hyperparams['learning_rate']
+
                     # for batch norm
                     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
                     # train
@@ -108,6 +109,9 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                                 train_nodes['train_op'], train_nodes['loss_update_op'], train_nodes['acc_update_op'], update_ops
                             ],
                                 feed_dict=feed_dict)
+
+                        #note: learning rate soucis
+                        # print(sess.run(train_nodes['learning_rate'], feed_dict=feed_dict))
 
                     except tf.errors.OutOfRangeError as e:
                         saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))

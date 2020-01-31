@@ -10,4 +10,5 @@ logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
 # os.system("mpiexec -n {} python snippet.py".format(mp.cpu_count()))
-os.system("mpiexec --use-hwthread-cpus python snippet.py")
+# os.system("mpiexec --use-hwthread-cpus python snippet.py")
+os.system("mpiexec --use-hwthread-cpus python landscape.py")

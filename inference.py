@@ -7,7 +7,7 @@ from PIL import Image
 from proc import _stride
 from tqdm import tqdm
 from input import _minmaxscalar
-from util import print_nodes_name
+from util import print_nodes_name, get_list_fnames
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from tensorflow.python.framework import dtypes
 from layers import customized_softmax_np
@@ -17,6 +17,8 @@ import logging
 import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
+
+tag_compute = 1002
 
 
 class reconstructor_V2_reg():
@@ -53,7 +55,6 @@ class reconstructor_V2_reg():
 class reconstructor_V2_cls():
     def __init__(self, image_size, patch_size, stride, nb_class):
         self.i_h, self.i_w = image_size[:2]  # e.g. (a, b)
-        # todo: p_h and p_w can be generalize to the case that they are different
         self.p_h, self.p_w = patch_size, patch_size  # e.g. (a, b)
         self.nb_cls = nb_class
         self.stride = stride
@@ -61,16 +62,34 @@ class reconstructor_V2_cls():
         self.n_h = (self.i_h - self.p_h) // self.stride + 1
         self.n_w = (self.i_w - self.p_w) // self.stride + 1
 
-    def add_batch(self, batch, start_id):
+    def add_batch(self,
+                  batch,  # (B, H, W, C)
+                  start_id):
         id_list = np.arange(start_id, start_id + batch.shape[0], 1)
         for i, id in enumerate(id_list):
             b = id // self.n_h
             a = id % self.n_h
-            self.result[a * self.stride: a * self.stride + self.p_h, b * self.stride: b * self.stride + self.p_w, :] += np.squeeze(batch[i])
+            tmp = np.argmax(batch[i], axis=2)  # (H, W)
+            # nb_classes = len(np.unique(tmp))  # might be a bug
+            out = []
+            for j in range(self.nb_cls):
+                onehot = np.zeros(tmp.shape)
+                onehot[np.where(tmp == j)] = 1
+                out.append(np.expand_dims(onehot, axis=2))
+
+            # stack along the last channel
+            out = np.concatenate(out, axis=2)  # (H, W, C)
+            #
+            # print('id:{}'.format(id))
+            # print('stt_id:{}'.format(start_id))
+            # print('shape:{}'.format(batch.shape))
+            # print('a:{}'.format(a))
+            # print('b:{}'.format(b))
+            self.result[a * self.stride: a * self.stride + self.p_h, b * self.stride: b * self.stride + self.p_w, :] += out
 
     def reconstruct(self):
         print('***Reconostructing')
-        self.result = np.argmax(self.result, axis=2)
+        self.result = np.argmax(self.result, axis=2).astype(float)
 
     def get_reconstruction(self):
         return self.result
@@ -126,8 +145,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
         'input_pipeline_train/IteratorGetNext': new_input,
     }
     try:
-        new_dropout = tf.placeholder_with_default(1.0, [],
-                                                  name='new_dropout')  # note: use ph_with_default so during inference dont need to call
+        new_dropout = tf.placeholder_with_default(1.0, [], name='new_dropout')
         input_map['dropout_prob'] = new_dropout
         if hyper['batch_normalization']:
             input_map['BN_phase'] = new_BN
@@ -285,12 +303,12 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
                                      ])
 
                     # inference
-                    batch = np.asarray(_minmaxscalar(batch))  #note: don't forget the minmaxscalar, since during training we put it
+                    # batch = np.asarray(_minmaxscalar(batch))  #note: don't forget the minmaxscalar, since during training we put it
                     batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
                     feed_dict = {
                         X: batch,
-                        do: 1.0,  #note: not needed anymore
-                        bn: False,  #note: not needed anymore
+                        do: 1.0,
+                        bn: False,
                     }
                     _out = sess.run(y, feed_dict=feed_dict)
                     if hyper['mode'] == 'classification':
@@ -314,8 +332,8 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
                         # 0-padding batch
                         batch = np.asarray(_minmaxscalar(batch))
                         batch = np.expand_dims(batch, axis=3)
-                        batch = np.concatenate([batch, np.zeros(
-                            (hyper['batch_size'] - last_batch_len + 1, *batch.shape[1:])
+                        batch = np.concatenate([batch, np.ones(
+                            (hyper['batch_size'] - last_batch_len, *batch.shape[1:])
                         )], axis=0)
 
                         feed_dict = {
@@ -339,21 +357,186 @@ def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None
     return l_out
 
 
-def inference_recursive_V2():
-    pass
+def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None):
+    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
+    assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
+    assert isinstance(paths, dict), 'paths should be a dict'
+    assert isinstance(hyper, dict), 'hyper should be a dict'
+
+    from mpi4py import MPI
+    # prevent GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    communicator = MPI.COMM_WORLD
+    rank = communicator.Get_rank()
+    nb_process = communicator.Get_size()
+
+    # optimize ckpt to pb for inference
+    if rank == 0:
+        check_N_mkdir(paths['out_dir'])
+        freeze_ckpt_for_inference(paths=paths, hyper=hyper,
+                                  conserve_nodes=conserve_nodes)  # there's still some residual nodes
+        optimize_pb_for_inference(paths=paths,
+                                  conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
+        pbar1 = tqdm(total=len(l_input_path))
+
+    # ************************************************************************************************ I'm a Barrier
+    communicator.Barrier()
+
+    # reconstruct volumn
+    for i, path in enumerate(l_input_path):
+        # ************************************************************************************************ I'm a Barrier
+        communicator.Barrier()
+        img = np.asarray(Image.open(path))
+        n_h = (img.shape[0] - hyper['patch_size']) // hyper['stride'] + 1
+        n_w = (img.shape[1] - hyper['patch_size']) // hyper['stride'] + 1
+        remaining = n_h * n_w
+        nb_img_per_rank = remaining // (nb_process - 1)
+        rest_img = remaining % (nb_process - 1)
+
+        if rank == 0:
+            pbar2 = tqdm(total=remaining)
+            # use reconstructor to not saturate the RAM
+            if hyper['mode'] == 'classification':
+                reconstructor = reconstructor_V2_cls(img.shape, hyper['patch_size'], hyper['stride'], hyper['nb_classes'])
+            else:
+                raise NotImplementedError('inference recursive V2 not implemented yet for regression')
+
+            # start gathering batches from other rank
+            s = MPI.Status()
+            communicator.Probe(status=s)
+            while remaining > 0:
+                # if s.tag != -1:
+                #     print(s.tag)
+
+                if s.tag == tag_compute:
+                    # receive outputs
+                    core, stt_id, out_batch = communicator.recv(tag=tag_compute)
+                    reconstructor.add_batch(out_batch, stt_id)
+
+                    # progress
+                    remaining -= out_batch.shape[0]
+                    pbar2.update(out_batch.shape[0])
+
+        else:
+            if (rank - 1) <= rest_img:
+                start_id = (rank - 1) * (nb_img_per_rank + 1)
+                id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
+            else:
+                start_id = (rank - 1) * nb_img_per_rank + rest_img
+                id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
+
+            _inference_recursive_V2(
+                img=img,
+                n_h=n_h,
+                id_list=id_list,
+                pb_path=paths['optimized_pb_path'],
+                conserve_nodes=conserve_nodes,
+                hyper=hyper,
+                comm=communicator
+            )
+
+        # save recon
+        if rank == 0:
+            reconstructor.reconstruct()
+            recon = reconstructor.get_reconstruction()
+            Image.fromarray(recon).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
+            pbar1.update(1)
+
+
+def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, conserve_nodes=None, hyper=None, comm=None):
+    # load graph
+    tf.reset_default_graph()
+    with tf.gfile.GFile(pb_path, 'rb') as f:
+        graph_def_optimized = tf.GraphDef()
+        graph_def_optimized.ParseFromString(f.read())
+
+    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
+        G = tf.get_default_graph()
+        X = G.get_tensor_by_name('import/' + 'new_input:0')
+        y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
+        bn = G.get_tensor_by_name('import/' + 'new_BN:0')
+        do = G.get_tensor_by_name('import/' + 'new_dropout:0')
+
+        batch_id = id_list.size // hyper['batch_size']
+        batch_rest = id_list.size % hyper['batch_size']
+        print(comm.Get_rank(), ': bid:{}, brst:{}'.format(batch_id, batch_rest))
+
+        if batch_id != 0:
+            for bid in range(batch_id):
+                batch = []
+                for id in id_list[bid * hyper['batch_size']: (bid + 1) * hyper['batch_size']]:
+                    b = id // n_h
+                    a = id % n_h
+                    # concat patch to batch
+                    batch.append(img[
+                                 a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
+                                 b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
+                                 ])
+
+                batch = np.stack(batch, axis=0)
+                # inference
+                # batch = _minmaxscalar(batch)  # note: don't forget the minmaxscalar, since during training we put it
+                batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
+                feed_dict = {
+                    X: batch,
+                    do: 1.0,
+                    bn: False,
+                }
+
+                if hyper['mode'] == 'classification':
+                    output = sess.run(y, feed_dict=feed_dict)
+                    output = customized_softmax_np(output)
+                    comm.send([comm.Get_rank(), id_list[bid * hyper['batch_size']], output], dest=0, tag=tag_compute)
+                else:
+                    raise NotImplementedError('!')
+
+        if batch_rest != 0:
+            batch = []
+            for id in id_list[-batch_rest:]:
+                a = id % n_h
+                b = id // n_h
+                # concat patch to batch
+                batch.append(img[
+                             a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
+                             b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
+                             ])
+
+            batch = np.stack(batch, axis=0)
+            # 1-padding for the last batch
+            # note: 0-padding will give a wrong output shape
+            batch = np.concatenate([batch, np.ones(
+                (hyper['batch_size'] - batch_rest, *batch.shape[1:])
+            )], axis=0)
+            # inference
+            # batch = _minmaxscalar(batch)  # note: don't forget the minmaxscalar, since during training we put it
+            batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
+            feed_dict = {
+                X: batch,
+                do: 1.0,
+                bn: False,
+            }
+
+            if hyper['mode'] == 'classification':
+                output = sess.run(y, feed_dict=feed_dict)
+                output = customized_softmax_np(output)
+                comm.send([comm.Get_rank(), id_list[-batch_rest], output[:batch_rest]], dest=0, tag=tag_compute)
+
+            else:
+                raise NotImplementedError('!')
 
 
 if __name__ == '__main__':
     c_nodes = [
             'LRCS/decoder/logits/identity',
         ]
-    graph_def_dir = './logs/2020_1_20_bs8_ps512_lr0.001_cs3_nc56_do0.1_act_relu_aug_True_BN_True_mdl_LRCS_mode_classification_comment_Cross_entropy_with_min_max_scaler/hour10/'
+    graph_def_dir = './logs/2020_1_24_bs8_ps512_lr1e-05_cs3_nc56_do0.1_act_relu_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_loss_function(acc_0.9)/hour16/'
 
     # segment raw img per raw img
     l_bs = [512]
     l_time = []
     l_inf = []
-    l_step = [28219]
+    l_step = [5644]
     step = l_step[0]
 
     paths = {
@@ -368,7 +551,7 @@ if __name__ == '__main__':
         'in_dir': './result/in/',
         'out_dir': './result/out/',
         'rlt_dir': graph_def_dir + 'dummy/',
-        'GPU': 1,
+        'GPU': 0,
         'inference_dir': './result/',
     }
 
@@ -377,16 +560,20 @@ if __name__ == '__main__':
         'batch_size': 8,
         'nb_batch': None,
         'nb_patch': None,
-        'stride': 5,
+        'stride': 10,
         'batch_normalization': True,
-        'device_option': 'specific_gpu:1', #'cpu',
+        'device_option': 'cpu', #'cpu',
         'mode': 'classification',
+        'nb_classes': 3,
     }
 
-    test1_raw = np.asarray(Image.open('./paper/train2.tif'))
-    # test2_raw = np.asarray(Image.open('./paper/test2_uns++.tif'))
+    # test1_raw = np.asarray(Image.open('./paper/train2.tif'))
+    test2_raw = np.asarray(Image.open('./paper/test1_uns++.tif'))
     # test1_label = np.asarray(Image.open('./dummy/test1_uns++_tu.tif'))
     # test2_label = np.asarray(Image.open('./dummy/test2_Weka_UNS_tu.tif'))
+    # l_img_path = ['./paper/train2.tif']
+    l_img_path = ['./paper/test1_uns++.tif']
 
-    l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
+    # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
+    l_out = inference_recursive_V2(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
 

@@ -167,8 +167,8 @@ def parse_h5_one_hot(fname, patch_size):
         y = _one_hot(y)
         logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  #B, H, W, C
 
-        return _minmaxscalar(X), y.astype(np.int32)  #note: minmaxscal will alternate if not all classes are present
-        # return X, y.astype(np.int32)
+        # return _minmaxscalar(X), y.astype(np.int32)  #note: minmaxscal will alternate if not all classes are present
+        return X, y.astype(np.int32)
 
 
 def parse_h5(fname, patch_size):
