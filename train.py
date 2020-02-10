@@ -63,14 +63,18 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
                 _ep = ep
                 # init ops
+                ls_fname_train, ls_ps_train, ls_x_train, ls_y_train = hyperparams['input_coords'].get_train_args()
+                ls_fname_test, ls_ps_test, ls_x_test, ls_y_test = hyperparams['input_coords'].get_test_args()
                 sess.run(train_inputs['iterator_init_op'],
-                         feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
-                                    train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(
-                                        hyperparams['totrain_files'])})
+                         feed_dict={train_inputs['fnames_ph']: ls_fname_train,
+                                    train_inputs['patch_size_ph']: ls_ps_train,
+                                    train_inputs['x_coord_ph']: ls_x_train,
+                                    train_inputs['y_coord_ph']: ls_y_train})
                 sess.run(test_inputs['iterator_init_op'],
-                         feed_dict={test_inputs['fnames_ph']: hyperparams['totest_files'],
-                                    test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(
-                                        hyperparams['totest_files'])})
+                         feed_dict={test_inputs['fnames_ph']: ls_fname_test,
+                                    test_inputs['patch_size_ph']: ls_ps_test,
+                                    test_inputs['x_coord_ph']: ls_x_test,
+                                    test_inputs['y_coord_ph']: ls_y_test})
 
                 # begin training
                 for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):

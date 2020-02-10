@@ -7,8 +7,12 @@ from PIL import Image
 from augmentation import random_aug
 import logging
 import log
-logger = log.setup_custom_logger('root')
-logger.setLevel(logging.INFO )
+import os
+
+logger = log.setup_custom_logger('root', level=logging.WARNING)
+logger.setLevel(logging.WARNING)
+logging.basicConfig(level=logging.WARNING)
+
 
 def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
     """
@@ -39,7 +43,7 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
             batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
             # read data
             if mode == 'regression':
-                batch = batch.map(_pyfn_parser_wrapper, num_parallel_calls=ncores)
+                batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
             elif mode == 'classification':
                 batch = batch.map(_pyfn_classification_parser_wrapper, num_parallel_calls=ncores)
             # random augment data
@@ -66,36 +70,6 @@ def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=Fal
 
     else:
         raise NotImplementedError('Inference input need to be debug')
-    # inference: 1 img
-    #     with tf.name_scope('input_pipeline_' + suffix):
-    #         # placeholders
-    #         fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
-    #         patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
-    #
-    #         # init and shuffle list of files
-    #         batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
-    #
-    #         # read img and stride
-    #         batch = batch.map(_pyfn_stride_wrapper, num_parallel_calls=ncores)
-    #
-    #         # simply batch it
-    #         # note: check the last batch results
-    #         batch = batch.batch(batch_size, drop_remainder=False).prefetch(ncores).repeat()
-    #
-    #         # construct iterator
-    #         it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
-    #         iter_init_op = it.make_initializer(batch, name='iter_init_op')
-    #
-    #         # get next img and label
-    #         X_it = it.get_next()
-    #
-    #         # dict
-    #         inputs = {'batch': X_it,
-    #                   'iterator_init_op': iter_init_op,
-    #                   'fnames_ph': fnames_ph,
-    #                   'patch_size_ph': patch_size_ph,
-    #                   }
-
     return inputs
 
 
@@ -131,9 +105,9 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
 
             # read data
             if mode == 'regression':
-                batch = batch.map(_pyfn_parser_wrapper_V2, num_parallel_calls=ncores)
+                batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
             elif mode == 'classification':
-                batch = batch.map(_pyfn_classification_parser_wrapper, num_parallel_calls=ncores)
+                batch = batch.map(_pyfn_classification_parser_wrapper_V2, num_parallel_calls=ncores)
 
             # random augment data
             if augmentation:
@@ -156,7 +130,9 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
                       'label': y_it,
                       'iterator_init_op': iter_init_op,
                       'fnames_ph': fnames_ph,
-                      'patch_size_ph': patch_size_ph}
+                      'patch_size_ph': patch_size_ph,
+                      'x_coord_ph': x_coord_ph,
+                      'y_coord_ph': y_coord_ph}
 
     else:
         raise NotImplementedError('Inference input need to be debugged')
@@ -164,7 +140,7 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
     return inputs
 
 
-def _pyfn_parser_wrapper(fname, patch_size):
+def _pyfn_regression_parser_wrapper(fname, patch_size):
     """
     input:
     -------
@@ -180,7 +156,15 @@ def _pyfn_parser_wrapper(fname, patch_size):
                       )
 
 
-def _pyfn_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
+def _pyfn_classification_parser_wrapper(fname, patch_size):
+    return tf.py_func(
+        parse_h5_one_hot,
+        [fname, patch_size],
+        [tf.float32, tf.int32]
+    )
+
+
+def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
     """
     input:
     -------
@@ -190,18 +174,10 @@ def _pyfn_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
     -------
         function: (function) tensorflow's pythonic function with its arguements
     """
-    return tf.py_func(parse_h5,  #wrapped pythonic function
+    return tf.py_func(parse_h5_one_hot_V2,  #wrapped pythonic function
                       [fname, patch_size, x_coord, y_coord],
                       [tf.float32, tf.int32]  #[output, output] dtype
                       )
-
-
-def _pyfn_classification_parser_wrapper(fname, patch_size):
-    return tf.py_func(
-        parse_h5_one_hot,
-        [fname, patch_size],
-        [tf.float32, tf.int32]
-    )
 
 
 def _pyfn_aug_wrapper(X_img, y_img):
@@ -237,13 +213,15 @@ def parse_h5_one_hot(fname, patch_size):
 
 def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
     img = np.asarray(Image.open(fname))
-    label = np.asarray(Image.open(fname.replace('.h5', '_label.h5')))
+    label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     assert img.shape == label.shape, 'img and label shape should be equal'
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
-    label = _one_hot(label)
-    logger.debug('y shape: {}, nb_class: {}'.format(label.shape, label.shape[-1]))  # B, H, W, C
-    return img, label.astype(np.int32)
+    X = np.expand_dims(img[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
+    y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
+    y = _one_hot(y)
+    # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C
+    return X, y.astype(np.int32)
 
 
 def parse_h5(fname, patch_size):
@@ -287,7 +265,7 @@ def _minmaxscalar(ndarray, dtype=np.float32):
 def _one_hot(tensor):
     ''' (batch, H, W) --> one hot to --> (batch, H, W, nb_class)'''
     assert isinstance(tensor, np.ndarray), 'Expect input as a np ndarray'
-    logger.debug('input tensor shape:{}, unique: {}'.format(tensor.shape, np.unique(tensor)))
+    # logger.debug('input tensor shape:{}, unique: {}'.format(tensor.shape, np.unique(tensor)))
     if tensor.ndim == 4:
         #note: (Batch, H, W, C)
         tensor = tensor.astype(np.int32)
@@ -319,7 +297,7 @@ def _one_hot(tensor):
         logger.warning('Oupss!')
         raise NotImplementedError('Oupss!')
 
-    logger.debug('np.shape(out): {}, unique: {}'.format(np.shape(out), np.unique(out)))
+    # logger.debug('np.shape(out): {}, unique: {}'.format(np.shape(out), np.unique(out)))
     return out
 
 
@@ -339,3 +317,104 @@ def _inverse_one_hot(tensor):
 
     return output.astype(np.int32)
 
+
+class coords_gen:
+    def __init__(self, fname, window_size=512, train_test_ratio=0.9, stride=1, batch_size=None, nb_batch=None):
+        self.stride = stride
+        self.train_test_ratio = train_test_ratio
+        self.batch_size = batch_size
+        self.window_size = window_size
+        if isinstance(fname, str):
+            if not fname.endswith('/'):
+                self.list_fname = [fname]
+            else:
+                self.list_fname = os.listdir(fname)
+                self.list_fname = [fname + relative for relative in self.list_fname if not relative.endswith('_label.tif')]
+        elif isinstance(fname, list):
+            self.list_fname = fname
+        else:
+            raise TypeError('fname should be a string of path or list of .tif file path strings')
+
+        self.totrain_img = []
+        self.list_ps = []
+        self.list_xcoord = []
+        self.list_ycoord = []
+        self.list_shapes = self.get_shapes(self.list_fname)
+        self.id = self.id_gen(self.list_shapes, self.window_size, self.stride)
+        self.generate_lists(seed=42)
+        self.nb_batch = nb_batch
+
+    def id_gen(self, list_shapes, window_size, stride):
+        # [(0, 1, 2), (0, 1, 3)...]
+        id_list = []
+        for i, shape in enumerate(list_shapes):
+            nb_x = (shape[0] - window_size) // stride + 1
+            nb_y = (shape[1] - window_size) // stride + 1
+            for x_coord, y_coord in product(range(nb_x), range(nb_y)):
+                id_list.append((i, x_coord, y_coord))
+        return id_list
+
+    def get_nb_batch(self):
+        if self.nb_batch is None:
+            return int(len(self.id) * self.train_test_ratio // self.batch_size)
+        else:
+            return self.nb_batch
+
+    def get_shapes(self, list_fname):
+        list_shapes = []
+        for fname in list_fname:
+            list_shapes.append(np.asarray(Image.open(fname)).shape)
+        return list_shapes
+
+    def generate_lists(self, seed=42):
+        # fname
+        # patch
+        # xcoord
+        # ycoord
+        np.random.seed(seed)
+        for n in self.id:
+            i, x, y = n
+            self.totrain_img.append(self.list_fname[i])
+            self.list_ps.append(self.window_size)
+            self.list_xcoord.append(x)
+            self.list_ycoord.append(y)
+
+        # list --> array (--> shuffle) --> list
+        self.totrain_img = np.asarray(self.totrain_img)
+        self.list_ps = np.asarray(self.list_ps).astype('int32')
+        self.list_xcoord = np.asarray(self.list_xcoord).astype('int32')
+        self.list_ycoord = np.asarray(self.list_ycoord).astype('int32')
+        idx = np.random.permutation(len(self.totrain_img))
+
+        self.totrain_img = self.totrain_img[idx]
+        self.list_ps = self.list_ps[idx]
+        self.list_xcoord = self.list_xcoord[idx]
+        self.list_ycoord = self.list_ycoord[idx]
+
+    def get_train_args(self):
+        if self.nb_batch is not None:
+            tmp = int(self.nb_batch)
+            return self.totrain_img[: tmp], \
+                   self.list_ps[: tmp], \
+                   self.list_xcoord[: tmp], \
+                   self.list_ycoord[: tmp]
+        else:
+            tmp = (int(self.get_nb_batch()))
+            return self.totrain_img[: tmp], \
+                   self.list_ps[: tmp], \
+                   self.list_xcoord[: tmp], \
+                   self.list_ycoord[: tmp]
+
+    def get_test_args(self):
+        if self.nb_batch is not None:
+            tmp = int(self.nb_batch)
+            return self.totrain_img[tmp:], \
+                   self.list_ps[tmp:], \
+                   self.list_xcoord[tmp:], \
+                   self.list_ycoord[tmp:]
+        else:
+            tmp = (int(self.get_nb_batch()))
+            return self.totrain_img[tmp:], \
+                   self.list_ps[tmp:], \
+                   self.list_xcoord[tmp:], \
+                   self.list_ycoord[tmp:]

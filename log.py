@@ -1,7 +1,7 @@
 import logging
 
 
-def setup_custom_logger(name, level=logging.DEBUG):
+def setup_custom_logger(name, level=logging.WARNING):
     formatter = logging.Formatter(fmt='%(asctime)s, %(levelname)s \n[%(filename)s:%(lineno)d] %(message)s')
     logging.basicConfig(filename='./debug.log',
                         level=level,
@@ -11,7 +11,7 @@ def setup_custom_logger(name, level=logging.DEBUG):
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     return logger
 

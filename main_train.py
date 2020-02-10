@@ -1,21 +1,24 @@
 import datetime
 import os
 
-from input import inputpipeline
+from input import inputpipeline_V2
 from model import *
 from train import train_test
 from util import check_N_mkdir, exponential_decay, ramp_decay
+from proc import coords_gen
 
 # logging
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
-l_nc = [16, 48]
+l_nc = [32]
 l_cs = [3]
-l_lr = ['ramp']  #1e-5, 'ramp', 'exp'
-init_lr = [1e-4]; k = [0.1]; period = [1]   #exp: k=1e-5 strong decay after 4 epoch ramp: 0.5
+l_lr = ['ramp', 'ramp', 'ramp']  #1e-5, 'ramp', 'exp'
+init_lr = [1e-4, 1e-4, 1e-4]
+k = [0.5, 0.5, 0.3]
+period = [1, 1, 1]   #exp: k=1e-5 strong decay after 4 epoch ramp: 0.5
 l_BN = [True]
 l_do = [0.1]
 
@@ -49,18 +52,15 @@ for _do in l_do:
                         'loss_option': 'DSC',
                     }
 
-                    # get list of file names
-                    hyperparams['totrain_files'] = [os.path.join('./proc/train/{}/'.format(hyperparams['patch_size']),
-                                                                 f) for f in
-                                                    os.listdir('./proc/train/{}/'.format(hyperparams['patch_size'])) if
-                                                    f.endswith('.h5')]
-                    hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams['patch_size']),
-                                                                f) for f in
-                                                   os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if
-                                                   f.endswith('.h5')]
+                    hyperparams['input_coords'] = coords_gen('./raw/',
+                                                             window_size=hyperparams['patch_size'],
+                                                             train_test_ratio=0.9,
+                                                             stride=5,
+                                                             nb_batch=None,
+                                                             batch_size=hyperparams['batch_size'])
 
                     # calculate nb_batch
-                    hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
+                    hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
 
                     # get learning rate schedule
                     if isinstance(_lr, str):
@@ -103,10 +103,10 @@ for _do in l_do:
                     )
 
                     # init input pipeline
-                    train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
-                    test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test', mode='classification')
+                    train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
+                    test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='classification')
 
-                    # define placeholder
+                    # define other placeholder
                     if hyperparams['dropout'] is not None:
                         drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
                     else:
