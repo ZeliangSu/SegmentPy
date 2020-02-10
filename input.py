@@ -3,6 +3,7 @@ import h5py
 import tensorflow as tf
 import multiprocessing as mp
 import warnings
+from itertools import product
 from PIL import Image
 from augmentation import random_aug
 import logging
