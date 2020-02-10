@@ -4,7 +4,7 @@ from numpy.lib.stride_tricks import as_strided
 from PIL import Image
 import os
 import h5py
-from itertools import repeat
+from itertools import repeat, product
 from writer import _h5Writer_V2, _h5Writer_V3
 from reader import _tifReader
 from util import check_N_mkdir
@@ -214,5 +214,100 @@ def _idParser(directory, patch_size, batch_size, mode='h5'):
         raise NotImplementedError('tfrecord has not been implemented yet')
 
 
+class coords_gen:
+    def __init__(self, fname, window_size=512, train_test_ratio=0.9, stride=1, nb_batch=None):
+        self.stride = stride
+        self.train_test_ratio = train_test_ratio
+        self.nb_batch = nb_batch
+        self.window_size = window_size
+        if isinstance(fname, str):
+            if not fname.endswith('/'):
+                self.list_fname = [fname]
+            else:
+                self.list_fname = os.listdir(fname)
+                self.list_fname = [fname + relative for relative in self.list_fname]
+        elif isinstance(fname, list):
+            self.list_fname = fname
+        else:
+            raise TypeError('fname should be a string of path or list of .tif file path strings')
 
+        self.totrain_img = []
+        self.list_ps = []
+        self.list_xcoord = []
+        self.list_ycoord = []
+        self.list_shapes = self.get_shapes(self.list_fname)
+        self.id = self.id_gen(self.list_shapes, self.window_size, self.stride)
+        self.generate_lists(seed=42)
+
+    def id_gen(self, list_shapes, window_size, stride):
+        # [(0, 1, 2), (0, 1, 3)...]
+        id_list = []
+        for i, shape in enumerate(list_shapes):
+            nb_x = (shape[0] - window_size) // stride + 1
+            nb_y = (shape[1] - window_size) // stride + 1
+            id_list.append([(i, x_coord, y_coord) for x_coord, y_coord in product(nb_x, nb_y)])
+        return id_list
+
+    def get_nb_batch(self):
+        if self.nb_batch is not None:
+            return len(self.id)
+        else:
+            return self.nb_batch
+
+    def get_shapes(self, list_fname):
+        list_shapes = []
+        for fname in list_fname:
+            list_shapes.append(np.asarray(Image.open(fname)).shape)
+        return list_shapes
+
+    def generate_lists(self, seed=42):
+        # fname
+        # patch
+        # xcoord
+        # ycoord
+        for i, x, y in self.id:
+            self.totrain_img.append(self.list_fname[i])
+            self.list_ps.append(self.window_size)
+            self.list_xcoord.append(x)
+            self.list_ycoord.append(y)
+
+            # list --> array (--> shuffle) --> list
+            self.totrain_img = np.asarray(self.totrain_img)
+            self.list_ps = np.asarray(self.list_ps)
+            self.list_xcoord = np.asarray(self.list_xcoord)
+            self.list_ycoord = np.asarray(self.list_ycoord)
+            idx = np.random.permutation(len(self.totrain_img))
+
+            self.totrain_img = self.totrain_img[idx]
+            self.list_ps = self.list_ps[idx]
+            self.list_xcoord = self.list_xcoord[idx]
+            self.list_ycoord = self.list_ycoord[idx]
+
+    def get_train_args(self):
+        if self.nb_batch is not None:
+            tmp = int(self.nb_batch * self.train_test_ratio)
+            return self.totrain_img[: tmp], \
+                   self.list_ps[: tmp], \
+                   self.list_xcoord[: tmp], \
+                   self.list_ycoord[: tmp]
+        else:
+            tmp = (int(self.get_nb_batch() * self.train_test_ratio))
+            return self.totrain_img[: tmp], \
+                   self.list_ps[: tmp], \
+                   self.list_xcoord[: tmp], \
+                   self.list_ycoord[: tmp]
+
+    def get_test_args(self):
+        if self.nb_batch is not None:
+            tmp = int(self.nb_batch * self.train_test_ratio)
+            return self.totrain_img[tmp:], \
+                   self.list_ps[tmp:], \
+                   self.list_xcoord[tmp:], \
+                   self.list_ycoord[tmp:]
+        else:
+            tmp = (int(self.get_nb_batch() * self.train_test_ratio))
+            return self.totrain_img[tmp:], \
+                   self.list_ps[tmp:], \
+                   self.list_xcoord[tmp:], \
+                   self.list_ycoord[tmp:]
 
