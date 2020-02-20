@@ -79,11 +79,7 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                 # begin training
                 for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
                     _step = step
-
-                    if isinstance(hyperparams['learning_rate'], np.ndarray):
-                        learning_rate = hyperparams['learning_rate'][_ep * hyperparams['nb_batch'] + _step]
-                    else:
-                        learning_rate = hyperparams['learning_rate']
+                    learning_rate = hyperparams['learning_rate'][_ep * hyperparams['nb_batch'] + _step]
 
                     # for batch norm
                     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
