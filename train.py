@@ -121,43 +121,42 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
 
 
                     #save model
-                    if hyperparams['second_device']:
-                        if step % hyperparams['save_step'] == 0:
-                            saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))
-                            model_saved_at.append(step)
+                    if step % hyperparams['save_step'] == 0:
+                        saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))
+                        model_saved_at.append(step)
 
-                            ########################
-                            #
-                            # test session
-                            #
-                            ########################
-                            if step != 0:
-                                # change feed dict
-                                feed_dict = {
-                                    train_nodes['learning_rate']: 1.0,
-                                    train_nodes['drop']: 1.0,
-                                }
+                        ########################
+                        #
+                        # test session
+                        #
+                        ########################
+                        if step != 0:
+                            # change feed dict
+                            feed_dict = {
+                                train_nodes['learning_rate']: 1.0,
+                                train_nodes['drop']: 1.0,
+                            }
 
-                                if hyperparams['batch_normalization']:
-                                    feed_dict[train_nodes['BN_phase']] = False
+                            if hyperparams['batch_normalization']:
+                                feed_dict[train_nodes['BN_phase']] = False
 
-                                # load graph in the second device
-                                loader = tf.train.Saver()
-                                # change
-                                ckpt_saved_path = folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step)
-                                loader.restore(sess, ckpt_saved_path)
-                                for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='test batch'):
-                                    _, summary, _, _ = sess.run(
-                                        [
-                                            test_nodes['y_pred'],
-                                            test_nodes['summary'],
-                                            test_nodes['loss_update_op'],
-                                            test_nodes['acc_update_op']
-                                        ],
-                                        feed_dict=feed_dict
-                                    )
-                                    if i_batch == hyperparams['save_step'] // 10 - 1:
-                                        test_writer.add_summary(summary, _ep * hyperparams['nb_batch'] + _step)
+                            # load graph in the second device
+                            loader = tf.train.Saver()
+                            # change
+                            ckpt_saved_path = folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step)
+                            loader.restore(sess, ckpt_saved_path)
+                            for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='test batch'):
+                                _, summary, _, _ = sess.run(
+                                    [
+                                        test_nodes['y_pred'],
+                                        test_nodes['summary'],
+                                        test_nodes['loss_update_op'],
+                                        test_nodes['acc_update_op']
+                                    ],
+                                    feed_dict=feed_dict
+                                )
+                                if i_batch == hyperparams['save_step'] // 10 - 1:
+                                    test_writer.add_summary(summary, _ep * hyperparams['nb_batch'] + _step)
 
         except (KeyboardInterrupt, SystemExit):
             saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))

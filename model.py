@@ -13,6 +13,7 @@ def regression_nodes(pipeline,
                      activation='relu',
                      batch_norm=True,
                      is_training=False,
+                     device=0,
                      ):
 
     # todo: correct
@@ -33,6 +34,7 @@ def regression_nodes(pipeline,
                                                  reuse=not is_training,
                                                  mode='regression',
                                                  nb_classes=3,
+                                                 device=device,
                                                  )
 
     with tf.device('/cpu:0'):
@@ -63,7 +65,7 @@ def regression_nodes(pipeline,
             m_param = tf.summary.merge(tmp)
             merged = tf.summary.merge([m_param, m_loss, m_acc, grad_sum])
     else:
-        with tf.device('/device:GPU:1'):
+        with tf.device('/cpu:0' if device==-1 else '/device:GPU:{}'.format(device)):
             with tf.name_scope('operation'):
                 train_op = tf.no_op(name='no_op')
         with tf.name_scope('test_metrics'):

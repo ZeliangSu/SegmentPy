@@ -3,11 +3,13 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
+from input import _one_hot
 from util import print_nodes_name_shape
 import copy
 import pandas as pd
 from scipy.interpolate import interp2d
 from scipy.spatial.distance import cosine, euclidean
+from PIL import Image
 import os
 # prevent GPU
 os.environ["CUDA_VISIBLE_DEVICES"]="-1"
@@ -94,16 +96,22 @@ def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outpu
     # print('xcoord:', xcoord)
     sess.run([tf.local_variables_initializer()])  # note: should initialize here otherwise it will keep cumulating for the average
     # print(sess.run(tf.local_variables()))  #note: uncomment this line to see if local_variables(metrics/loss/count...) are well init
+    # tf.summary.FileWriter('./dummy/debug/', sess.graph)
     # change state in the neural network
-    new_logits = graph.get_tensor_by_name('model/MLP/logits:0')
-    loss_tensor = graph.get_tensor_by_name('metrics/loss/value:0')
-    acc_tensor = graph.get_tensor_by_name('metrics/acc/value:0')
-    new_loss_update_op = graph.get_operation_by_name('metrics/loss/update_op')
-    new_acc_update_op = graph.get_operation_by_name('metrics/acc/update_op')
-    new_input_ph = graph.get_tensor_by_name('input_ph:0')
-    new_output_ph = graph.get_tensor_by_name('output_ph:0')
-    new_BN_ph = graph.get_tensor_by_name('BN_phase:0')
-
+    ###############################################################################################
+    # todo: this part should be automatic for different model
+    new_logits = graph.get_tensor_by_name('LRCS/decoder/logits/identity:0')
+    loss_tensor = graph.get_tensor_by_name('train_metrics/ls_train/value:0')
+    acc_tensor = graph.get_tensor_by_name('train_metrics/acc_train/value:0')
+    new_loss_update_op = graph.get_operation_by_name('train_metrics/ls_train/update_op')
+    new_acc_update_op = graph.get_operation_by_name('train_metrics/acc_train/update_op')
+    new_input_ph = graph.get_tensor_by_name('input_pipeline_train/IteratorGetNext:0')
+    new_do_ph = graph.get_tensor_by_name('dropout_prob:0')
+    new_BN_ph = graph.get_tensor_by_name('BN_phase:0')  # todo:
+    new_output_ph = graph.get_tensor_by_name('input_pipeline_train/IteratorGetNext:1')
+    # print(tf.shape(new_input_ph))
+    # print(tf.shape(new_output_ph))
+    ###############################################################################################
     # print('inputs avg: {}, outputs avg: {}'.format(np.mean(inputs), np.mean(outputs)))
 
     dx = {k: xcoord * v for k, v in direction_2D[0].items()}  # step size * direction x
@@ -119,7 +127,8 @@ def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outpu
         new_log, loss_ff, acc_ff, _, _ = sess.run([new_logits, loss_tensor, acc_tensor, new_acc_update_op, new_loss_update_op],
                                    feed_dict={new_input_ph: inputs,
                                               new_output_ph: outputs,
-                                              new_BN_ph: True,
+                                              new_do_ph: 1.0,
+                                              new_BN_ph: True, # todo:
                                               #note: (TF1.14)WTF? here should be True while producing loss-landscape
                                               #fixme: should check if the mov_avg/mov_std/beta/gamma change
                                               })
@@ -127,7 +136,7 @@ def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outpu
         if comm.Get_rank() != 0:
             comm.send(1, dest=0, tag=tag_compute)
 
-    # print('lss:{}, acc:{}, predict:{}'.format(loss, acc, np.mean(new_log)))
+    print('lss:{}, acc:{}, predict:{}'.format(loss_ff, acc_ff, np.mean(new_log)))
     return loss_ff, acc_ff
 
 
@@ -169,8 +178,11 @@ def feed_forward_MP(ckpt_path, state, direction_2D, x_mesh, y_mesh, comm=None):
         graph = tf.get_default_graph()
         # print_nodes_name_shape(graph)
         for i in range(x_mesh.size):
-            inputs = np.random.randn(8, 20, 20, 1) + np.ones((8, 20, 20, 1)) * 8  # noise + avg:8
-            outputs = np.ones((8, 20, 20, 1)) * 64   # avg: 9
+            # todo: don't use the training data here
+            in_img = np.asarray(Image.open('./raw/0.tif'))[:512, :512]
+            out_img = np.asarray(Image.open('./raw/0.tif'))[:512, :512]
+            inputs = np.asarray([in_img for i in range(8)]).reshape((8, 512, 512, 1))  #todo: automatization with test data
+            outputs = _one_hot(np.asarray([out_img for i in range(8)]).reshape((8, 512, 512, 1)))
             tmp_loss[i], tmp_acc[i] = feed_forward(sess=sess,
                                            graph=graph,
                                            state=state,
@@ -185,33 +197,33 @@ def feed_forward_MP(ckpt_path, state, direction_2D, x_mesh, y_mesh, comm=None):
     # print('\nacc', tmp_acc)
     return tmp_loss.astype(np.float32), tmp_acc.astype(np.float32)
 
-l_steps = [str(i * 1000) for i in range(10)]
-l_ckpts = ['./dummy/ckpt/step{}'.format(i) for i in l_steps]
+l_steps = [28219]
+l_ckpts = ['./logs/2020_2_8_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay5e-05_k0.1_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour16/ckpt/step{}'.format(i) for i in l_steps]
 l_states = [get_state(_c) for _c in l_ckpts]
 l_directions = [normalize_state(get_random_state(_s), _s) for _s in l_states]
 l_directions_bis = [normalize_state(get_random_state(_s), _s) for _s in l_states]
 
-# compute l2-norm and cos
-l_angles = []
-for i, (dict1, dict2) in enumerate(zip(l_directions, l_directions_bis)):
-    tmp = {}
-    for (k1, v1), (k2, v2) in zip(dict1.items(), dict2.items()):
-        assert k1 == k2, 'Found different weights names'
-        tmp[k1] = cosine(v1, v2)
-    l_angles.append(tmp)
-
-l_L2norm = []
-for i, (dict1, dict2) in enumerate(zip(l_directions, l_directions_bis)):
-    tmp = {}
-    for (k1, v1), (k2, v2) in zip(dict1.items(), dict2.items()):
-        assert k1 == k2, 'Found different weights names'
-        tmp[k1] = euclidean(v1, v2)
-    l_angles.append(tmp)
-
-# write cos and l2-norm to xlsw
-for i, angle in enumerate(l_angles):
-    with pd.ExcelWriter('./dummy/cosin.xlsx', engine='xlsxwriter') as writer:
-        angle['step{}'.format(i * 1000)].to_excel(writer, index=False, header=False)
+# # compute l2-norm and cos
+# l_angles = []
+# for i, (dict1, dict2) in enumerate(zip(l_directions, l_directions_bis)):
+#     tmp = {}
+#     for (k1, v1), (k2, v2) in zip(dict1.items(), dict2.items()):
+#         assert k1 == k2, 'Found different weights names'
+#         tmp[k1] = cosine(v1, v2)
+#     l_angles.append(tmp)
+#
+# l_L2norm = []
+# for i, (dict1, dict2) in enumerate(zip(l_directions, l_directions_bis)):
+#     tmp = {}
+#     for (k1, v1), (k2, v2) in zip(dict1.items(), dict2.items()):
+#         assert k1 == k2, 'Found different weights names'
+#         tmp[k1] = euclidean(v1, v2)
+#     l_angles.append(tmp)
+#
+# # write cos and l2-norm to xlsw
+# for i, angle in enumerate(l_angles):
+#     with pd.ExcelWriter('./dummy/cosin.xlsx', engine='xlsxwriter') as writer:
+#         angle['step{}'.format(28219)].to_excel(writer, index=False, header=False)
 
 # create direction and surface .h5
 x_min, x_max, x_nb = -1, 1, 51
@@ -404,8 +416,8 @@ for _step, _ckpt, _state, _dir, _dir_bis in tqdm(zip(l_steps, l_ckpts, l_states,
 
         pd.DataFrame(shared_lss).to_csv('./dummy/lss_step{}.csv'.format(_step), index=False)
         pd.DataFrame(shared_acc).to_csv('./dummy/acc_step{}.csv'.format(_step), index=False)
-        # csv_interp(xm, ym, shared_lss, './dummy/paraview_lss_step{}.csv'.format(_step))
-        # csv_interp(xm, ym, shared_acc, './dummy/paraview_lss_step{}.csv'.format(_step))
+        csv_interp(xm, ym, shared_lss, './dummy/paraview_lss_step{}.csv'.format(_step))
+        csv_interp(xm, ym, shared_acc, './dummy/paraview_lss_step{}.csv'.format(_step))
 
     # **************************************************************************************************** I'm a Barrier
     communicator.Barrier()
