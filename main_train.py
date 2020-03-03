@@ -52,8 +52,7 @@ if __name__ == '__main__':
         'dropout': args.dropout_prob,
         'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
         'hour': '{}'.format(datetime.datetime.now().hour),
-        'device_option': 'specific_gpu:0',
-        'second_device': 'specific_gpu:1',
+        'device': args.device,
         'augmentation': args.augmentation,
         'activation': args.activation_fn,
         'batch_normalization': args.batch_norm,
@@ -146,6 +145,7 @@ if __name__ == '__main__':
                                        batch_norm=hyperparams['batch_normalization'],
                                        loss_option=hyperparams['loss_option'],
                                        is_training=True,
+                                       device=hyperparams['device']
                                        )
 
     test_nodes = classification_nodes(pipeline=test_inputs,
@@ -159,6 +159,7 @@ if __name__ == '__main__':
                                       batch_norm=hyperparams['batch_normalization'],
                                       loss_option=hyperparams['loss_option'],
                                       is_training=False,
+                                      device=hyperparams['device']
                                       )
 
     # print number of params

@@ -4,12 +4,13 @@ import numpy as np
 import os
 from math import nan
 from PIL import Image
+from input import _minmaxscalar
 
 # logging
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)  #changeHere: debug level
+logger.setLevel(logging.WARNING)  #changeHere: debug level
 
 
 def print_nodes_name(graph):
@@ -131,6 +132,10 @@ class plot_input_logit_label_diff():
         self.out_path = out_path
         assert self.input.shape == self.logit.shape == self.diff.shape == self.label.shape, 'Shapes of in/out/lab/diff not match, or lack of one element'
         assert self.out_path is not None, 'Need to indicate a out path.'
+        self.input = _minmaxscalar(self.input)
+        self.logit = _minmaxscalar(self.logit)
+        self.diff = _minmaxscalar(self.diff)
+        self.label = _minmaxscalar(self.label)
         if self.input.ndim == 2:
             final = np.zeros((self.input.shape[0] * 2 + 10, self.input.shape[1] * 2 + 10))
             final[:self.input.shape[0], :self.input.shape[1]] = self.input
@@ -178,4 +183,15 @@ class check_identical():
 class ckpt():
     def here(self):
         print("I'm here")
+
+
+def list_ckpts(directory):
+    fnames = os.listdir(directory)
+    ckpts = []
+    for fname in fnames:
+        if fname.endswith('.meta'):
+            ckpts.append(int(fname.split('step')[1].split('.')[0]))
+    ckpts = sorted(ckpts)
+    print(ckpts)
+    return ckpts
 

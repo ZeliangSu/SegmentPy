@@ -11,7 +11,7 @@ def setup_custom_logger(name, level=logging.WARNING):
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     logger.addHandler(handler)
     return logger
 

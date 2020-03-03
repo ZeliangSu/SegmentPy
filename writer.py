@@ -187,6 +187,7 @@ def _resultWriter(tensor, layer_name='', path=None):
                 for j in range(elt.shape[-1]):
                     Image.fromarray(np.asarray(elt[:, :, j])).save(path + '{}/{}.tif'.format(layer_name, j))
 
+            # scope: images
             elif elt.ndim == 2:
                 Image.fromarray(np.asarray(elt)).save(path + '{}/{}.tif'.format(layer_name, i))
 
@@ -200,6 +201,10 @@ def _resultWriter(tensor, layer_name='', path=None):
 
                 Image.fromarray(tmp).save(path + '{}/dnn.tif'.format(layer_name))
 
+            elif elt.ndim == 4:
+                elt = elt.squeeze()
+                for j in range(elt.shape[0]):
+                    Image.fromarray(np.asarray(elt[j])).save(path + '{}/{}.tif'.format(layer_name, j))
     else:
         #  treat dnn weights
         if tensor.ndim == 1:
@@ -214,7 +219,7 @@ def _resultWriter(tensor, layer_name='', path=None):
         #  scope: not I_1_hoted tensor: (B, H, W, C)
         elif tensor.ndim == 4:
             tensor = np.squeeze(tensor.astype(np.float32))
-            if 'diff' in layer_name:
+            if 'diff' in layer_name or 'logit' in layer_name:
                 for i in range(tensor.shape[0]):
                     Image.fromarray(tensor[i]).save(path + '{}/{}.tif'.format(layer_name, i))
 

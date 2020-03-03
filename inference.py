@@ -4,7 +4,6 @@ import os
 from util import check_N_mkdir
 from itertools import product
 from PIL import Image
-from proc import _stride
 from tqdm import tqdm
 from input import _minmaxscalar
 from util import print_nodes_name, get_list_fnames
@@ -530,13 +529,13 @@ if __name__ == '__main__':
     c_nodes = [
             'LRCS/decoder/logits/identity',
         ]
-    graph_def_dir = './logs/2020_1_24_bs8_ps512_lr1e-05_cs3_nc56_do0.1_act_relu_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_loss_function(acc_0.9)/hour16/'
+    graph_def_dir = './logs/2020_2_19_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.2_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour8/'
 
     # segment raw img per raw img
     l_bs = [512]
     l_time = []
     l_inf = []
-    l_step = [5644]
+    l_step = [28219]
     step = l_step[0]
 
     paths = {
@@ -571,8 +570,8 @@ if __name__ == '__main__':
     test2_raw = np.asarray(Image.open('./paper/test1_uns++.tif'))
     # test1_label = np.asarray(Image.open('./dummy/test1_uns++_tu.tif'))
     # test2_label = np.asarray(Image.open('./dummy/test2_Weka_UNS_tu.tif'))
-    # l_img_path = ['./paper/train2.tif']
-    l_img_path = ['./paper/test1_uns++.tif']
+    l_img_path = ['./paper/train2.tif']
+    # l_img_path = ['./paper/test1_uns++.tif']
 
     # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
     l_out = inference_recursive_V2(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
