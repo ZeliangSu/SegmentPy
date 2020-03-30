@@ -5,7 +5,8 @@ import numpy as np
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+
 
 def init_weights(shape, name='weights', reuse=False):
     """
@@ -51,7 +52,10 @@ def max_pool_2by2(x, name=''):
 
 def max_pool_2by2_with_arg(x, name=''):
     with tf.name_scope(name):
-        v, ind = tf.nn.max_pool_with_argmax(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool')
+        v, ind = tf.nn.max_pool_with_argmax(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool',
+                                            include_batch_in_index=False)  #
+        logger.debug('input layer of maxpool argmax: {}'.format(x.get_shape()))
+        logger.debug('index of maxpool argmax: {}'.format(ind.get_shape()))
     return v, ind
 
 
@@ -69,7 +73,7 @@ def up_2by2(input_layer, name=''):
         return tf.image.resize_nearest_neighbor(input_layer, size=[2 * input_layer.shape[1], 2 * input_layer.shape[2]], name='up')
 
 
-def up_2by2_ind(input_layer, ind, name=''):
+def up_2by2_ind(input_layer, ind, shape=None, name=''):
     """
     input:
     -------
@@ -80,29 +84,51 @@ def up_2by2_ind(input_layer, ind, name=''):
         (tf.Tensor) row-by-row column-by-column copied tensor
     """
     with tf.name_scope(name):
+        logger.debug('index of up_by_ind has shape:{}'.format(ind.get_shape()))
+        logger.debug('input layer of up_by_ind has shape:{}'.format(input_layer.get_shape()))
         in_shape = input_layer.get_shape().as_list()
+
+        if None in in_shape[1:]:  #note: (TF114 SegNet) we need to enter mannually shape[:1] without the DNN
+            assert shape is not None, 'please manually enter a shape'
+            in_shape = shape
+
         # note: int64 // use tf.shape(input_layer) to get a symbolic batch size instead of Nonetype
         out_shape = [tf.cast(tf.shape(input_layer), dtype=tf.int64)[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
 
         # prepare
         # shape: (bs, 10, 10, 640) --> (bs * 64000)
         _pool = tf.reshape(input_layer, [-1])
-        _range = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
-        # ([[1, 5, 10], [1, 5, 10]]) --> ([[1, 1, 1], [1, 1, 1]]) --> ([[0, 0, 0], [1, 1, 1]])
-        tmp = tf.ones_like(ind) * _range
+        logger.debug('pool has shape:{}'.format(_pool.get_shape()))
+
+        batch_ind = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
+
+        # ind([[0, 1, 5, 1], [0, 3, 4, 1], ...]) --> onelike([[1, 1, 1, 1], [1, 1, 1, 1], ...])
+        # --> b_idx([[0, 0, 0], [1, 1, 1], ...])
+        tmp = tf.ones_like(ind) * batch_ind
+        logger.debug('tmp has shape:{}'.format(tmp.get_shape()))
+
         # ([[0, 0, 0], [1, 1, 1]]) --> ([[0], [0], [0], [1], [1], [1]]); shp(2, 3) --> shp(6, 1)
         tmp = tf.reshape(tmp, [-1, 1])
+        logger.debug('tmp has shape:{}'.format(tmp.get_shape()))
+
         # shape: (bs, 10, 10, 640 / (2*2)) --> (bs * 10 * 10 * 640 / 4 , 1)
         _ind = tf.reshape(ind, [-1, 1])
-        # tmp([[0], [1]]) concat axis=1 ind([[1], [6]]) --> ([[0, 1], [1, 6]]) shape: (?, 1)-->(?, 2)
-        _ind = tf.concat([tmp, _ind], 1)
+        logger.debug('_ind has shape:{}'.format(_ind.get_shape()))
+
+        # ([[0], [1], [2]) concat axis=1 ([[0, 1, 2], [4, 5, 6], [100, 50, 20])
+        # --> ([[0, 0, 1, 2], [1, 4, 5, 6], [2, 100, 50, 20]]); shape: (3, 1) , (3, 3)-->(3, 4)
+        # here: tmp([[0], [1], [2]...) ind([x[2], y[1], c[0], x[3], y[4]...]) --> ind(x[0, 2], y[1, 1], c[2, 0], ...])
+        # shape: (X, 1), (X, 1) --> (X, 2)
+        _ind = tf.concat([tmp, _ind], axis=1)
+        logger.debug('_ind has shape:{}'.format(_ind.get_shape()))
 
         # scatter
         # e.g. shp(4, 1), shp(4,), shp(1,) --> outshp(8,)
         # e.g. shp(2, 1), shp(2, 4, 4), shp(3,) --> outshp(4, 4, 4)
         # e.g. shp(300*10*10*160, 2), shp(300*10*10*160), shp(2,) --> outshp(200, 16k)
-        # note: first dimension should be equal: (X, 2) and (X,), which makes the encoder and decoder symetric
-        unpool = tf.scatter_nd(_ind, _pool, [out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
+        # note: first dimension should be equal: ind(X, 2) and pool(X,), which makes the encoder and decoder symetric
+        # note: scatter_nd scatters with value 0, scatter_nd_update scatters with a chosen value
+        unpool = tf.scatter_nd(indices=_ind, updates=_pool, shape=[out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
 
         # reshape
         unpool = tf.reshape(unpool, out_shape)

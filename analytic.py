@@ -23,54 +23,54 @@ if os.name == 'posix':  #to fix MAC openMP bug
 
 # Xlearn
 Xlearn_conserve_nodes = [
-    'model/encoder/conv1/relu',
-    'model/encoder/conv1bis/relu',
-    'model/encoder/conv2/relu',
-    'model/encoder/conv2bis/relu',
-    'model/encoder/conv3/relu',
-    'model/encoder/conv3bis/relu',
-    'model/encoder/conv4/relu',
-    'model/encoder/conv4bis/relu',
-    'model/encoder/conv4bisbis/relu',
-    'model/dnn/dnn1/relu',
-    'model/dnn/dnn2/relu',
-    'model/dnn/dnn3/relu',
-    'model/decoder/deconv5/relu',
-    'model/decoder/deconv5bis/relu',
-    'model/decoder/deconv6/relu',
-    'model/decoder/deconv6bis/relu',
-    'model/decoder/deconv7bis/relu',
-    'model/decoder/deconv7bis/relu',
-    'model/decoder/deconv8/relu',
-    'model/decoder/deconv8bis/relu',
-    'model/decoder/logits/add',
+    'Xlearn/encoder/conv1/leaky',
+    'Xlearn/encoder/conv1bis/leaky',
+    'Xlearn/encoder/conv2/leaky',
+    'Xlearn/encoder/conv2bis/leaky',
+    'Xlearn/encoder/conv3/leaky',
+    'Xlearn/encoder/conv3bis/leaky',
+    'Xlearn/encoder/conv4/leaky',
+    'Xlearn/encoder/conv4bis/leaky',
+    'Xlearn/encoder/conv4bisbis/leaky',
+    'Xlearn/dnn/dnn1/leaky',
+    'Xlearn/dnn/dnn2/leaky',
+    'Xlearn/dnn/dnn3/leaky',
+    'Xlearn/decoder/deconv5/leaky',
+    'Xlearn/decoder/deconv5bis/leaky',
+    'Xlearn/decoder/deconv6/leaky',
+    'Xlearn/decoder/deconv6bis/leaky',
+    'Xlearn/decoder/deconv7/leaky',
+    'Xlearn/decoder/deconv7bis/leaky',
+    'Xlearn/decoder/deconv8/leaky',
+    'Xlearn/decoder/deconv8bis/leaky',
+    'Xlearn/decoder/logits/add',
 ]
 
 # U-Net
 Unet_conserve_nodes = [
-    'model/contractor/conv1/leaky',
-    'model/contractor/conv1bis/leaky',
-    'model/contractor/conv2/leaky',
-    'model/contractor/conv2bis/leaky',
-    'model/contractor/conv3/leaky',
-    'model/contractor/conv3bis/leaky',
-    'model/contractor/conv4/leaky',
-    'model/contractor/conv4bis/leaky',
-    'model/bottom/bot5/leaky',
-    'model/bottom/bot5bis/leaky',
-    'model/bottom/deconv1/leaky',
-    'model/decontractor/conv6/leaky',
-    'model/decontractor/conv6bis/leaky',
-    'model/decontractor/deconv2/leaky',
-    'model/decontractor/conv7/leaky',
-    'model/decontractor/conv7bis/leaky',
-    'model/decontractor/deconv3/leaky',
-    'model/decontractor/conv8/leaky',
-    'model/decontractor/conv8bis/leaky',
-    'model/decontractor/deconv4/leaky',
-    'model/decontractor/conv9/leaky',
-    'model/decontractor/conv9bis/leaky',
-    'model/decontractor/logits/add',
+    'Unet/contractor/conv1/leaky',
+    'Unet/contractor/conv1bis/leaky',
+    'Unet/contractor/conv2/leaky',
+    'Unet/contractor/conv2bis/leaky',
+    'Unet/contractor/conv3/leaky',
+    'Unet/contractor/conv3bis/leaky',
+    'Unet/contractor/conv4/leaky',
+    'Unet/contractor/conv4bis/leaky',
+    'Unet/bottom/bot5/leaky',
+    'Unet/bottom/bot5bis/leaky',
+    'Unet/bottom/deconv1/leaky',
+    'Unet/decontractor/conv6/leaky',
+    'Unet/decontractor/conv6bis/leaky',
+    'Unet/decontractor/deconv2/leaky',
+    'Unet/decontractor/conv7/leaky',
+    'Unet/decontractor/conv7bis/leaky',
+    'Unet/decontractor/deconv3/leaky',
+    'Unet/decontractor/conv8/leaky',
+    'Unet/decontractor/conv8bis/leaky',
+    'Unet/decontractor/deconv4/leaky',
+    'Unet/decontractor/conv9/leaky',
+    'Unet/decontractor/conv9bis/leaky',
+    'Unet/decontractor/logits/add',
 ]
 
 # LRCS
@@ -98,10 +98,32 @@ LRCS_conserve_nodes = [
     'LRCS/decoder/logits/identity',
 ]
 
+Segnet_conserve_nodes = [
+    'Segnet/encoder/conv1/leaky',
+    'Segnet/encoder/conv1bis/leaky',
+    'Segnet/encoder/conv2/leaky',
+    'Segnet/encoder/conv2bis/leaky',
+    'Segnet/encoder/conv3/leaky',
+    'Segnet/encoder/conv3bis/leaky',
+    'Segnet/encoder/conv4/leaky',
+    'Segnet/encoder/conv4bis/leaky',
+    'Segnet/encoder/conv4bisbis/leaky',
+    'Segnet/decoder/deconv5/leaky',
+    'Segnet/decoder/deconv5bis/leaky',
+    'Segnet/decoder/deconv6/leaky',
+    'Segnet/decoder/deconv6bis/leaky',
+    'Segnet/decoder/deconv7/leaky',
+    'Segnet/decoder/deconv7bis/leaky',
+    'Segnet/decoder/deconv8/leaky',
+    'Segnet/decoder/deconv8bis/leaky',
+    'Segnet/decoder/logits/identity',
+]
+
 conserve_nodes_dict = {
     'Xlearn': Xlearn_conserve_nodes,
     'Unet': Unet_conserve_nodes,
-    'LRCS': LRCS_conserve_nodes
+    'LRCS': LRCS_conserve_nodes,
+    'Segnet': Segnet_conserve_nodes
 }
 
 
@@ -171,13 +193,20 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # write firstly input and output images
         imgs = [
-            h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(hyper['batch_size'])
+            np.asarray(Image.open('./testdata/0.tif'))[i * 100: i * 100 + hyperparams['patch_size'],
+            i * 100: i * 100 + hyperparams['patch_size']]
+            for i in range(hyperparams['batch_size'])
+            # h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(hyper['batch_size'])
             # _minmaxscalar(h5.File(input_dir + '{}.h5'.format(i))['X']) for i in range(hyper['batch_size'])  #note: uncomment here to use minmaxscaler
         ]
         plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
 
-        labels = [np.asarray(h5.File(input_dir + '{}.h5'.format(i))['y']) for i in range(hyper['batch_size'])]
+        labels = [
+            np.asarray(Image.open('./testdata/0_label.tif'))[i * 100: i * 100 + hyperparams['patch_size'],
+            i * 100: i * 100 + hyperparams['patch_size']] for i in
+            range(hyperparams['batch_size'])
+        ]
         plt_illd.add_label(np.asarray(labels))
         _resultWriter(labels, 'label', path=rlt_dir)
 
@@ -785,7 +814,7 @@ if __name__ == '__main__':
         'batch_normalization': False,
     }
     conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2020_1_31_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.1_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour9/'
+    graph_def_dir = './logs/2020_3_21_bs8_ps512_lrprogrammed_cs3_nc32_do0.9_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_lossFn_DSC_constdecay0.0001_k0.3_p1_comment_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour13/'
     step = 0
     step_init = 0
     paths = {
@@ -806,7 +835,7 @@ if __name__ == '__main__':
     visualize_weights(params=paths)
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
 
-    step = 28220
+    step = 28219
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50
@@ -827,6 +856,6 @@ if __name__ == '__main__':
     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
     # tsne_on_weights(params=paths, mode='2D')
     # tsne_on_bias(params=paths, mode='2D')
-    # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    # weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
     # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
