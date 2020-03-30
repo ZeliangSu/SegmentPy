@@ -2,24 +2,19 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import os
-from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean, plot_input_logit_label_diff
+from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean, plot_input_logit_label_diff, list_ckpts
 from tsne import tsne, compare_tsne_2D, compare_tsne_3D
 from inference import freeze_ckpt_for_inference
 from PIL import Image
 from scipy import interpolate
 from writer import _resultWriter
-import h5py as h5
 from input import _one_hot, _minmaxscalar, _inverse_one_hot
 from layers import customized_softmax_np
 
 import logging
 import log
 logger = log.setup_custom_logger('root')
-logger.setLevel(logging.DEBUG)
-
-if os.name == 'posix':  #to fix MAC openMP bug
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
+logger.setLevel(logging.WARNING)
 
 # Xlearn
 Xlearn_conserve_nodes = [
@@ -193,20 +188,12 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # write firstly input and output images
         imgs = [
-            np.asarray(Image.open('./testdata/0.tif'))[i * 100: i * 100 + hyperparams['patch_size'],
-            i * 100: i * 100 + hyperparams['patch_size']]
-            for i in range(hyperparams['batch_size'])
-            # h5.File(input_dir + '{}.h5'.format(i))['X'] for i in range(hyper['batch_size'])
-            # _minmaxscalar(h5.File(input_dir + '{}.h5'.format(i))['X']) for i in range(hyper['batch_size'])  #note: uncomment here to use minmaxscaler
+            np.asarray(Image.open(input_dir + '0.tif'))[i * 100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])  #fixme: better use test dataset
         ]
         plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
 
-        labels = [
-            np.asarray(Image.open('./testdata/0_label.tif'))[i * 100: i * 100 + hyperparams['patch_size'],
-            i * 100: i * 100 + hyperparams['patch_size']] for i in
-            range(hyperparams['batch_size'])
-        ]
+        labels = [np.asarray(Image.open(input_dir + '0_label.tif'))[i * 100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])]   #fixme: better use test dataset
         plt_illd.add_label(np.asarray(labels))
         _resultWriter(labels, 'label', path=rlt_dir)
 
@@ -241,7 +228,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                     if tensors.ndim == 4 or 2:
                         if 'logit' in layer_name:
                             tensors = customized_softmax_np(tensors)
-                            tensors = _inverse_one_hot(tensors)  # note: apply the softmax here
+                            tensors = _inverse_one_hot(tensors)
                             plt_illd.add_logit(tensors)
 
                         else:
@@ -577,6 +564,7 @@ def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
 
     # get weights-bias values at step0
     wn, bn, ws_init, bs_init, dnn_wn, dnn_bn, dnn_ws_init, dnn_bs_init = get_all_trainable_variables(lnames[0])
+    print('\n ********* processing euclidean distance for each checkpoint')
     l_total_w_avg = [0]
     l_total_b_avg = [0]
     l_total_w_std = [0]
@@ -593,8 +581,10 @@ def weights_euclidean_distance(ckpt_dir=None, rlt_dir=None):
 
     for ckpt_path in lnames[1:]:
         # insert step
-        dic_w['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
-        dic_b['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
+        step = int(ckpt_path.split('step')[1].split('.')[0])
+        print(step)
+        dic_w['step'].append(step)
+        dic_b['step'].append(step)
         total_dis_w = []
         total_dis_b = []
 
@@ -680,6 +670,7 @@ def weights_angularity(ckpt_dir=None, rlt_dir=None):
 
     # get weights-bias values at step0
     wn, bn, ws_init, bs_init, dnn_wn, dnn_bn, dnn_ws_init, dnn_bs_init = get_all_trainable_variables(lnames[0])
+    print('\n ********* processing angularity for each checkpoint')
     l_total_w_avg = [0]
     l_total_b_avg = [0]
     l_total_w_std = [0]
@@ -696,55 +687,58 @@ def weights_angularity(ckpt_dir=None, rlt_dir=None):
 
     for ckpt_path in lnames[1:]:
         # insert step
-        dic_w['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
-        dic_b['step'].append(int(ckpt_path.split('step')[1].split('.')[0]))
-        total_dis_w = []
-        total_dis_b = []
+        step = int(ckpt_path.split('step')[1].split('.')[0])
+        print(step)
+        dic_w['step'].append(step)
+        dic_b['step'].append(step)
+        total_ang_w = []
+        total_ang_b = []
 
         # get ws values at stepX
         wn, bn, ws_, bs_, dnn_wn, dnn_bn, dnn_ws_, dnn_bs_ = get_all_trainable_variables(ckpt_path)
-        # program euclidean distance
+        # program cosine alpha
 
         # for w
         for _wn, w_init, w_ in zip(wn + dnn_wn, ws_init + dnn_ws_init, ws_ + dnn_ws_):
-            l_dis_w = []
+            l_ang_w = []
             try:
                 # for CNN
                 # retrive the filters
                 w_init, w_ = np.sum(w_init, axis=2), np.sum(w_, axis=2)
                 # write w
                 for i in range(w_init.shape[2]):
-                    angle_w = np.dot(w_init[:, :, i], w_[:, :, i]) / (np.linalg.norm(w_init[:, :, i]) * np.linalg.norm(w_[:, :, i]))
-                    l_dis_w.append(angle_w)
-                    total_dis_w.append(angle_w)
+                    # note: need to flatten the kernel
+                    angle_w = np.dot(w_init[:, :, i].ravel(), w_[:, :, i].ravel()) / (np.linalg.norm(w_init[:, :, i].ravel()) * np.linalg.norm(w_[:, :, i].ravel()))
+                    l_ang_w.append(angle_w)
+                    total_ang_w.append(angle_w)
 
             except Exception as e:
                 # for DNN
                 # Retrieve weights
                 w_init, w_ = np.sum(w_init,  axis=1), np.sum(w_, axis=1)
                 angle_w = np.dot(w_init.T, w_) / (np.linalg.norm(w_init) * np.linalg.norm(w_))
-                l_dis_w.append(angle_w)
-                total_dis_w.append(angle_w)
+                l_ang_w.append(angle_w)
+                total_ang_w.append(angle_w)
 
             # save w into dfs
-            dic_w[_wn.split('/')[0] + '_avg'].append(np.asarray(l_dis_w).mean())
-            dic_w[_wn.split('/')[0] + '_std'].append(np.asarray(l_dis_w).std())
+            dic_w[_wn.split('/')[0] + '_avg'].append(np.asarray(l_ang_w).mean())
+            dic_w[_wn.split('/')[0] + '_std'].append(np.asarray(l_ang_w).std())
 
         # for b
         for _bn, b_init, b_ in zip(bn + dnn_bn, bs_init + dnn_bs_init, bs_ + dnn_bs_):
-            l_dis_b = []
+            l_ang_b = []
 
-            dis_b = np.dot(b_init, b_) / (np.linalg.norm(b_init) * np.linalg.norm(b_))
-            l_dis_b.append(dis_b)
-            total_dis_b.append(dis_b)
+            ang_b = np.dot(b_init.ravel(), b_.ravel()) / (np.linalg.norm(b_init) * np.linalg.norm(b_))
+            l_ang_b.append(ang_b)
+            total_ang_b.append(ang_b)
 
             # write b into dfs
-            dic_b[_bn.split('/')[0] + '_avg'].append(np.asarray(l_dis_b).mean())
-            dic_b[_bn.split('/')[0] + '_std'].append(np.asarray(l_dis_b).std())
-        l_total_w_avg.append(np.asarray(total_dis_w).mean())
-        l_total_w_std.append(np.asarray(total_dis_w).std())
-        l_total_b_avg.append(np.asarray(total_dis_b).mean())
-        l_total_b_std.append(np.asarray(total_dis_b).std())
+            dic_b[_bn.split('/')[0] + '_avg'].append(np.asarray(l_ang_b).mean())
+            dic_b[_bn.split('/')[0] + '_std'].append(np.asarray(l_ang_b).std())
+        l_total_w_avg.append(np.asarray(total_ang_w).mean())
+        l_total_w_std.append(np.asarray(total_ang_w).std())
+        l_total_b_avg.append(np.asarray(total_ang_b).mean())
+        l_total_b_std.append(np.asarray(total_ang_b).std())
 
     dic_w['total_avg'] = l_total_w_avg
     dic_w['total_std'] = l_total_w_std
@@ -790,7 +784,8 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 
     # run nodes and save results
     inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
-                                   input_dir=paths['data_dir'], rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']),
+                                   input_dir=paths['data_dir'],
+                                   rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']),
                                    hyper=hyperparams)
 
     # plt
@@ -826,36 +821,37 @@ if __name__ == '__main__':
         'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step_init),
         'save_pb_dir': graph_def_dir + 'pb/',
         'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step_init),
-        'data_dir': './proc/test/512/',
+        'data_dir': './raw/', #todo:
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
-    visualize_weights(params=paths)
-    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+    # visualize_weights(params=paths)
+    # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
 
-    step = 28219
-    paths = {
-        'step': step,
-        'perplexity': 100,  #default 30 usual range 5-50
-        'niter': 5000,  #default 5000
-        'working_dir': graph_def_dir,
-        'ckpt_dir': graph_def_dir + 'ckpt/',
-        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
-        'ckpt_path_init': graph_def_dir + 'ckpt/step{}'.format(step_init),
-        'save_pb_dir': graph_def_dir + 'pb/',
-        'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
-        'data_dir': './proc/test/512/',
-        'rlt_dir':  graph_def_dir + 'rlt/',
-        'tsne_dir':  graph_def_dir + 'tsne/',
-        'tsne_path':  graph_def_dir + 'tsne/',
-    }
-    print('Proceed step {}'.format(paths['step']))
-    visualize_weights(params=paths)
-    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
-    # tsne_on_weights(params=paths, mode='2D')
-    # tsne_on_bias(params=paths, mode='2D')
-    weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
-    # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+    l_step = list_ckpts(graph_def_dir + 'ckpt/')
+    for step in l_step:
+        paths = {
+            'step': step,
+            'perplexity': 100,  #default 30 usual range 5-50
+            'niter': 5000,  #default 5000
+            'working_dir': graph_def_dir,
+            'ckpt_dir': graph_def_dir + 'ckpt/',
+            'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
+            'ckpt_path_init': graph_def_dir + 'ckpt/step{}'.format(step_init),
+            'save_pb_dir': graph_def_dir + 'pb/',
+            'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
+            'data_dir': './raw/',
+            'rlt_dir':  graph_def_dir + 'rlt/',
+            'tsne_dir':  graph_def_dir + 'tsne/',
+            'tsne_path':  graph_def_dir + 'tsne/',
+        }
+        print('Proceed step {}'.format(paths['step']))
+        # visualize_weights(params=paths)
+        partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+        # tsne_on_weights(params=paths, mode='2D')
+        # tsne_on_bias(params=paths, mode='2D')
+        # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+        # weights_angularity(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
+        # weights_hists_2excel(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])
