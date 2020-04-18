@@ -1,0 +1,1 @@
+{"mdl": "LRCS", "conv_size": "3", "nb_conv": "32", "win_size": "8", "bat_size": "512", "nb_epoch": "5", "batch_norm": "True", "aug": "True", "dropout": "0.1", "lr_type": "leaky", "lr_init": "DSC", "lr_k": "1e-4", "lr_p": "1", "act_fn": "classification", "lss_fn": "500", "cls_reg": "50", "sv_step": "ramp", "tb_step": "0.3"}

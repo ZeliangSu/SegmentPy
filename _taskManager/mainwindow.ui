@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LRCSNet</class>
+ <widget class="QMainWindow" name="LRCSNet">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>942</width>
+    <height>701</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>10</y>
+      <width>91</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Start (a)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>001-play-button.png</normaloff>001-play-button.png</iconset>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_2">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>10</y>
+      <width>91</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Stop(d)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>002-stop.png</normaloff>002-stop.png</iconset>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_3">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>10</y>
+      <width>91</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Add(q)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>001-plus.png</normaloff>001-plus.png</iconset>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_4">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>10</y>
+      <width>101</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Clear(w)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>002-minus.png</normaloff>002-minus.png</iconset>
+    </property>
+   </widget>
+   <widget class="QListWidget" name="AvailableGPUs">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>70</y>
+      <width>111</width>
+      <height>571</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QTableWidget" name="tableWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>70</y>
+      <width>771</width>
+      <height>571</height>
+     </rect>
+    </property>
+    <property name="dragEnabled">
+     <bool>false</bool>
+    </property>
+    <property name="sortingEnabled">
+     <bool>false</bool>
+    </property>
+    <property name="rowCount">
+     <number>18</number>
+    </property>
+    <property name="columnCount">
+     <number>2</number>
+    </property>
+    <attribute name="horizontalHeaderMinimumSectionSize">
+     <number>18</number>
+    </attribute>
+    <attribute name="horizontalHeaderDefaultSectionSize">
+     <number>100</number>
+    </attribute>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <row/>
+    <column/>
+    <column/>
+    <item row="0" column="0">
+     <property name="text">
+      <string>model</string>
+     </property>
+    </item>
+    <item row="1" column="0">
+     <property name="text">
+      <string>conv nb</string>
+     </property>
+    </item>
+    <item row="2" column="0">
+     <property name="text">
+      <string>kernel size</string>
+     </property>
+    </item>
+    <item row="3" column="0">
+     <property name="text">
+      <string>batch size</string>
+     </property>
+    </item>
+    <item row="4" column="0">
+     <property name="text">
+      <string>window size</string>
+     </property>
+    </item>
+    <item row="5" column="0">
+     <property name="text">
+      <string>nb_epoch</string>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>128</red>
+        <green>255</green>
+        <blue>7</blue>
+       </color>
+      </brush>
+     </property>
+    </item>
+    <item row="6" column="0">
+     <property name="text">
+      <string>lr type</string>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>128</red>
+        <green>255</green>
+        <blue>7</blue>
+       </color>
+      </brush>
+     </property>
+    </item>
+    <item row="7" column="0">
+     <property name="text">
+      <string>init lr</string>
+     </property>
+    </item>
+    <item row="8" column="0">
+     <property name="text">
+      <string>k param</string>
+     </property>
+    </item>
+    <item row="9" column="0">
+     <property name="text">
+      <string>p param</string>
+     </property>
+    </item>
+    <item row="10" column="0">
+     <property name="text">
+      <string>loss fn</string>
+     </property>
+    </item>
+    <item row="11" column="0">
+     <property name="text">
+      <string>act fn</string>
+     </property>
+    </item>
+    <item row="12" column="0">
+     <property name="text">
+      <string>batch norm</string>
+     </property>
+    </item>
+    <item row="13" column="0">
+     <property name="text">
+      <string>augmentation</string>
+     </property>
+    </item>
+    <item row="14" column="0">
+     <property name="text">
+      <string>dropout</string>
+     </property>
+    </item>
+    <item row="15" column="0">
+     <property name="text">
+      <string>sv step</string>
+     </property>
+    </item>
+    <item row="16" column="0">
+     <property name="text">
+      <string>tb step</string>
+     </property>
+    </item>
+    <item row="17" column="0">
+     <property name="text">
+      <string>mode</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>30</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Available GPUs:</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_5">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>10</y>
+      <width>91</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Loop (s)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>exchange.png</normaloff>exchange.png</iconset>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>942</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuMenu">
+    <property name="title">
+     <string>Menu</string>
+    </property>
+    <addaction name="actionAbout_us"/>
+   </widget>
+   <widget class="QMenu" name="menuQuit">
+    <property name="title">
+     <string>Quit</string>
+    </property>
+   </widget>
+   <addaction name="menuMenu"/>
+   <addaction name="menuQuit"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionAbout_us">
+   <property name="text">
+    <string>About us</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
