@@ -529,7 +529,7 @@ if __name__ == '__main__':
     c_nodes = [
             'LRCS/decoder/logits/identity',
         ]
-    graph_def_dir = './logs/2020_2_19_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.2_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour8/'
+    graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
 
     # segment raw img per raw img
     l_bs = [512]
@@ -567,10 +567,10 @@ if __name__ == '__main__':
     }
 
     # test1_raw = np.asarray(Image.open('./paper/train2.tif'))
-    test2_raw = np.asarray(Image.open('./paper/test1_uns++.tif'))
+    # test2_raw = np.asarray(Image.open('./testdata/0.tif'))
     # test1_label = np.asarray(Image.open('./dummy/test1_uns++_tu.tif'))
     # test2_label = np.asarray(Image.open('./dummy/test2_Weka_UNS_tu.tif'))
-    l_img_path = ['./paper/train2.tif']
+    l_img_path = ['./testdata/0.tif']
     # l_img_path = ['./paper/test1_uns++.tif']
 
     # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)

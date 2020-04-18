@@ -93,6 +93,47 @@ LRCS_conserve_nodes = [
     'LRCS/decoder/logits/identity',
 ]
 
+# LRCS2
+LRCS2_conserve_nodes = [
+    'LRCS2/encoder/conv1/leaky',
+    'LRCS2/encoder/conv1bis/leaky',
+    'LRCS2/encoder/conv2/leaky',
+    'LRCS2/encoder/conv2bis/leaky',
+    'LRCS2/encoder/conv3/leaky',
+    'LRCS2/encoder/conv3bis/leaky',
+    'LRCS2/encoder/conv4/leaky',
+    'LRCS2/encoder/conv4bis/leaky',
+    'LRCS2/encoder/conv4bisbis/leaky',
+    'LRCS2/dnn/reshape/reshape',
+    'LRCS2/decoder/deconv5/leaky',
+    'LRCS2/decoder/deconv5bis/leaky',
+    'LRCS2/decoder/deconv6/leaky',
+    'LRCS2/decoder/deconv6bis/leaky',
+    'LRCS2/decoder/deconv7/leaky',
+    'LRCS2/decoder/deconv7bis/leaky',
+    'LRCS2/decoder/deconv8/leaky',
+    'LRCS2/decoder/deconv8bis/leaky',
+    'LRCS2/decoder/logits/identity',
+]
+
+# LRCS4
+LRCS4_conserve_nodes = [
+    'LRCS4/encoder/conv1/leaky',
+    'LRCS4/encoder/conv2/leaky',
+    'LRCS4/encoder/conv3/leaky',
+    'LRCS4/encoder/conv4bisbis/leaky',
+    'add',
+    'LRCS4/decoder/deconv5/leaky',
+    'LRCS4/decoder/deconv5bis/leaky',
+    'LRCS4/decoder/deconv6/leaky',
+    'LRCS4/decoder/deconv6bis/leaky',
+    'LRCS4/decoder/deconv7/leaky',
+    'LRCS4/decoder/deconv7bis/leaky',
+    'LRCS4/decoder/deconv8/leaky',
+    'LRCS4/decoder/deconv8bis/leaky',
+    'LRCS4/decoder/logits/identity',
+]
+
 Segnet_conserve_nodes = [
     'Segnet/encoder/conv1/leaky',
     'Segnet/encoder/conv1bis/leaky',
@@ -118,6 +159,8 @@ conserve_nodes_dict = {
     'Xlearn': Xlearn_conserve_nodes,
     'Unet': Unet_conserve_nodes,
     'LRCS': LRCS_conserve_nodes,
+    'LRCS2': LRCS2_conserve_nodes,
+    'LRCS4': LRCS4_conserve_nodes,
     'Segnet': Segnet_conserve_nodes
 }
 
@@ -188,7 +231,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # write firstly input and output images
         imgs = [
-            np.asarray(Image.open(input_dir + '0.tif'))[i * 100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])  #fixme: better use test dataset
+            np.asarray(Image.open(input_dir + '0.tif'))[i*100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])  #fixme: better use test dataset
         ]
         plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
@@ -236,8 +279,12 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                 except Exception as e:
                     print(e)
                     pass
-                _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
+                if layer_name == 'add':
+                    _resultWriter(tensors, layer_name=layer_name,
                               path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
+                else:
+                    _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
+                                  path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
                 activations.append(tensors)
 
     # calculate diff by numpy
@@ -808,10 +855,10 @@ if __name__ == '__main__':
         'mode': 'classification',
         'batch_normalization': False,
     }
-    conserve_nodes = conserve_nodes_dict['LRCS']
-    graph_def_dir = './logs/2020_3_21_bs8_ps512_lrprogrammed_cs3_nc32_do0.9_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_lossFn_DSC_constdecay0.0001_k0.3_p1_comment_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour13/'
-    step = 0
-    step_init = 0
+    conserve_nodes = conserve_nodes_dict['LRCS4']
+    graph_def_dir = './logs/2020_4_16_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS4_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1_comment_/hour1_gpu0/'
+    step = 28219
+    step_init = 28219
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50
@@ -821,14 +868,14 @@ if __name__ == '__main__':
         'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step_init),
         'save_pb_dir': graph_def_dir + 'pb/',
         'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step_init),
-        'data_dir': './raw/', #todo:
+        'data_dir': './testdata/', #todo:
         'rlt_dir':  graph_def_dir + 'rlt/',
         'tsne_dir':  graph_def_dir + 'tsne/',
         'tsne_path':  graph_def_dir + 'tsne/',
     }
     print('Proceed step {}'.format(paths['step']))
     # visualize_weights(params=paths)
-    # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+    partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
 
     l_step = list_ckpts(graph_def_dir + 'ckpt/')
     for step in l_step:
@@ -849,7 +896,7 @@ if __name__ == '__main__':
         }
         print('Proceed step {}'.format(paths['step']))
         # visualize_weights(params=paths)
-        partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
+        # partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
         # tsne_on_weights(params=paths, mode='2D')
         # tsne_on_bias(params=paths, mode='2D')
         # weights_euclidean_distance(ckpt_dir=paths['ckpt_dir'], rlt_dir=paths['rlt_dir'])

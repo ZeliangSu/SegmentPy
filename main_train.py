@@ -64,7 +64,8 @@ if __name__ == '__main__':
         'loss_option': args.loss_fn,
     }
 
-    hyperparams['input_coords'] = coords_gen('./raw/',
+    hyperparams['input_coords'] = coords_gen(train_dir='./raw/',
+                                             test_dir='./testdata/',
                                              window_size=hyperparams['patch_size'],
                                              train_test_ratio=0.9,
                                              stride=5,
@@ -81,6 +82,7 @@ if __name__ == '__main__':
             args.init_lr,
             k=args.lr_decay_param
         )  # float32 or np.array of programmed learning rate
+
     elif args.learning_rate == 'ramp':
         hyperparams['learning_rate'] = ramp_decay(
             hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
@@ -89,6 +91,7 @@ if __name__ == '__main__':
             k=args.lr_decay_param,
             period=args.lr_period,
         )  # float32 or np.array of programmed learning rate
+
     elif args.learning_rate == 'const':
         hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
     else:
@@ -96,7 +99,7 @@ if __name__ == '__main__':
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_lossFn_{}_{}decay{}_k{}_p{}_comment{}/hour{}/'.format(
+        './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_lossFn_{}_{}decay{}_k{}_p{}_comment{}/hour{}_gpu{}/'.format(
         hyperparams['date'],
         hyperparams['batch_size'],
         hyperparams['patch_size'],
@@ -112,8 +115,9 @@ if __name__ == '__main__':
         args.loss_fn, args.learning_rate,
         args.init_lr, args.lr_decay_param,
         args.lr_period,
-        '_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar',  #note: here put your special comment
+        '_fix_coord_gen',  #note: here put your special comment
         hyperparams['hour'],
+        hyperparams['device']
     )
 
     # init input pipeline

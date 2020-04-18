@@ -320,30 +320,56 @@ def _inverse_one_hot(tensor):
 
 
 class coords_gen:
-    def __init__(self, fname, window_size=512, train_test_ratio=0.9, stride=1, batch_size=None, nb_batch=None):
+    def __init__(self, train_dir=None, test_dir=None, window_size=512, train_test_ratio=0.9, stride=1, batch_size=None, nb_batch=None):
         self.stride = stride
         self.train_test_ratio = train_test_ratio
         self.batch_size = batch_size
         self.window_size = window_size
-        if isinstance(fname, str):
-            if not fname.endswith('/'):
-                self.list_fname = [fname]
+        self.totest_img = None
+
+        # train id without specified testset repo indicated
+        if isinstance(train_dir, str):
+            if not train_dir.endswith('/'):
+                self.list_train_fname = [train_dir]
             else:
-                self.list_fname = os.listdir(fname)
-                self.list_fname = [fname + relative for relative in self.list_fname if not relative.endswith('_label.tif')]
-        elif isinstance(fname, list):
-            self.list_fname = fname
+                self.list_train_fname = os.listdir(train_dir)
+                self.list_train_fname = [train_dir + relative for relative in self.list_train_fname if not relative.endswith('_label.tif')]
+        elif isinstance(train_dir, list):
+            self.list_train_fname = train_dir
         else:
             raise TypeError('fname should be a string of path or list of .tif file path strings')
 
-        self.totrain_img = []
-        self.list_ps = []
-        self.list_xcoord = []
-        self.list_ycoord = []
-        self.list_shapes = self.get_shapes(self.list_fname)
-        self.id = self.id_gen(self.list_shapes, self.window_size, self.stride)
-        self.generate_lists(seed=42)
+        # train and test ids with testset repo path indicated
+        if test_dir is not None:
+            # generate indices for testset data if another repo is indicated
+            if isinstance(test_dir, str):
+                if not test_dir.endswith('/'):
+                    self.list_test_fname = [test_dir]
+                else:
+                    self.list_test_fname = os.listdir(test_dir)
+                    self.list_test_fname = [test_dir + relative for relative in self.list_test_fname if not relative.endswith('_label.tif')]
+            elif isinstance(test_dir, list):
+                self.list_test_fname = test_dir
+            else:
+                raise TypeError('fname should be a string of path or list of .tif file path strings')
+            self.list_test_shapes = self.get_shapes(self.list_test_fname)
+            self.test_id = self.id_gen(self.list_test_shapes, self.window_size, self.stride)
+            self.totest_img, self.test_list_ps, self.test_xcoord, self.test_ycoord = self.generate_lists(
+                id=self.test_id, list_fname=self.list_test_fname, seed=42
+            )
+
+        self.train_list_shapes = self.get_shapes(self.list_train_fname)
+        self.train_id = self.id_gen(self.train_list_shapes, self.window_size, self.stride)
+        self.totrain_img, self.train_list_ps, self.train_xcoord, self.train_ycoord = self.generate_lists(
+            id=self.train_id, list_fname=self.list_train_fname, seed=42
+        )
         self.nb_batch = nb_batch
+
+    def get_shapes(self, list_fname):
+        list_shapes = []
+        for fname in list_fname:
+            list_shapes.append(np.asarray(Image.open(fname)).shape)
+        return list_shapes
 
     def id_gen(self, list_shapes, window_size, stride):
         # [(0, 1, 2), (0, 1, 3)...]
@@ -357,65 +383,84 @@ class coords_gen:
 
     def get_nb_batch(self):
         if self.nb_batch is None:
-            return int(len(self.id) * self.train_test_ratio // self.batch_size)
+            return int(len(self.train_id) * self.train_test_ratio // self.batch_size)
         else:
             return self.nb_batch
 
-    def get_shapes(self, list_fname):
-        list_shapes = []
-        for fname in list_fname:
-            list_shapes.append(np.asarray(Image.open(fname)).shape)
-        return list_shapes
-
-    def generate_lists(self, seed=42):
+    def generate_lists(self, id, list_fname, seed=42):
         # fname
         # patch
         # xcoord
         # ycoord
+        _imgs = []
+        _list_ps = []
+        _list_xcoord = []
+        _list_ycoord = []
+
         np.random.seed(seed)
-        for n in self.id:
+        for n in id:
             i, x, y = n
-            self.totrain_img.append(self.list_fname[i])
-            self.list_ps.append(self.window_size)
-            self.list_xcoord.append(x)
-            self.list_ycoord.append(y)
+            _imgs.append(list_fname[i])
+            _list_ps.append(self.window_size)
+            _list_xcoord.append(x)
+            _list_ycoord.append(y)
 
         # list --> array (--> shuffle) --> list
-        self.totrain_img = np.asarray(self.totrain_img)
-        self.list_ps = np.asarray(self.list_ps).astype('int32')
-        self.list_xcoord = np.asarray(self.list_xcoord).astype('int32')
-        self.list_ycoord = np.asarray(self.list_ycoord).astype('int32')
-        idx = np.random.permutation(len(self.totrain_img))
+        _imgs = np.asarray(_imgs)
+        _list_ps = np.asarray(_list_ps).astype('int32')
+        _list_xcoord = np.asarray(_list_xcoord).astype('int32')
+        _list_ycoord = np.asarray(_list_ycoord).astype('int32')
+        idx = np.random.permutation(len(_imgs))
 
-        self.totrain_img = self.totrain_img[idx]
-        self.list_ps = self.list_ps[idx]
-        self.list_xcoord = self.list_xcoord[idx]
-        self.list_ycoord = self.list_ycoord[idx]
+        _imgs = _imgs[idx]
+        _list_ps = _list_ps[idx]
+        _list_xcoord = _list_xcoord[idx]
+        _list_ycoord = _list_ycoord[idx]
+        return _imgs, _list_ps, _list_xcoord, _list_ycoord
+
+    def shuffle(self):
+        tmp = self.get_nb_batch()
+        idx = np.random.permutation(tmp)
+        self.totrain_img[:tmp] = self.totrain_img[idx]
+        self.train_list_ps[:tmp] = self.train_list_ps[idx]
+        self.train_xcoord[:tmp] = self.train_xcoord[idx]
+        self.train_ycoord[:tmp] = self.train_ycoord[idx]
+
+        if self.totest_img is not None:
+            idx = np.random.permutation(len(self.totest_img))
+            self.totest_img = self.totest_img[idx]
+            self.totest_img = self.totest_img[idx]
+            self.totest_img = self.totest_img[idx]
+            self.totest_img = self.totest_img[idx]
 
     def get_train_args(self):
         if self.nb_batch is not None:
             tmp = int(self.nb_batch)
             return self.totrain_img[: tmp], \
-                   self.list_ps[: tmp], \
-                   self.list_xcoord[: tmp], \
-                   self.list_ycoord[: tmp]
+                   self.train_list_ps[: tmp], \
+                   self.train_xcoord[: tmp], \
+                   self.train_ycoord[: tmp]
         else:
             tmp = (int(self.get_nb_batch()))
             return self.totrain_img[: tmp], \
-                   self.list_ps[: tmp], \
-                   self.list_xcoord[: tmp], \
-                   self.list_ycoord[: tmp]
+                   self.train_list_ps[: tmp], \
+                   self.train_xcoord[: tmp], \
+                   self.train_ycoord[: tmp]
 
     def get_test_args(self):
-        if self.nb_batch is not None:
-            tmp = int(self.nb_batch)
+        if self.totest_img is None:
+            tmp = int(self.nb_batch) if self.nb_batch is not None else (int(self.get_nb_batch()))
+
             return self.totrain_img[tmp:], \
-                   self.list_ps[tmp:], \
-                   self.list_xcoord[tmp:], \
-                   self.list_ycoord[tmp:]
+                   self.train_list_ps[tmp:], \
+                   self.train_xcoord[tmp:], \
+                   self.train_ycoord[tmp:]
+
         else:
-            tmp = (int(self.get_nb_batch()))
-            return self.totrain_img[tmp:], \
-                   self.list_ps[tmp:], \
-                   self.list_xcoord[tmp:], \
-                   self.list_ycoord[tmp:]
+            tmp = int(self.nb_batch) if self.nb_batch is not None else (int(self.get_nb_batch()))
+
+            return self.totest_img[tmp:], \
+                   self.test_list_ps[tmp:], \
+                   self.test_xcoord[tmp:], \
+                   self.test_ycoord[tmp:]
+

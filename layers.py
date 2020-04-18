@@ -53,7 +53,7 @@ def max_pool_2by2(x, name=''):
 def max_pool_2by2_with_arg(x, name=''):
     with tf.name_scope(name):
         v, ind = tf.nn.max_pool_with_argmax(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool',
-                                            include_batch_in_index=False)  #
+                                            include_batch_in_index=False)
         logger.debug('input layer of maxpool argmax: {}'.format(x.get_shape()))
         logger.debug('index of maxpool argmax: {}'.format(ind.get_shape()))
     return v, ind
@@ -79,6 +79,18 @@ def up_2by2_ind(input_layer, ind, shape=None, name=''):
     -------
         input_layer: (tf.Tensor) tensor from the previous layer
         name: (string) name of the node
+    explanation:
+    -------
+    here my numpy version:
+    def up(array, index):
+        assert len(array.shape) == 2
+        assert len(array.shape) == 2
+        index = tuple((np.arange(index.size), index.ravel()))
+        out = np.zeros((array.shape[0] * array.shape[1]))
+        out[index] = array.ravel()
+        out = out.reshape((array.shape[0]*2, array.shape[1]*2))
+        return out
+
     return:
     -------
         (tf.Tensor) row-by-row column-by-column copied tensor
@@ -86,33 +98,42 @@ def up_2by2_ind(input_layer, ind, shape=None, name=''):
     with tf.name_scope(name):
         logger.debug('index of up_by_ind has shape:{}'.format(ind.get_shape()))
         logger.debug('input layer of up_by_ind has shape:{}'.format(input_layer.get_shape()))
-        in_shape = input_layer.get_shape().as_list()
+        # fixme: tf.shape() dynamique shape at runtime vs .get_shape() get static shape
+        in_shape = tf.shape(input_layer)
+        out_shape = [in_shape[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
 
-        if None in in_shape[1:]:  #note: (TF114 SegNet) we need to enter mannually shape[:1] without the DNN
-            assert shape is not None, 'please manually enter a shape'
-            in_shape = shape
+        # if None in in_shape[1:]:  #note: (TF114 SegNet) we need to enter mannually shape[:1] without the DNN
+        #     assert shape is not None, 'please manually enter a shape'
+        #     in_shape = shape
 
-        # note: int64 // use tf.shape(input_layer) to get a symbolic batch size instead of Nonetype
-        out_shape = [tf.cast(tf.shape(input_layer), dtype=tf.int64)[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]]
+        flat_in_shape = tf.reduce_prod(in_shape)
+        flat_out_shape = [out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]]
+
+        # fixme: int64 // use tf.shape(input_layer) to get a symbolic batch size instead of Nonetype the
+        #  final scatter works on a flattened tensor
 
         # prepare
         # shape: (bs, 10, 10, 640) --> (bs * 64000)
-        _pool = tf.reshape(input_layer, [-1])
+        _pool = tf.reshape(input_layer, [flat_in_shape])
         logger.debug('pool has shape:{}'.format(_pool.get_shape()))
 
-        batch_ind = tf.reshape(tf.range(out_shape[0], dtype=ind.dtype), [out_shape[0], 1, 1, 1])
+        batch_ind = tf.reshape(tf.range(tf.cast(in_shape[0], dtype=tf.int64),
+                                        dtype=ind.dtype
+                                        ),
+                               shape=[in_shape[0], 1, 1, 1])
 
         # ind([[0, 1, 5, 1], [0, 3, 4, 1], ...]) --> onelike([[1, 1, 1, 1], [1, 1, 1, 1], ...])
-        # --> b_idx([[0, 0, 0], [1, 1, 1], ...])
+        # --> b_idx([[0, 0, 0. 0], ... [1, 1, 1, 1], ...])
         tmp = tf.ones_like(ind) * batch_ind
         logger.debug('tmp has shape:{}'.format(tmp.get_shape()))
 
         # ([[0, 0, 0], [1, 1, 1]]) --> ([[0], [0], [0], [1], [1], [1]]); shp(2, 3) --> shp(6, 1)
         tmp = tf.reshape(tmp, [-1, 1])
-        logger.debug('tmp has shape:{}'.format(tmp.get_shape()))
+        logger.debug('tmp_ has shape:{}'.format(tmp.get_shape()))
 
         # shape: (bs, 10, 10, 640 / (2*2)) --> (bs * 10 * 10 * 640 / 4 , 1)
         _ind = tf.reshape(ind, [-1, 1])
+        # _ind = _ind - tmp * tf.cast(flat_out_shape[1], tf.int64)
         logger.debug('_ind has shape:{}'.format(_ind.get_shape()))
 
         # ([[0], [1], [2]) concat axis=1 ([[0, 1, 2], [4, 5, 6], [100, 50, 20])
@@ -126,12 +147,22 @@ def up_2by2_ind(input_layer, ind, shape=None, name=''):
         # e.g. shp(4, 1), shp(4,), shp(1,) --> outshp(8,)
         # e.g. shp(2, 1), shp(2, 4, 4), shp(3,) --> outshp(4, 4, 4)
         # e.g. shp(300*10*10*160, 2), shp(300*10*10*160), shp(2,) --> outshp(200, 16k)
-        # note: first dimension should be equal: ind(X, 2) and pool(X,), which makes the encoder and decoder symetric
+        # note: first dimension should be equal: ind(N, 2) and pool(N,), which makes the encoder and decoder symetric
         # note: scatter_nd scatters with value 0, scatter_nd_update scatters with a chosen value
-        unpool = tf.scatter_nd(indices=_ind, updates=_pool, shape=[out_shape[0], out_shape[1] * out_shape[2] * out_shape[3]])
+        # filled = tf.Variable(initial_value=tf.zeros([in_shape[0], out_shape[1]*out_shape[2]*out_shape[3]]))
+        # logger.debug('filled has shape:{}'.format(filled.get_shape()))
+        unpool = tf.scatter_nd(indices=_ind, updates=_pool, shape=tf.cast(flat_out_shape, tf.int64))
 
         # reshape
-        unpool = tf.reshape(unpool, out_shape)
+        unpool = tf.reshape(unpool, tf.stack(out_shape))
+
+        try:
+            set_in_shape = input_layer.get_shape().as_list()
+            set_out_shape = [set_in_shape[0], set_in_shape[1] * 2, set_in_shape[2] * 2, set_in_shape[3]]
+            unpool.set_shape(set_out_shape)
+        except TypeError as e:
+            logger.error(e)  # fixme: (Segnet2)
+            pass
         return unpool
 
 
@@ -278,6 +309,26 @@ def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='
                 output = output + b
                 output_activation = _activatioin(output, type=activation)
                 return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+
+
+def constant_layer(in_layer, constant=1.0, name=''):
+    with tf.name_scope(name):
+        if isinstance(constant, float):
+            out = in_layer * 0 + constant
+            # out = tf.ones_like(in_layer) * constant
+            # fixme: gradient descent not supported
+            # fixme: ValueError: Tried to convert 'values' to a tensor and failed. Error: None values not supported.
+            return out
+
+        elif constant == 'noise':
+            NotImplementedError('Should try a random noise output')
+
+        elif constant == 'learnable_variable':
+            # note orient the gradient descent to the input space is interdit
+            out = tf.get_variable('variable', shape=tf.shape(in_layer), initializer=tf.initializers.ones()) * constant  #fixme: TypeError: Tensor objects are only iterable when eager execution is enabled. To iterate over this tensor use tf.map_fn.
+            return out
+        else:
+            NotImplementedError('We consider in and out have the same shape')
 
 
 def dropout(input_layer, hold_prob, name=''):

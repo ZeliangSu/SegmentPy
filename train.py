@@ -63,6 +63,7 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
                 _ep = ep
                 # init ops
+                hyperparams['input_coords'].shuffle()
                 ls_fname_train, ls_ps_train, ls_x_train, ls_y_train = hyperparams['input_coords'].get_train_args()
                 ls_fname_test, ls_ps_test, ls_x_test, ls_y_test = hyperparams['input_coords'].get_test_args()
                 sess.run(train_inputs['iterator_init_op'],
