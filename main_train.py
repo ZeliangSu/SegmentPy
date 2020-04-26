@@ -24,7 +24,7 @@ parser.add_argument('-cs', '--conv_size', type=int, metavar='', required=True, h
 parser.add_argument('-lr', '--learning_rate', type=str, metavar='', required=True, help='learning rate schedule e.g. ramp, exp, const')
 parser.add_argument('-ilr', '--init_lr', type=float, metavar='', required=True, help='starting learning rate e.g. 0.001, 1e-4')
 parser.add_argument('-klr', '--lr_decay_param', type=float, metavar='', required=True, help='the decay ratio e.g. 0.1')
-parser.add_argument('-plr', '--lr_period', type=int, metavar='', required=True, help='decay every X epoch')
+parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=True, help='decay every X epoch')
 parser.add_argument('-bn', '--batch_norm', type=bool, metavar='', required=True, help='use batch normalization or not')
 parser.add_argument('-do', '--dropout_prob', type=float, metavar='', required=True, help='dropout probability for the Dense-NN part')
 parser.add_argument('-ag', '--augmentation', type=bool, metavar='', required=True, help='use augmentation on the input pipeline')
@@ -151,7 +151,7 @@ if __name__ == '__main__':
                                        is_training=True,
                                        device=hyperparams['device']
                                        )
-
+    # fixme: the following load 2 modes in one gpu
     test_nodes = classification_nodes(pipeline=test_inputs,
                                       placeholders=list_placeholders,
                                       model_name=hyperparams['model'],

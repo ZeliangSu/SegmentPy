@@ -448,3 +448,173 @@ def _idParser(directory, patch_size, batch_size, mode='h5'):
     elif mode == 'tfrecord':
         raise NotImplementedError('tfrecord has not been implemented yet')
 
+
+###########################
+#
+#      inference.py
+#
+###########################
+
+
+def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None):
+    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
+    assert isinstance(inputs, list), 'inputs is expected to be a list of images for heterogeneous image size!'
+    assert isinstance(paths, dict), 'paths should be a dict'
+    assert isinstance(hyper, dict), 'hyper should be a dict'
+    check_N_mkdir(paths['out_dir'])
+    freeze_ckpt_for_inference(paths=paths, hyper=hyper, conserve_nodes=conserve_nodes)  # there's still some residual nodes
+    optimize_pb_for_inference(paths=paths, conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
+
+    # set device
+    config_params = {}
+    if hyper['device_option'] == 'cpu':
+        config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
+    elif 'specific' in hyper['device_option']:
+        print('using GPU:{}'.format(hyper['device_option'].split(':')[-1]))
+        config_params['config'] = tf.ConfigProto(
+            gpu_options=tf.GPUOptions(visible_device_list=hyper['device_option'].split(':')[-1]),
+            allow_soft_placement=True,
+            log_device_placement=False,
+            )
+
+    # load graph
+    tf.reset_default_graph()
+    with tf.gfile.GFile(paths['optimized_pb_path'], 'rb') as f:
+        graph_def_optimized = tf.GraphDef()
+        graph_def_optimized.ParseFromString(f.read())
+    l_out = []
+
+    with tf.Session(**config_params) as sess:
+        #note: ValueError: Input 0 of node import/model/contractor/conv1/conv1_2/batch_norm/cond/Switch was passed float from import/new_BN_phase:0 incompatible with expected bool.
+        # WARNING:tensorflow:Didn't find expected Conv2D input to 'model/contractor/conv1/conv1_2/batch_norm/cond/FusedBatchNorm'
+        # WARNING:tensorflow:Didn't find expected Conv2D input to 'model/contractor/conv1/conv1_2/batch_norm/cond/FusedBatchNorm_1'
+        # print(graph_def_optimized.node)
+        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
+        G = tf.get_default_graph()
+        tf.summary.FileWriter(paths['working_dir'] + 'tb/after_optimized', sess.graph)
+        # print_nodes_name(G)
+        #todo: replacee X with a inputpipeline
+        X = G.get_tensor_by_name('import/' + 'new_input:0')
+        y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
+        bn = G.get_tensor_by_name('import/' + 'new_BN:0')  #note: not needed anymore
+        do = G.get_tensor_by_name('import/' + 'new_dropout:0')  #note: not needed anymore
+
+        # compute the dimensions of the patches array
+        for i, _input in tqdm(enumerate(inputs), desc='image'):
+
+            # use reconstructor to not saturate the RAM
+            if hyper['mode'] == 'classification':
+                output = reconstructor_V2_cls(_input.shape, hyper['patch_size'], hyper['stride'], y.shape[3])
+            else:
+                output = reconstructor_V2_reg(_input.shape, hyper['patch_size'], hyper['stride'])
+
+            n_h, n_w = output.get_nb_patch()
+            hyper['nb_batch'] = n_h * n_w // hyper['batch_size']
+            last_batch_len = n_h * n_w % hyper['batch_size']
+            logger.info('\nnumber of batch: {}'.format(hyper['nb_batch']))
+            logger.info('\nbatch size: {}'.format(hyper['batch_size']))
+            logger.info('\nlast batch size: {}'.format(last_batch_len))
+
+            # inference
+            for i_batch in tqdm(range(hyper['nb_batch'] + 1), desc='batch'):
+                if i_batch < hyper['nb_batch']:
+                    start_id = i_batch * hyper['batch_size']
+                    batch = []
+                    # construct input
+                    id_list = np.arange(start_id, start_id + hyper['batch_size'], 1)
+                    for id in np.nditer(id_list):
+                        b = id // n_h
+                        a = id % n_h
+                        logger.debug('\n id: {}'.format(id))
+                        logger.debug('\n row coordinations: {} - {}'.format(a * hyper['stride'], a * hyper['stride'] + hyper['patch_size']))
+                        logger.debug('\n colomn coordinations: {} - {}'.format(b * hyper['stride'], b * hyper['stride'] + hyper['patch_size']))
+                        # concat patch to batch
+                        batch.append(_input[
+                                     a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
+                                     b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
+                                     ])
+
+                    # inference
+                    # batch = np.asarray(_minmaxscalar(batch))  #note: don't forget the minmaxscalar, since during training we put it
+                    batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
+                    feed_dict = {
+                        X: batch,
+                        do: 1.0,
+                        bn: False,
+                    }
+                    _out = sess.run(y, feed_dict=feed_dict)
+                    if hyper['mode'] == 'classification':
+                        _out = customized_softmax_np(_out)
+                    output.add_batch(_out, start_id)
+                else:
+                    if last_batch_len != 0:
+                        logger.info('last batch')
+                        start_id = i_batch * hyper['batch_size']
+                        batch = []
+                        # construct input
+                        id_list = np.arange(start_id, start_id + last_batch_len, 1)
+                        for id in np.nditer(id_list):
+                            b = id // n_h
+                            a = id % n_h
+                            batch.append(_input[
+                                         a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
+                                         b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
+                                         ])
+
+                        # 0-padding batch
+                        batch = np.asarray(_minmaxscalar(batch))
+                        batch = np.expand_dims(batch, axis=3)
+                        batch = np.concatenate([batch, np.ones(
+                            (hyper['batch_size'] - last_batch_len, *batch.shape[1:])
+                        )], axis=0)
+
+                        feed_dict = {
+                            X: batch,
+                            do: 1.0,  #note: not needed anymore
+                            bn: False,  #note: not needed anymore
+                        }
+                        _out = sess.run(y, feed_dict=feed_dict)
+                        if hyper['mode'] == 'classification':
+                            _out = customized_softmax_np(_out)
+                        output.add_batch(_out[:last_batch_len], start_id)
+
+            # reconstruction
+            output.reconstruct()
+            output = output.get_reconstruction()
+            # save
+            check_N_mkdir(paths['out_dir'])
+            output = np.squeeze(output)
+            Image.fromarray(output.astype(np.float32)).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
+            l_out.append(output)
+    return l_out
+
+
+def reconstruct(stack, image_size=None, stride=None):
+    """
+    inputs:
+    -------
+        stack: (np.ndarray) stack of patches to reconstruct
+        image_size: (tuple | list) height and width for the final reconstructed image
+        stride: (int) herein should be the SAME stride step that one used for preprocess
+    return:
+    -------
+        img: (np.ndarray) final reconstructed image
+        nb_patches: (int) number of patches need to provide to this function
+    """
+    i_h, i_w = image_size[:2]  #e.g. (a, b)
+    p_h, p_w = stack.shape[1:3]  #e.g. (x, h, w, 1)
+    img = np.zeros((i_h, i_w))
+
+    # compute the dimensions of the patches array
+    n_h = (i_h - p_h) // stride + 1
+    n_w = (i_w - p_w) // stride + 1
+
+    for p, (i, j) in zip(stack, product(range(n_h), range(n_w))):
+        img[i * stride:i * stride + p_h, j * stride:j * stride + p_w] += p
+
+    for i in range(i_h):
+        for j in range(i_w):
+            img[i, j] /= float(min(i + stride, p_h, i_h - i) *
+                               min(j + stride, p_w, i_w - j))
+    return img
+

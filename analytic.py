@@ -122,8 +122,8 @@ LRCS4_conserve_nodes = [
     'LRCS4/encoder/conv2/leaky',
     'LRCS4/encoder/conv3/leaky',
     'LRCS4/encoder/conv4bisbis/leaky',
-    'add',
-    'LRCS4/decoder/deconv5/leaky',
+    'LRCS4/dnn/constant/add',
+    # 'LRCS4/decoder/deconv5/leaky',  #useless so omitted
     'LRCS4/decoder/deconv5bis/leaky',
     'LRCS4/decoder/deconv6/leaky',
     'LRCS4/decoder/deconv6bis/leaky',
@@ -230,13 +230,14 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
         new_input = g_main.get_tensor_by_name('new_input:0')
 
         # write firstly input and output images
+        img_path = input_dir + os.listdir(input_dir)[0]
         imgs = [
-            np.asarray(Image.open(input_dir + '0.tif'))[i*100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])  #fixme: better use test dataset
+            np.asarray(Image.open(img_path))[i*100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])  #fixme: better use test dataset
         ]
         plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
 
-        labels = [np.asarray(Image.open(input_dir + '0_label.tif'))[i * 100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])]   #fixme: better use test dataset
+        labels = [np.asarray(Image.open(img_path.replace('.tif', '_label.tif')))[i * 100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])]   #fixme: better use test dataset
         plt_illd.add_label(np.asarray(labels))
         _resultWriter(labels, 'label', path=rlt_dir)
 
@@ -856,9 +857,9 @@ if __name__ == '__main__':
         'batch_normalization': False,
     }
     conserve_nodes = conserve_nodes_dict['LRCS4']
-    graph_def_dir = './logs/2020_4_16_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS4_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1_comment_/hour1_gpu0/'
-    step = 28219
-    step_init = 28219
+    graph_def_dir = './logs/2020_4_22_bs8_ps512_lrprogrammed_cs3_nc32_do0.0_act_leaky_aug_True_BN_True_mdl_LRCS4_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1.0_comment_traindata5/hour12_gpu0/'
+    step = 24919
+    step_init = 24919
     paths = {
         'step': step,
         'perplexity': 100,  #default 30 usual range 5-50
