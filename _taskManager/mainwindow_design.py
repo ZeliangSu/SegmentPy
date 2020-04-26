@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.14.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -100,6 +100,18 @@ class Ui_LRCSNet(object):
         icon4.addPixmap(QtGui.QPixmap("_taskManager/exchange.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.pushButton_5.setIcon(icon4)
         self.pushButton_5.setObjectName("pushButton_5")
+        self.pushButton_6 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_6.setGeometry(QtCore.QRect(480, 10, 111, 41))
+        icon5 = QtGui.QIcon()
+        icon5.addPixmap(QtGui.QPixmap("_taskManager/001-reply.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.pushButton_6.setIcon(icon5)
+        self.pushButton_6.setObjectName("pushButton_6")
+        self.pushButton_7 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_7.setGeometry(QtCore.QRect(650, 10, 131, 41))
+        icon6 = QtGui.QIcon()
+        icon6.addPixmap(QtGui.QPixmap("_taskManager/002-speedometer.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.pushButton_7.setIcon(icon6)
+        self.pushButton_7.setObjectName("pushButton_7")
         LRCSNet.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(LRCSNet)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 942, 22))
@@ -125,10 +137,13 @@ class Ui_LRCSNet(object):
         _translate = QtCore.QCoreApplication.translate
         LRCSNet.setWindowTitle(_translate("LRCSNet", "MainWindow"))
         self.pushButton.setText(_translate("LRCSNet", "Start (a)"))
+        self.pushButton.setShortcut(_translate("LRCSNet", "A"))
         self.pushButton_2.setText(_translate("LRCSNet", "Stop(d)"))
+        self.pushButton_2.setShortcut(_translate("LRCSNet", "D"))
         self.pushButton_3.setText(_translate("LRCSNet", "Add(q)"))
-        self.pushButton_4.setText(_translate("LRCSNet", "Clear(w)"))
-        self.pushButton_5.setText(_translate("LRCSNet", "Loop (s)"))
+        self.pushButton_3.setShortcut(_translate("LRCSNet", "Q"))
+        self.pushButton_4.setText(_translate("LRCSNet", "Clean(w)"))
+        self.pushButton_4.setShortcut(_translate("LRCSNet", "W"))
         self.tableWidget.setSortingEnabled(False)
         __sortingEnabled = self.tableWidget.isSortingEnabled()
         self.tableWidget.setSortingEnabled(False)
@@ -170,7 +185,23 @@ class Ui_LRCSNet(object):
         item.setText(_translate("LRCSNet", "mode"))
         self.tableWidget.setSortingEnabled(__sortingEnabled)
         self.label.setText(_translate("LRCSNet", "Available GPUs:"))
+        self.pushButton_5.setText(_translate("LRCSNet", "Loop (s)"))
+        self.pushButton_5.setShortcut(_translate("LRCSNet", "S"))
+        self.pushButton_6.setText(_translate("LRCSNet", "Forward(e)"))
+        self.pushButton_6.setShortcut(_translate("LRCSNet", "E"))
+        self.pushButton_7.setText(_translate("LRCSNet", "Dashboard(r)"))
+        self.pushButton_7.setShortcut(_translate("LRCSNet", "R"))
         self.menuMenu.setTitle(_translate("LRCSNet", "Menu"))
         self.menuQuit.setTitle(_translate("LRCSNet", "Quit"))
         self.actionAbout_us.setText(_translate("LRCSNet", "About us"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    LRCSNet = QtWidgets.QMainWindow()
+    ui = Ui_LRCSNet()
+    ui.setupUi(LRCSNet)
+    LRCSNet.show()
+    sys.exit(app.exec_())
 

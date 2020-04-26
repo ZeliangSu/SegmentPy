@@ -30,6 +30,9 @@
      <iconset>
       <normaloff>001-play-button.png</normaloff>001-play-button.png</iconset>
     </property>
+    <property name="shortcut">
+     <string>A</string>
+    </property>
    </widget>
    <widget class="QPushButton" name="pushButton_2">
     <property name="geometry">
@@ -46,6 +49,9 @@
     <property name="icon">
      <iconset>
       <normaloff>002-stop.png</normaloff>002-stop.png</iconset>
+    </property>
+    <property name="shortcut">
+     <string>D</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_3">
@@ -64,6 +70,9 @@
      <iconset>
       <normaloff>001-plus.png</normaloff>001-plus.png</iconset>
     </property>
+    <property name="shortcut">
+     <string>Q</string>
+    </property>
    </widget>
    <widget class="QPushButton" name="pushButton_4">
     <property name="geometry">
@@ -75,11 +84,14 @@
      </rect>
     </property>
     <property name="text">
-     <string>Clear(w)</string>
+     <string>Clean(w)</string>
     </property>
     <property name="icon">
      <iconset>
       <normaloff>002-minus.png</normaloff>002-minus.png</iconset>
+    </property>
+    <property name="shortcut">
+     <string>W</string>
     </property>
    </widget>
    <widget class="QListWidget" name="AvailableGPUs">
@@ -276,6 +288,49 @@
     <property name="icon">
      <iconset>
       <normaloff>exchange.png</normaloff>exchange.png</iconset>
+    </property>
+    <property name="shortcut">
+     <string>S</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_6">
+    <property name="geometry">
+     <rect>
+      <x>480</x>
+      <y>10</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Forward(e)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>001-reply.png</normaloff>001-reply.png</iconset>
+    </property>
+    <property name="shortcut">
+     <string>E</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_7">
+    <property name="geometry">
+     <rect>
+      <x>650</x>
+      <y>10</y>
+      <width>131</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Dashboard(r)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>002-speedometer.png</normaloff>002-speedometer.png</iconset>
+    </property>
+    <property name="shortcut">
+     <string>R</string>
     </property>
    </widget>
   </widget>

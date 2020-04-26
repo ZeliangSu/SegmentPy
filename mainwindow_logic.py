@@ -1,5 +1,5 @@
-from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot, QProcess
-from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem
+from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot
+from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QErrorMessage, QMessageBox
 from PyQt5 import QtCore, QtGui
 
 from _taskManager.mainwindow_design import Ui_LRCSNet
@@ -84,7 +84,8 @@ class training_Worker(QRunnable):
             os.system(
                 terminal
             )
-        except:
+        except Exception as e:
+            print(e)
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
@@ -104,65 +105,89 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.qManager.available_gpu.available.connect(self.start)
 
         _translate = QtCore.QCoreApplication.translate
+
         item = self.tableWidget.item(0, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)  #note: make it read only
         item.setText(_translate("LRCSNet", "model"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(1, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "conv nb"))
+        item.setText(_translate("LRCSNet", "kernel size"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(2, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "kernel size"))
+        item.setText(_translate("LRCSNet", "conv nb"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(3, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "window size"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(4, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "batch size"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(5, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "nb epoch"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(6, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "batch norm"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(7, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "augmentation"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(8, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "dropout"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(9, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "lr type"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(10, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "lr init"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(11, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "k param"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(12, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "period"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(13, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "act fn"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(14, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "loss fn"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(15, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "cls/reg"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(16, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "sv step"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(17, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "tb step"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+
+        self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
 
         self.pushButton.clicked.connect(self.start)
         self.pushButton_2.clicked.connect(self.stop)
         self.pushButton_3.clicked.connect(self.openDialog)
+        self.pushButton_4.clicked.connect(self.clean)
         self.pushButton_5.clicked.connect(self.loop)
+        self.pushButton_6.clicked.connect(self.forward)
+        self.pushButton_7.clicked.connect(self.dashboard)
 
     def openDialog(self):
         self.dialog = dialog_logic(None)
@@ -173,6 +198,23 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.tableWidget.setColumnCount(nb_col + 1)
             for i, (k, v) in enumerate(output.items()):
                 self.tableWidget.setItem(i, nb_col - 1, QTableWidgetItem(v))
+
+        self.bold(column=1)
+
+    def customHeader(self):
+        self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
+
+    def bold(self, column):
+        font = QtGui.QFont()
+        font.setBold(True)
+        for row_id in range(self.tableWidget.rowCount()):
+            self.tableWidget.item(row_id, column).setFont(font)
+
+    def unbold(self, column):
+        font = QtGui.QFont()
+        font.setBold(False)
+        for row_id in range(self.tableWidget.rowCount()):
+            self.tableWidget.item(row_id, column).setFont(font)
 
     def start(self):
         if not self.gpu_queue.empty() and self.verify_column_not_None():
@@ -190,18 +232,49 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.qManager.start()
 
     def stop(self):
-        self.qManager.exec()
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText("Oooppssss!")
+        msg.setInformativeText('Cannot stop a specific thread yet')
+        msg.setWindowTitle("Error")
+        msg.exec_()
 
-    def remove(self):
-        pass
+    def clean(self):
+        column = self.tableWidget.currentColumn()
+        self.tableWidget.removeColumn(column)
+
+        if column == 1:
+            self.customHeader()
+            self.bold(column=1)
+
+    def forward(self):
+        column = self.tableWidget.currentColumn()
+        if column > 1:
+            self.tableWidget.insertColumn(column - 1)
+            for i in range(self.tableWidget.rowCount()):
+                self.tableWidget.setItem(i, column - 1, self.tableWidget.takeItem(i, column + 1))
+                self.tableWidget.setCurrentCell(i, column - 1)
+            self.tableWidget.removeColumn(column + 1)
+
+            if column == 2:
+                self.bold(column=1)
+                self.unbold(column=2)
+
+    def dashboard(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText("Oooppssss!")
+        msg.setInformativeText('Dashboard is coming in the next version')
+        msg.setWindowTitle("Error")
+        msg.exec_()
 
     def grab_params(self, column=1):
-        nb_row = self.tableWidget.rowCount()
-        out = {}
-        for row in range(nb_row):
-            out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, column).text()
-        self.tableWidget.removeColumn(column)
-        return out
+            nb_row = self.tableWidget.rowCount()
+            out = {}
+            for row in range(nb_row):
+                out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, column).text()
+            self.tableWidget.removeColumn(column)
+            return out
 
     def enqueue(self, gpu):
         self.gpu_queue.put(gpu)
@@ -234,6 +307,7 @@ def main():
 
     # init queue and msg pipe
     gpu_queue = Queue()
+    # gpu_queue.put(0)  # uncomment this for simulation on Mac
     for i in get_available_gpus():
         gpu_queue.put(i)
 

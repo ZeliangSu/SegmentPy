@@ -20,16 +20,10 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.winsize.setText(params['win_size'])
             self.batsize.setText(params['bat_size'])
             self.nbepoch.setText(params['nb_epoch'])
-            self.batnorm.setText(params['batch_norm'])
-            self.aug.setText(params['aug'])
             self.dropout.setText(params['dropout'])
-            self.lrtype.setText(params['lr_type'])
             self.initlr.setText(params['lr_init'])
             self.kparam.setText(params['lr_k'])
             self.pparam.setText(params['lr_p'])
-            self.actfn.setText(params['act_fn'])
-            self.lossfn.setText(params['lss_fn'])
-            self.clsReg.setText(params['cls_reg'])
             self.svsteps.setText(params['sv_step'])
             self.tbstep.setText(params['tb_step'])
         else:
@@ -39,16 +33,10 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.winsize.setPlaceholderText('window size')
             self.batsize.setPlaceholderText('batch size')
             self.nbepoch.setPlaceholderText('number of epoch')
-            self.batnorm.setPlaceholderText('batch normalization')
-            self.aug.setPlaceholderText('data augmentation')
             self.dropout.setPlaceholderText('dropout probability')
-            self.lrtype.setPlaceholderText('learning rate decay type')
             self.initlr.setPlaceholderText('initial learning rate')
             self.kparam.setPlaceholderText('k parameter in decay type')
             self.pparam.setPlaceholderText('decay periode / decay every n epoch')
-            self.actfn.setPlaceholderText('activation function type')
-            self.lossfn.setPlaceholderText('loss function type')
-            self.clsReg.setPlaceholderText('classification / regression')
             self.svsteps.setPlaceholderText('save model every n steps')
             self.tbstep.setPlaceholderText('visualize gradients/weights every n steps')
 
@@ -58,24 +46,24 @@ class dialog_logic(QDialog, Ui_Dialog):
 
     def return_params(self):
         output = {
-            'mdl': self.mdl.toPlainText(),
-            'conv_size': self.ksize.toPlainText(),
-            'nb_conv': self.nbconv.toPlainText(),
-            'win_size': self.winsize.toPlainText(),
-            'bat_size': self.batsize.toPlainText(),
-            'nb_epoch': self.nbepoch.toPlainText(),
-            'batch_norm': self.batnorm.toPlainText(),
-            'aug': self.aug.toPlainText(),
-            'dropout': self.dropout.toPlainText(),
-            'lr_type': self.lrtype.toPlainText(),
-            'lr_init': self.initlr.toPlainText(),
-            'lr_k': self.kparam.toPlainText(),
-            'lr_p': self.pparam.toPlainText(),
-            'act_fn': self.actfn.toPlainText(),
-            'lss_fn': self.lossfn.toPlainText(),
-            'cls_reg': self.clsReg.toPlainText(),
-            'sv_step': self.svsteps.toPlainText(),
-            'tb_step': self.tbstep.toPlainText(),
+            'mdl': self.mdl.text(),
+            'conv_size': self.ksize.text(),
+            'nb_conv': self.nbconv.text(),
+            'win_size': self.winsize.text(),
+            'bat_size': self.batsize.text(),
+            'nb_epoch': self.nbepoch.text(),
+            'batch_norm': str(self.batnorm.currentText()),
+            'aug': str(self.aug.currentText()),
+            'dropout': self.dropout.text(),
+            'lr_type': str(self.lrtype.currentText()),
+            'lr_init': self.initlr.text(),
+            'lr_k': self.kparam.text(),
+            'lr_p': self.pparam.text(),
+            'act_fn': str(self.actfn.currentText()),
+            'lss_fn': str(self.lossfn.currentText()),
+            'cls_reg': str(self.clsReg.currentText()),
+            'sv_step': self.svsteps.text(),
+            'tb_step': self.tbstep.text(),
         }
 
         with open('./_taskManager/latest.json', 'w') as file:
