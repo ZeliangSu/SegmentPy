@@ -9,3 +9,6 @@ result/
 RF_result/
 debug.log
 paper/
+build/
+dist/
+mainwindow_logic.spec

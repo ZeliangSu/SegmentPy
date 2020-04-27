@@ -1,6 +1,6 @@
 import numpy as np
 from random import choice
-
+from scipy import ndimage
 
 def random_aug(X_img, y_img):
     """
@@ -21,7 +21,8 @@ def random_aug(X_img, y_img):
         speckle_noise,
         non_noise,
         # contrast,
-        grayscale_var
+        grayscale_var,
+        # warping
     ]  #todo: can add probabilities
     X_img, y_img = choice(fns)(X_img, y_img)
     y_img.astype(np.int32)
@@ -127,6 +128,17 @@ def contrast(X_img, y_img):
     min = X_img.min()
     rand = np.random.uniform(0.2, 1)
     X_img = (X_img - min) * rand + min
+    return X_img, y_img
+
+
+def warping(X_img, y_img):
+    assert X_img.shape == y_img.shape
+    rows, cols = np.meshgrid(range(X_img.shape[1]),range(X_img.shape[0]))
+    rows = rows ** (1 / 2) * (X_img.shape[1] - 1) ** (1 / 2)  #todo: make this random?
+    cols = cols ** (2) / (X_img.shape[0] - 1)  #todo: make this random?
+
+    X_img = ndimage.map_coordinates(X_img, [cols, rows], order=3)
+    y_img = ndimage.map_coordinates(y_img, [cols, rows], order=3)
     return X_img, y_img
 
 

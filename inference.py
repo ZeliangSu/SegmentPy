@@ -10,6 +10,8 @@ from util import print_nodes_name, get_list_fnames
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from tensorflow.python.framework import dtypes
 from layers import customized_softmax_np
+import argparse
+import re
 
 # logging
 import logging
@@ -18,6 +20,18 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
 
 tag_compute = 1002
+
+
+# argparser
+parser = argparse.ArgumentParser('main.py')
+parser.add_argument('-ckpt', '--ckpt_path', type=str, metavar='', required=True, help='.meta path')
+parser.add_argument('-raw', '--raw_path', type=str, metavar='', required=True, help='raw tomograms folder path')
+parser.add_argument('-pred', '--pred_path', type=str, metavar='', required=True, help='where to put the segmentation')
+parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=False, const=8, help='identical as the trained model')
+parser.add_argument('-ws', '--window_size', type=int, metavar='', required=False, const=512, help='identical as the trained model')
+args = parser.parse_args()
+print(args)
+
 
 
 class reconstructor_V2_reg():
@@ -150,7 +164,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
             input_map['BN_phase'] = new_BN
 
         restorer = tf.train.import_meta_graph(
-            paths['ckpt_path'] + '.meta',
+            paths['ckpt_path'] + '.meta' if not paths['ckpt_path'].endswith('.meta') else paths['ckpt_path'],
             input_map=input_map,
             clear_devices=True,
         )
@@ -160,7 +174,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
 
         logger.warning('Error(msg):', e)
         restorer = tf.train.import_meta_graph(
-            paths['ckpt_path'] + '.meta',
+            paths['ckpt_path'] + '.meta' if not paths['ckpt_path'].endswith('.meta') else paths['ckpt_path'],
             input_map=input_map,
             clear_devices=True,
         )
@@ -202,7 +216,7 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     # clean graph first
     tf.reset_default_graph()
-    check_N_mkdir(paths['optimized_pb_dir'])
+    check_N_mkdir(paths['save_pb_dir'])
 
     # load protobuff
     with tf.gfile.FastGFile(paths['save_pb_path'], "rb") as f:
@@ -221,139 +235,6 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
     )
     with tf.gfile.GFile(paths['optimized_pb_path'], 'wb') as f:
         f.write(optimize_graph_def.SerializeToString())
-
-
-def inference_recursive(inputs=None, conserve_nodes=None, paths=None, hyper=None):
-    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
-    assert isinstance(inputs, list), 'inputs is expected to be a list of images for heterogeneous image size!'
-    assert isinstance(paths, dict), 'paths should be a dict'
-    assert isinstance(hyper, dict), 'hyper should be a dict'
-    check_N_mkdir(paths['out_dir'])
-    freeze_ckpt_for_inference(paths=paths, hyper=hyper, conserve_nodes=conserve_nodes)  # there's still some residual nodes
-    optimize_pb_for_inference(paths=paths, conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
-
-    # set device
-    config_params = {}
-    if hyper['device_option'] == 'cpu':
-        config_params['config'] = tf.ConfigProto(device_count={'GPU': 0})
-    elif 'specific' in hyper['device_option']:
-        print('using GPU:{}'.format(hyper['device_option'].split(':')[-1]))
-        config_params['config'] = tf.ConfigProto(
-            gpu_options=tf.GPUOptions(visible_device_list=hyper['device_option'].split(':')[-1]),
-            allow_soft_placement=True,
-            log_device_placement=False,
-            )
-
-    # load graph
-    tf.reset_default_graph()
-    with tf.gfile.GFile(paths['optimized_pb_path'], 'rb') as f:
-        graph_def_optimized = tf.GraphDef()
-        graph_def_optimized.ParseFromString(f.read())
-    l_out = []
-
-    with tf.Session(**config_params) as sess:
-        #note: ValueError: Input 0 of node import/model/contractor/conv1/conv1_2/batch_norm/cond/Switch was passed float from import/new_BN_phase:0 incompatible with expected bool.
-        # WARNING:tensorflow:Didn't find expected Conv2D input to 'model/contractor/conv1/conv1_2/batch_norm/cond/FusedBatchNorm'
-        # WARNING:tensorflow:Didn't find expected Conv2D input to 'model/contractor/conv1/conv1_2/batch_norm/cond/FusedBatchNorm_1'
-        # print(graph_def_optimized.node)
-        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
-        G = tf.get_default_graph()
-        tf.summary.FileWriter(paths['working_dir'] + 'tb/after_optimized', sess.graph)
-        # print_nodes_name(G)
-        #todo: replacee X with a inputpipeline
-        X = G.get_tensor_by_name('import/' + 'new_input:0')
-        y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
-        bn = G.get_tensor_by_name('import/' + 'new_BN:0')  #note: not needed anymore
-        do = G.get_tensor_by_name('import/' + 'new_dropout:0')  #note: not needed anymore
-
-        # compute the dimensions of the patches array
-        for i, _input in tqdm(enumerate(inputs), desc='image'):
-
-            # use reconstructor to not saturate the RAM
-            if hyper['mode'] == 'classification':
-                output = reconstructor_V2_cls(_input.shape, hyper['patch_size'], hyper['stride'], y.shape[3])
-            else:
-                output = reconstructor_V2_reg(_input.shape, hyper['patch_size'], hyper['stride'])
-
-            n_h, n_w = output.get_nb_patch()
-            hyper['nb_batch'] = n_h * n_w // hyper['batch_size']
-            last_batch_len = n_h * n_w % hyper['batch_size']
-            logger.info('\nnumber of batch: {}'.format(hyper['nb_batch']))
-            logger.info('\nbatch size: {}'.format(hyper['batch_size']))
-            logger.info('\nlast batch size: {}'.format(last_batch_len))
-
-            # inference
-            for i_batch in tqdm(range(hyper['nb_batch'] + 1), desc='batch'):
-                if i_batch < hyper['nb_batch']:
-                    start_id = i_batch * hyper['batch_size']
-                    batch = []
-                    # construct input
-                    id_list = np.arange(start_id, start_id + hyper['batch_size'], 1)
-                    for id in np.nditer(id_list):
-                        b = id // n_h
-                        a = id % n_h
-                        logger.debug('\n id: {}'.format(id))
-                        logger.debug('\n row coordinations: {} - {}'.format(a * hyper['stride'], a * hyper['stride'] + hyper['patch_size']))
-                        logger.debug('\n colomn coordinations: {} - {}'.format(b * hyper['stride'], b * hyper['stride'] + hyper['patch_size']))
-                        # concat patch to batch
-                        batch.append(_input[
-                                     a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
-                                     b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
-                                     ])
-
-                    # inference
-                    # batch = np.asarray(_minmaxscalar(batch))  #note: don't forget the minmaxscalar, since during training we put it
-                    batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
-                    feed_dict = {
-                        X: batch,
-                        do: 1.0,
-                        bn: False,
-                    }
-                    _out = sess.run(y, feed_dict=feed_dict)
-                    if hyper['mode'] == 'classification':
-                        _out = customized_softmax_np(_out)
-                    output.add_batch(_out, start_id)
-                else:
-                    if last_batch_len != 0:
-                        logger.info('last batch')
-                        start_id = i_batch * hyper['batch_size']
-                        batch = []
-                        # construct input
-                        id_list = np.arange(start_id, start_id + last_batch_len, 1)
-                        for id in np.nditer(id_list):
-                            b = id // n_h
-                            a = id % n_h
-                            batch.append(_input[
-                                         a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
-                                         b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
-                                         ])
-
-                        # 0-padding batch
-                        batch = np.asarray(_minmaxscalar(batch))
-                        batch = np.expand_dims(batch, axis=3)
-                        batch = np.concatenate([batch, np.ones(
-                            (hyper['batch_size'] - last_batch_len, *batch.shape[1:])
-                        )], axis=0)
-
-                        feed_dict = {
-                            X: batch,
-                            do: 1.0,  #note: not needed anymore
-                            bn: False,  #note: not needed anymore
-                        }
-                        _out = sess.run(y, feed_dict=feed_dict)
-                        if hyper['mode'] == 'classification':
-                            _out = customized_softmax_np(_out)
-                        output.add_batch(_out[:last_batch_len], start_id)
-
-            # reconstruction
-            output.reconstruct()
-            output = output.get_reconstruction()
-            # save
-            check_N_mkdir(paths['out_dir'])
-            output = np.squeeze(output)
-            Image.fromarray(output.astype(np.float32)).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
-            l_out.append(output)
-    return l_out
 
 
 def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None):
@@ -526,53 +407,39 @@ def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, cons
 
 
 if __name__ == '__main__':
+    # graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
+    ckpt_path = args.ckpt_path
+    save_pb_dir = '/'.join(ckpt_path.split('/')[:-2]) + '/pb/'
+
     c_nodes = [
-            'LRCS/decoder/logits/identity',
+            '{}/decoder/logits/identity'.format(re.search('mdl_(.*)_', ckpt_path)),
         ]
-    graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
 
     # segment raw img per raw img
-    l_bs = [512]
-    l_time = []
-    l_inf = []
-    l_step = [28219]
-    step = l_step[0]
 
     paths = {
-        'step': step,
-        'working_dir': graph_def_dir,
-        'ckpt_dir': graph_def_dir + 'ckpt/',
-        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
-        'save_pb_dir': graph_def_dir + 'pb/',
-        'save_pb_path': graph_def_dir + 'pb/frozen_step{}.pb'.format(step),
-        'optimized_pb_dir': graph_def_dir + 'pb/',
-        'optimized_pb_path': graph_def_dir + 'pb/optimized_step{}.pb'.format(step),
-        'in_dir': './result/in/',
-        'out_dir': './result/out/',
-        'rlt_dir': graph_def_dir + 'dummy/',
+        'step': args.step,
+        'working_dir': '/'.join(ckpt_path.split('/')[:-2]) + '/',
+        'ckpt_path': args.ckpt_path,
+        'save_pb_dir': save_pb_dir,
+        'save_pb_path': save_pb_dir + 'frozen_step{}.pb'.format(args.step),
+        'optimized_pb_path': save_pb_dir + 'optimized_step{}.pb'.format(args.step),
         'GPU': 0,
-        'inference_dir': './result/',
+        'inference_dir': args.pred_path,
     }
 
     hyperparams = {
-        'patch_size': 512,
-        'batch_size': 8,
+        'patch_size': args.window_size,
+        'batch_size': args.batch_size,
         'nb_batch': None,
         'nb_patch': None,
         'stride': 10,
         'batch_normalization': True,
-        'device_option': 'cpu', #'cpu',
+        'device_option': 'cpu',  #'cpu',
         'mode': 'classification',
-        'nb_classes': 3,
+        'nb_classes': args.n,
     }
 
-    # test1_raw = np.asarray(Image.open('./paper/train2.tif'))
-    # test2_raw = np.asarray(Image.open('./testdata/0.tif'))
-    # test1_label = np.asarray(Image.open('./dummy/test1_uns++_tu.tif'))
-    # test2_label = np.asarray(Image.open('./dummy/test2_Weka_UNS_tu.tif'))
     l_img_path = ['./testdata/0.tif']
-    # l_img_path = ['./paper/test1_uns++.tif']
-
-    # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
     l_out = inference_recursive_V2(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
 

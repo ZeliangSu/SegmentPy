@@ -26,19 +26,10 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.pparam.setText(params['lr_p'])
             self.svsteps.setText(params['sv_step'])
             self.tbstep.setText(params['tb_step'])
-        else:
-            self.mdl.setPlaceholderText('model name')
-            self.ksize.setPlaceholderText('kernel size')
-            self.nbconv.setPlaceholderText('number of convolution minimum per layer')
-            self.winsize.setPlaceholderText('window size')
-            self.batsize.setPlaceholderText('batch size')
-            self.nbepoch.setPlaceholderText('number of epoch')
-            self.dropout.setPlaceholderText('dropout probability')
-            self.initlr.setPlaceholderText('initial learning rate')
-            self.kparam.setPlaceholderText('k parameter in decay type')
-            self.pparam.setPlaceholderText('decay periode / decay every n epoch')
-            self.svsteps.setPlaceholderText('save model every n steps')
-            self.tbstep.setPlaceholderText('visualize gradients/weights every n steps')
+            try:
+                self.comment.setText(params['comment'])
+            except:
+                pass
 
         # buttons
         self.buttonBox.accepted.connect(self.accept)  # ok button
@@ -64,6 +55,7 @@ class dialog_logic(QDialog, Ui_Dialog):
             'cls_reg': str(self.clsReg.currentText()),
             'sv_step': self.svsteps.text(),
             'tb_step': self.tbstep.text(),
+            'comment': self.comment.text()
         }
 
         with open('./_taskManager/latest.json', 'w') as file:

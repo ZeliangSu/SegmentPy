@@ -13,13 +13,13 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>11</x>
      <y>11</y>
      <width>536</width>
-     <height>558</height>
+     <height>577</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -366,6 +366,13 @@
        </layout>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="comment">
+      <property name="placeholderText">
+       <string>enter extra comment here</string>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="QDialogButtonBox" name="buttonBox">

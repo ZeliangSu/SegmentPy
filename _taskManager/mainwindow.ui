@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>942</width>
+    <width>1019</width>
     <height>701</height>
    </rect>
   </property>
@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="start_button">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Start (a)</string>
+     <string>Start(a)</string>
     </property>
     <property name="icon">
      <iconset>
@@ -34,7 +34,7 @@
      <string>A</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="stop_button">
     <property name="geometry">
      <rect>
       <x>200</x>
@@ -54,7 +54,7 @@
      <string>D</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_3">
+   <widget class="QPushButton" name="add_button">
     <property name="geometry">
      <rect>
       <x>290</x>
@@ -74,7 +74,7 @@
      <string>Q</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="clean_button">
     <property name="geometry">
      <rect>
       <x>380</x>
@@ -97,10 +97,10 @@
    <widget class="QListWidget" name="AvailableGPUs">
     <property name="geometry">
      <rect>
-      <x>800</x>
-      <y>70</y>
+      <x>890</x>
+      <y>110</y>
       <width>111</width>
-      <height>571</height>
+      <height>231</height>
      </rect>
     </property>
    </widget>
@@ -109,7 +109,7 @@
      <rect>
       <x>10</x>
       <y>70</y>
-      <width>771</width>
+      <width>861</width>
       <height>571</height>
      </rect>
     </property>
@@ -263,8 +263,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>800</x>
-      <y>30</y>
+      <x>890</x>
+      <y>90</y>
       <width>101</width>
       <height>16</height>
      </rect>
@@ -273,7 +273,7 @@
      <string>Available GPUs:</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_5">
+   <widget class="QPushButton" name="loop_button">
     <property name="geometry">
      <rect>
       <x>110</x>
@@ -283,7 +283,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Loop (s)</string>
+     <string>Loop(s)</string>
     </property>
     <property name="icon">
      <iconset>
@@ -293,7 +293,7 @@
      <string>S</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_6">
+   <widget class="QPushButton" name="forward_button">
     <property name="geometry">
      <rect>
       <x>480</x>
@@ -313,10 +313,10 @@
      <string>E</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_7">
+   <widget class="QPushButton" name="dashboard_button">
     <property name="geometry">
      <rect>
-      <x>650</x>
+      <x>740</x>
       <y>10</y>
       <width>131</width>
       <height>41</height>
@@ -329,8 +329,73 @@
      <iconset>
       <normaloff>002-speedometer.png</normaloff>002-speedometer.png</iconset>
     </property>
+    <property name="iconSize">
+     <size>
+      <width>20</width>
+      <height>20</height>
+     </size>
+    </property>
     <property name="shortcut">
      <string>R</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="predict_button">
+    <property name="geometry">
+     <rect>
+      <x>630</x>
+      <y>10</y>
+      <width>112</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Predict(p)</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>rubik.png</normaloff>rubik.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>20</width>
+      <height>20</height>
+     </size>
+    </property>
+   </widget>
+   <widget class="Line" name="line">
+    <property name="geometry">
+     <rect>
+      <x>600</x>
+      <y>10</y>
+      <width>20</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+   </widget>
+   <widget class="QListWidget" name="ongoing_process">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>390</y>
+      <width>111</width>
+      <height>231</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>370</y>
+      <width>111</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ongoing Process:</string>
     </property>
    </widget>
   </widget>
@@ -339,7 +404,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>942</width>
+     <width>1019</width>
      <height>22</height>
     </rect>
    </property>
