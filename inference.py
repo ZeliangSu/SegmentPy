@@ -10,6 +10,8 @@ from util import print_nodes_name, get_list_fnames, load_img, dimension_regulato
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from tensorflow.python.framework import dtypes
 from layers import customized_softmax_np
+import argparse
+import re
 
 # logging
 import logging
@@ -18,6 +20,18 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
 
 tag_compute = 1002
+
+
+# argparser
+parser = argparse.ArgumentParser('main.py')
+parser.add_argument('-ckpt', '--ckpt_path', type=str, metavar='', required=True, help='.meta path')
+parser.add_argument('-raw', '--raw_path', type=str, metavar='', required=True, help='raw tomograms folder path')
+parser.add_argument('-pred', '--pred_path', type=str, metavar='', required=True, help='where to put the segmentation')
+parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=False, const=8, help='identical as the trained model')
+parser.add_argument('-ws', '--window_size', type=int, metavar='', required=False, const=512, help='identical as the trained model')
+args = parser.parse_args()
+print(args)
+
 
 
 class reconstructor_V2_reg():
@@ -142,7 +156,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
             input_map['BN_phase'] = new_BN
 
         restorer = tf.train.import_meta_graph(
-            paths['ckpt_path'] + '.meta',
+            paths['ckpt_path'] + '.meta' if not paths['ckpt_path'].endswith('.meta') else paths['ckpt_path'],
             input_map=input_map,
             clear_devices=True,
         )
@@ -152,7 +166,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
 
         logger.warning('Error(msg):', e)
         restorer = tf.train.import_meta_graph(
-            paths['ckpt_path'] + '.meta',
+            paths['ckpt_path'] + '.meta' if not paths['ckpt_path'].endswith('.meta') else paths['ckpt_path'],
             input_map=input_map,
             clear_devices=True,
         )
@@ -194,7 +208,7 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     # clean graph first
     tf.reset_default_graph()
-    check_N_mkdir(paths['optimized_pb_dir'])
+    check_N_mkdir(paths['save_pb_dir'])
 
     # load protobuff
     with tf.gfile.FastGFile(paths['save_pb_path'], "rb") as f:
@@ -543,54 +557,40 @@ def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: st
 
 
 if __name__ == '__main__':
+    # graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
+    ckpt_path = args.ckpt_path
+    save_pb_dir = '/'.join(ckpt_path.split('/')[:-2]) + '/pb/'
+
     c_nodes = [
-            'LRCS4/decontractor/logits/identity',
+            '{}/decoder/logits/identity'.format(re.search('mdl_(.*)_', ckpt_path)),
         ]
-    graph_def_dir = './logs/2020_5_4_bs8_ps512_lrprogrammed_cs3_nc30_do0.0_act_leaky_aug_True_BN_True_mdl_Unet3_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1.0_comment_3directions/hour18_gpu0/'
 
     # segment raw img per raw img
-    l_bs = [512]
-    l_time = []
-    l_inf = []
-    l_step = [28219]  # 28219, 24919
-    step = l_step[0]
 
     paths = {
-        'step': step,
-        'working_dir': graph_def_dir,
-        'ckpt_dir': graph_def_dir + 'ckpt/',
-        'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
-        'save_pb_dir': graph_def_dir + 'pb/',
-        'save_pb_path': graph_def_dir + 'pb/frozen_step{}.pb'.format(step),
-        'optimized_pb_dir': graph_def_dir + 'pb/',
-        'optimized_pb_path': graph_def_dir + 'pb/optimized_step{}.pb'.format(step),
-        # 'in_dir': './result/in/',
-        'out_dir': './predict/result/',
-        'rlt_dir': './predict/result/',
+        'step': args.step,
+        'working_dir': '/'.join(ckpt_path.split('/')[:-2]) + '/',
+        'ckpt_path': args.ckpt_path,
+        'save_pb_dir': save_pb_dir,
+        'save_pb_path': save_pb_dir + 'frozen_step{}.pb'.format(args.step),
+        'optimized_pb_path': save_pb_dir + 'optimized_step{}.pb'.format(args.step),
         'GPU': 0,
-        'inference_dir': './predict/result/',
+        'inference_dir': args.pred_path,
     }
 
     hyperparams = {
-        'patch_size': 512,
-        'batch_size': 8,
+        'patch_size': args.window_size,
+        'batch_size': args.batch_size,
         'nb_batch': None,
         'nb_patch': None,
         'stride': 200,  # stride == 30, reconstuction time ~ 1min per tomogram
         'batch_normalization': True,
-        'device_option': 'cpu', #'cpu',
+        'device_option': 'cpu',  #'cpu',
         'mode': 'classification',
-        'nb_classes': 3,
+        'nb_classes': args.n,
     }
 
-    # test1_raw = np.asarray(Image.open('./paper/train2.tif'))
-    # test2_raw = np.asarray(Image.open('./testdata/0.tif'))
-    # test1_label = np.asarray(Image.open('./dummy/test1_uns++_tu.tif'))
-    # test2_label = np.asarray(Image.open('./dummy/test2_Weka_UNS_tu.tif'))
-    # l_img_path = ['./testdata/0.tif']
-    # l_img_path = ['./paper/test1_uns++.tif']
     l_img_path = ['./predict/data/' + f for f in os.listdir('./predict/data/')]
-
     # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
     l_out = inference_recursive_V3(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
 

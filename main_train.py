@@ -15,7 +15,7 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.WARNING)
 
 # argparser
-parser = argparse.ArgumentParser('launch main.py')
+parser = argparse.ArgumentParser()
 parser.add_argument('-nc', '--nb_conv', type=int, metavar='', required=True, help='minimum number of convolution per layer e.g. 16, 32, 48')
 parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=True, help='number of images per batch e.g. 8, 200, 300 (impact the model size)')
 parser.add_argument('-ws', '--window_size', type=int, metavar='', required=True, help='size of the scanning window e.g. 128, 256, 512')
@@ -35,6 +35,7 @@ parser.add_argument('-mode', '--mode', type=str, metavar='', required=True, help
 parser.add_argument('-dv', '--device', type=int, metavar='', required=True, help='which GPU to use e.g. -1 use CPU')
 parser.add_argument('-st', '--save_model_step', type=int, metavar='', required=False, help='save the model every X step')
 parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False, help='save the histograms of gradients and weights for the training every X step')
+parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
 args = parser.parse_args()
 print(args)
 
@@ -115,7 +116,7 @@ if __name__ == '__main__':
         args.loss_fn, args.learning_rate,
         args.init_lr, args.lr_decay_param,
         args.lr_period,
-        '_glorot_uniform',  #note: here put your special comment
+        args.comment,  #note: here put your special comment
         hyperparams['hour'],
         hyperparams['device']
     )
@@ -181,6 +182,4 @@ if __name__ == '__main__':
 
     # start training
     train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
-
-
 
