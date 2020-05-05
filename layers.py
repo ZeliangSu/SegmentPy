@@ -8,7 +8,7 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def init_weights(shape, name='weights', reuse=False):
+def init_weights(shape, name='weights', reuse=False, uniform=False):
     """
     input:
     -------
@@ -19,10 +19,10 @@ def init_weights(shape, name='weights', reuse=False):
         tensorflow variable initialized by xavier method
     """
     with tf.variable_scope(name, reuse=reuse):
-        return tf.get_variable('w', shape=shape, initializer=tf.initializers.glorot_normal())
+        return tf.get_variable('w', shape=shape, initializer=tf.initializers.glorot_uniform() if uniform else tf.initializers.glorot_normal())
 
 
-def init_bias(shape, name='bias', reuse=False):
+def init_bias(shape, name='bias', reuse=False, uniform=False):
     """
     input:
     -------
@@ -33,7 +33,7 @@ def init_bias(shape, name='bias', reuse=False):
         tensorflow variable initialized by xavier method
     """
     with tf.variable_scope(name, reuse=reuse):
-        return tf.get_variable('b', shape=shape, initializer=tf.initializers.glorot_normal())
+        return tf.get_variable('b', shape=shape, initializer=tf.initializers.glorot_uniform() if uniform else tf.initializers.glorot_normal())
 
 
 def max_pool_2by2(x, name=''):

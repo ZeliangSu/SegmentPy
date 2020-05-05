@@ -39,10 +39,6 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
     #######################
 
     # init list
-    summary_saved_at = []
-    model_saved_at = []
-    _step = None
-    _ep = None
 
     with tf.Session() as sess:
         tf.summary.FileWriter('./dummy/debug/', sess.graph)
@@ -58,14 +54,13 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
             os.mkdir(folder + 'ckpt/')
 
         saver = tf.train.Saver(max_to_keep=100000000)
-        _globalStep = None
         try:
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
-                _ep = ep
                 # init ops
                 hyperparams['input_coords'].shuffle()
                 ls_fname_train, ls_ps_train, ls_x_train, ls_y_train = hyperparams['input_coords'].get_train_args()
                 ls_fname_test, ls_ps_test, ls_x_test, ls_y_test = hyperparams['input_coords'].get_test_args()
+
                 sess.run(train_inputs['iterator_init_op'],
                          feed_dict={train_inputs['fnames_ph']: ls_fname_train,
                                     train_inputs['patch_size_ph']: ls_ps_train,
@@ -79,8 +74,8 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
 
                 # begin training
                 for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
-                    _step = step
-                    learning_rate = hyperparams['learning_rate'][_ep * hyperparams['nb_batch'] + _step]
+                    global_step = ep * hyperparams['nb_batch'] + step
+                    learning_rate = hyperparams['learning_rate'][global_step]
 
                     # for batch norm
                     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -103,8 +98,8 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                             ],
                                 feed_dict=feed_dict)
 
-                            train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
-                            summary_saved_at.append(step)
+                            train_writer.add_summary(summary, global_step)
+
                         else:
                             _, _, _, _ = sess.run([
                                 train_nodes['train_op'], train_nodes['loss_update_op'], train_nodes['acc_update_op'], update_ops
@@ -115,53 +110,55 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                         # print(sess.run(train_nodes['learning_rate'], feed_dict=feed_dict))
 
                     except tf.errors.OutOfRangeError as e:
-                        saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
-                        model_saved_at.append(step)
+                        saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+                        # model_saved_at.append(step)
                         print(e)
                         break
 
-
                     #save model
-                    if step % hyperparams['save_step'] == 0:
-                        saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))
-                        model_saved_at.append(step)
+                    if global_step % hyperparams['save_step'] == 0:
+                        saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+                        # model_saved_at.append(step)
 
                         ########################
                         #
                         # test session
                         #
                         ########################
-                        if step != 0:
-                            # change feed dict
-                            feed_dict = {
-                                train_nodes['learning_rate']: 1.0,
-                                train_nodes['drop']: 1.0,
-                            }
+                        # if step != 0:
+                        # change feed dict
+                        feed_dict = {
+                            train_nodes['learning_rate']: 1.0,
+                            train_nodes['drop']: 1.0,
+                        }
 
-                            if hyperparams['batch_normalization']:
-                                feed_dict[train_nodes['BN_phase']] = False
+                        if hyperparams['batch_normalization']:
+                            feed_dict[train_nodes['BN_phase']] = False
 
-                            # load graph in the second device
-                            loader = tf.train.Saver()
-                            # change
-                            ckpt_saved_path = folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step)
-                            loader.restore(sess, ckpt_saved_path)
-                            for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='test batch'):
-                                _, summary, _, _ = sess.run(
-                                    [
-                                        test_nodes['y_pred'],
-                                        test_nodes['summary'],
-                                        test_nodes['loss_update_op'],
-                                        test_nodes['acc_update_op']
-                                    ],
-                                    feed_dict=feed_dict
-                                )
-                                if i_batch == hyperparams['save_step'] // 10 - 1:
-                                    test_writer.add_summary(summary, _ep * hyperparams['nb_batch'] + _step)
+                        # load graph in the second device
+                        loader = tf.train.Saver()
+                        # change
+                        ckpt_saved_path = folder + 'ckpt/step{}'.format(global_step)
 
-        except (KeyboardInterrupt, SystemExit):
-            saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))
-        saver.save(sess, folder + 'ckpt/step{}'.format(_ep * hyperparams['nb_batch'] + _step))
+                        # todo: this part is also load in gpu
+                        loader.restore(sess, ckpt_saved_path)
+                        for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='test batch'):
+                            _, summary, _, _ = sess.run(
+                                [
+                                    test_nodes['y_pred'],
+                                    test_nodes['summary'],
+                                    test_nodes['loss_update_op'],
+                                    test_nodes['acc_update_op']
+                                ],
+                                feed_dict=feed_dict
+                            )
+                            if i_batch == hyperparams['save_step'] // 10 - 1:
+                                test_writer.add_summary(summary, global_step)
+
+        except (KeyboardInterrupt, SystemExit) as e:
+            saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+            raise e
+        saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
 
 
 

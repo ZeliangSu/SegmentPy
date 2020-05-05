@@ -160,7 +160,7 @@ def _h5_writer(X_patches, y_patches, patch_shape, outdir, patch_size):
         print('\n***Created new .h5')
 
 
-def _resultWriter(tensor, layer_name='', path=None):
+def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch'):
     '''
     tensor: images(numpy array or list of image) to save of (Height, Width, nth_Conv)
     path: path(string)
@@ -220,8 +220,16 @@ def _resultWriter(tensor, layer_name='', path=None):
         elif tensor.ndim == 4:
             tensor = np.squeeze(tensor.astype(np.float32))
             if 'diff' in layer_name or 'logit' in layer_name:
-                for i in range(tensor.shape[0]):
-                    Image.fromarray(tensor[i]).save(path + '{}/{}.tif'.format(layer_name, i))
+                if tensor.ndim == 2:
+                    Image.fromarray(tensor).save(path + '{}/{}.tif'.format(layer_name, 0))
+                elif batch_or_channel == 'batch':
+                    for i in range(tensor.shape[0]):
+                        Image.fromarray(tensor[i]).save(path + '{}/{}.tif'.format(layer_name, i))
+                elif batch_or_channel == 'channel':
+                    for i in range(tensor.shape[-1]):
+                        Image.fromarray(tensor[i]).save(path + '{}/{}.tif'.format(layer_name, i))
+                else:
+                    raise NotImplementedError
 
         #  for cnn ndim=3
         elif tensor.ndim == 3:

@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import os
-from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean, plot_input_logit_label_diff, list_ckpts
+from util import get_all_trainable_variables, check_N_mkdir, print_nodes_name_shape, clean, \
+    plot_input_logit_label_diff, list_ckpts, load_img, dimension_regulator
 from tsne import tsne, compare_tsne_2D, compare_tsne_3D
 from inference import freeze_ckpt_for_inference
 from PIL import Image
@@ -10,6 +11,8 @@ from scipy import interpolate
 from writer import _resultWriter
 from input import _one_hot, _minmaxscalar, _inverse_one_hot
 from layers import customized_softmax_np
+from filter import *
+import re
 
 import logging
 import log
@@ -134,6 +137,24 @@ LRCS4_conserve_nodes = [
     'LRCS4/decoder/logits/identity',
 ]
 
+# LRCS7
+LRCS7_conserve_nodes = [
+    'LRCS7/encoder/conv1/leaky',
+    'LRCS7/encoder/conv2/leaky',
+    'LRCS7/encoder/conv3/leaky',
+    'LRCS7/encoder/conv4bisbis/sigmoid',
+    # 'LRCS7/dnn/constant/add',
+    # 'LRCS7/decoder/deconv5/leaky',  #useless so omitted
+    'LRCS7/decoder/deconv5bis/leaky',
+    'LRCS7/decoder/deconv6/leaky',
+    'LRCS7/decoder/deconv6bis/leaky',
+    'LRCS7/decoder/deconv7/leaky',
+    'LRCS7/decoder/deconv7bis/leaky',
+    'LRCS7/decoder/deconv8/leaky',
+    'LRCS7/decoder/deconv8bis/leaky',
+    'LRCS7/decoder/logits/identity',
+]
+
 Segnet_conserve_nodes = [
     'Segnet/encoder/conv1/leaky',
     'Segnet/encoder/conv1bis/leaky',
@@ -155,12 +176,31 @@ Segnet_conserve_nodes = [
     'Segnet/decoder/logits/identity',
 ]
 
+Unet3_conserve_nodes = [
+    'Unet3/contractor/conv1/leaky',
+    'Unet3/contractor/conv2/leaky',
+    'Unet3/contractor/conv3/leaky',
+    'Unet3/contractor/conv4/leaky',
+    'Unet3/bottom/bot5/leaky',
+    'Unet3/bottom/deconv1/leaky',
+    'Unet3/decontractor/conv6/leaky',
+    'Unet3/decontractor/deconv2/leaky',
+    'Unet3/decontractor/conv7/leaky',
+    'Unet3/decontractor/deconv3/leaky',
+    'Unet3/decontractor/conv8/leaky',
+    'Unet3/decontractor/deconv4/leaky',
+    'Unet3/decontractor/conv9/leaky',
+    'Unet3/decontractor/logits/identity',
+]
+
 conserve_nodes_dict = {
     'Xlearn': Xlearn_conserve_nodes,
     'Unet': Unet_conserve_nodes,
+    'Unet3': Unet3_conserve_nodes,
     'LRCS': LRCS_conserve_nodes,
     'LRCS2': LRCS2_conserve_nodes,
     'LRCS4': LRCS4_conserve_nodes,
+    'LRCS7': LRCS7_conserve_nodes,
     'Segnet': Segnet_conserve_nodes
 }
 
@@ -199,7 +239,7 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
     return g_main, ops_dict
 
 
-def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None):
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, feature_map=False):
     """
 
     Parameters
@@ -231,21 +271,47 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # write firstly input and output images
         img_path = input_dir + os.listdir(input_dir)[0]
-        imgs = [
-            np.asarray(Image.open(img_path))[i*100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])  #fixme: better use test dataset
-        ]
+        img = dimension_regulator(load_img(img_path))
+        img_size = img.shape
+
+        if feature_map:
+            # weka like input
+            l_func = [
+                Gaussian_Blur,
+                Sobel,
+                Hessian,
+                DoG,
+                Gabor,
+                # 'membrane_proj': Membrane_proj,
+                Anisotropic_Diffusion1,
+                Anisotropic_Diffusion2,
+                Bilateral,
+                Median,
+            ]
+            imgs = [img]
+            for func in l_func:
+                imgs.append(func(imgs[0]))
+            imgs = np.stack(imgs, axis=2).astype(np.float32)
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')))]
+
+
+        else:
+            imgs = [
+                img
+            ]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')))]
+
+        # save imgs
         plt_illd.add_input(np.asarray(imgs))
         _resultWriter(imgs, 'input', path=rlt_dir)
 
-        labels = [np.asarray(Image.open(img_path.replace('.tif', '_label.tif')))[i * 100:512 + i*100, i*100:512 + i*100] for i in range(hyper['batch_size'])]   #fixme: better use test dataset
         plt_illd.add_label(np.asarray(labels))
         _resultWriter(labels, 'label', path=rlt_dir)
 
-        img_size = hyper['patch_size']
 
         # prepare feed_dict
         feed_dict = {
-            new_input: np.array(imgs).reshape((hyper['batch_size'], img_size, img_size, 1)),
+            new_input: np.array(imgs).reshape((-1, img_size[0], img_size[1], 10 if hyper['feature_map'] else 1)),
         }
         if hyperparams['batch_normalization']:
             new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
@@ -285,7 +351,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                               path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
                 else:
                     _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
-                                  path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
+                                  path=rlt_dir, batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
                 activations.append(tensors)
 
     # calculate diff by numpy
@@ -834,7 +900,8 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
     inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
                                    input_dir=paths['data_dir'],
                                    rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']),
-                                   hyper=hyperparams)
+                                   hyper=hyperparams,
+                                   feature_map=hyperparams['feature_map'])
 
     # plt
     if plt:
@@ -845,19 +912,23 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 if __name__ == '__main__':
     # disable the GPU if there's a traning
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    graph_def_dir = './logs/2020_4_26_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS7_mode_classification_lossFn_DSC_rampdecay0.0005_k0.3_p1.0_comment_/hour11_gpu0/'
+
+    model = re.search('mdl_(.*)_mode', graph_def_dir).group(1)
+
 
     hyperparams = {
-        'patch_size': 512,
-        'batch_size': 8,
+        'window_size': 512,
+        'batch_size': 12,
         'nb_batch': None,
         'nb_patch': None,
         'stride': 1,
         'device_option': 'cpu',
         'mode': 'classification',
         'batch_normalization': False,
+        'feature_map': True if model in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False
     }
-    conserve_nodes = conserve_nodes_dict['LRCS4']
-    graph_def_dir = './logs/2020_4_22_bs8_ps512_lrprogrammed_cs3_nc32_do0.0_act_leaky_aug_True_BN_True_mdl_LRCS4_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1.0_comment_traindata5/hour12_gpu0/'
+    conserve_nodes = conserve_nodes_dict['{}'.format(model)]
     step = 24919
     step_init = 24919
     paths = {

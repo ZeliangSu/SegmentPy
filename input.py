@@ -6,72 +6,14 @@ import warnings
 from itertools import product
 from PIL import Image
 from augmentation import random_aug
+from filter import *
+import os
 import logging
 import log
-import os
 
 logger = log.setup_custom_logger('root', level=logging.WARNING)
 logger.setLevel(logging.WARNING)
 logging.basicConfig(level=logging.WARNING)
-
-
-def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
-    """
-    tensorflow tf.data input pipeline based helper that return image and label at once
-
-    input:
-    -------
-        batch_size: (int) number of images per batch before update parameters
-
-    output:
-    -------
-        inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
-        initialization operation
-    """
-
-    warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
-
-    is_training = True if suffix in ['train', 'cv', 'test'] else False
-
-    if is_training:
-        # placeholder for list fo files
-        with tf.name_scope('input_pipeline_' + suffix):
-            fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
-            patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
-
-            # init and shuffle list of files
-            batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
-            batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
-            # read data
-            if mode == 'regression':
-                batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
-            elif mode == 'classification':
-                batch = batch.map(_pyfn_classification_parser_wrapper, num_parallel_calls=ncores)
-            # random augment data
-            if augmentation:
-                batch = batch.map(_pyfn_aug_wrapper, num_parallel_calls=ncores)
-            # shuffle and prefetch batch
-            batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
-
-            # todo: prefetch_to_device
-            # batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
-
-            # construct iterator
-            it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
-            iter_init_op = it.make_initializer(batch, name='iter_init_op')
-            # get next img and label
-            X_it, y_it = it.get_next()
-
-            # dict
-            inputs = {'img': X_it,
-                      'label': y_it,
-                      'iterator_init_op': iter_init_op,
-                      'fnames_ph': fnames_ph,
-                      'patch_size_ph': patch_size_ph}
-
-    else:
-        raise NotImplementedError('Inference input need to be debug')
-    return inputs
 
 
 def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
@@ -109,6 +51,8 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
                 batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
             elif mode == 'classification':
                 batch = batch.map(_pyfn_classification_parser_wrapper_V2, num_parallel_calls=ncores)
+            elif mode == 'weka':
+                batch = batch.map(_pyfn_classification_parser_wrapper_weka, num_parallel_calls=ncores)
 
             # random augment data
             if augmentation:
@@ -157,14 +101,6 @@ def _pyfn_regression_parser_wrapper(fname, patch_size):
                       )
 
 
-def _pyfn_classification_parser_wrapper(fname, patch_size):
-    return tf.py_func(
-        parse_h5_one_hot,
-        [fname, patch_size],
-        [tf.float32, tf.int32]
-    )
-
-
 def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
     """
     input:
@@ -176,6 +112,22 @@ def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
         function: (function) tensorflow's pythonic function with its arguements
     """
     return tf.py_func(parse_h5_one_hot_V2,  #wrapped pythonic function
+                      [fname, patch_size, x_coord, y_coord],
+                      [tf.float32, tf.int32]  #[output, output] dtype
+                      )
+
+
+def _pyfn_classification_parser_wrapper_weka(fname, patch_size, x_coord, y_coord):
+    """
+    input:
+    -------
+        filename: (tf.data.Dataset)  Tensors of strings
+
+    output:
+    -------
+        function: (function) tensorflow's pythonic function with its arguements
+    """
+    return tf.py_func(parse_h5_one_hot_V3,  #wrapped pythonic function
                       [fname, patch_size, x_coord, y_coord],
                       [tf.float32, tf.int32]  #[output, output] dtype
                       )
@@ -197,21 +149,6 @@ def _pyfn_aug_wrapper(X_img, y_img):
                       )
 
 
-def parse_h5_one_hot(fname, patch_size):
-    with h5py.File(fname.decode('utf-8', 'r'), 'r') as f:
-        X = f['X'][:].reshape(patch_size, patch_size, 1)
-        y = f['y'][:].reshape(patch_size, patch_size, 1)
-
-        # if y is saved as float, convert to int
-
-        # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
-        y = _one_hot(y)
-        logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  #B, H, W, C
-
-        # return _minmaxscalar(X), y.astype(np.int32)  #note: minmaxscal will alternate if not all classes are present
-        return X, y.astype(np.int32)
-
-
 def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
@@ -219,6 +156,41 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
     X = np.expand_dims(img[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
+    y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
+    y = _one_hot(y)
+    # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C
+    return X, y.astype(np.int32)
+
+
+def parse_h5_one_hot_V3(fname, window_size, x_coord, y_coord):
+    img = np.asarray(Image.open(fname))
+    label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
+    assert img.shape == label.shape, 'img and label shape should be equal'
+    assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
+    assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
+
+    # note: the order of the following list shouldn't be changed either training or testing
+    l_func = [
+        Gaussian_Blur,
+        Sobel,
+        Hessian,
+        DoG,
+        Gabor,
+        # 'membrane_proj': Membrane_proj,
+        Anisotropic_Diffusion1, #no effect
+        Anisotropic_Diffusion2,  #no effect
+        Bilateral,  #no effect
+        Median,
+    ]
+
+    # compute feature maps
+    _X = img[x_coord: x_coord + window_size, y_coord: y_coord + window_size]
+    X = [_X]
+    for func in l_func:
+        X.append(func(_X))
+    X = np.stack(X, axis=2).astype(np.float32)
+
+    # y
     y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
     y = _one_hot(y)
     # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C

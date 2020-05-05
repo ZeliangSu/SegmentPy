@@ -64,7 +64,7 @@ if __name__ == '__main__':
         'loss_option': args.loss_fn,
     }
 
-    hyperparams['input_coords'] = coords_gen(train_dir='./raw/',
+    hyperparams['input_coords'] = coords_gen(train_dir='./traindata/',
                                              test_dir='./testdata/',
                                              window_size=hyperparams['patch_size'],
                                              train_test_ratio=0.9,
@@ -115,14 +115,21 @@ if __name__ == '__main__':
         args.loss_fn, args.learning_rate,
         args.init_lr, args.lr_decay_param,
         args.lr_period,
-        '_fix_coord_gen',  #note: here put your special comment
+        '_glorot_uniform',  #note: here put your special comment
         hyperparams['hour'],
         hyperparams['device']
     )
 
     # init input pipeline
-    train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
-    test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='classification')
+    if hyperparams['model'] in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3']:
+        print('**********************************Use weka-like input')
+        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train',
+                                        augmentation=hyperparams['augmentation'], mode='weka')
+        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='weka')
+
+    else:
+        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
+        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='classification')
 
     # define other placeholder
     if hyperparams['dropout'] is not None:

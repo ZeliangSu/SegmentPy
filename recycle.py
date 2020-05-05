@@ -618,3 +618,83 @@ def reconstruct(stack, image_size=None, stride=None):
                                min(j + stride, p_w, i_w - j))
     return img
 
+def inputpipeline(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
+    """
+    tensorflow tf.data input pipeline based helper that return image and label at once
+
+    input:
+    -------
+        batch_size: (int) number of images per batch before update parameters
+
+    output:
+    -------
+        inputs: (dict) output of this func, but inputs of the neural network. A dictionary of img, label and the iterator
+        initialization operation
+    """
+
+    warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
+
+    is_training = True if suffix in ['train', 'cv', 'test'] else False
+
+    if is_training:
+        # placeholder for list fo files
+        with tf.name_scope('input_pipeline_' + suffix):
+            fnames_ph = tf.placeholder(tf.string, shape=[None], name='fnames_ph')
+            patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
+
+            # init and shuffle list of files
+            batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph))
+            batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
+            # read data
+            if mode == 'regression':
+                batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
+            elif mode == 'classification':
+                batch = batch.map(_pyfn_classification_parser_wrapper, num_parallel_calls=ncores)
+            # random augment data
+            if augmentation:
+                batch = batch.map(_pyfn_aug_wrapper, num_parallel_calls=ncores)
+            # shuffle and prefetch batch
+            batch = batch.shuffle(batch_size).batch(batch_size, drop_remainder=True).prefetch(ncores).repeat()
+
+            # todo: prefetch_to_device
+            # batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
+
+            # construct iterator
+            it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+            iter_init_op = it.make_initializer(batch, name='iter_init_op')
+            # get next img and label
+            X_it, y_it = it.get_next()
+
+            # dict
+            inputs = {'img': X_it,
+                      'label': y_it,
+                      'iterator_init_op': iter_init_op,
+                      'fnames_ph': fnames_ph,
+                      'patch_size_ph': patch_size_ph}
+
+    else:
+        raise NotImplementedError('Inference input need to be debug')
+    return inputs
+
+
+def parse_h5_one_hot(fname, patch_size):
+    with h5py.File(fname.decode('utf-8', 'r'), 'r') as f:
+        X = f['X'][:].reshape(patch_size, patch_size, 1)
+        y = f['y'][:].reshape(patch_size, patch_size, 1)
+
+        # if y is saved as float, convert to int
+
+        # note: {0, 50} might better separate two peaks? but not too difficult to converge at the beginning
+        y = _one_hot(y)
+        logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  #B, H, W, C
+
+        # return _minmaxscalar(X), y.astype(np.int32)  #note: minmaxscal will alternate if not all classes are present
+        return X, y.astype(np.int32)
+
+
+def _pyfn_classification_parser_wrapper(fname, patch_size):
+    return tf.py_func(
+        parse_h5_one_hot,
+        [fname, patch_size],
+        [tf.float32, tf.int32]
+    )

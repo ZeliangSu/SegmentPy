@@ -10,7 +10,6 @@ from reader import _tifReader
 from filter import *
 
 
-
 def train(X, y, params=None):
     clf = RandomForestClassifier(
         n_estimators=params['nb_tree'],  # 200

@@ -6,7 +6,7 @@ from itertools import product
 from PIL import Image
 from tqdm import tqdm
 from input import _minmaxscalar
-from util import print_nodes_name, get_list_fnames
+from util import print_nodes_name, get_list_fnames, load_img, dimension_regulator
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from tensorflow.python.framework import dtypes
 from layers import customized_softmax_np
@@ -98,6 +98,26 @@ class reconstructor_V2_cls():
         return self.n_h, self.n_w
 
 
+class reconstructor_V3_cls():
+    '''can be used by models which has resizable input (without dense connected layer/pur convolutional net)'''
+    def __init__(self, image_size, z_len, nb_class):
+        self.img_size = image_size
+        self.z_len = z_len
+        self.nb_cls = nb_class
+        a, b = image_size[0] // 8, image_size[1] // 8
+        self.result = np.zeros((self.z_len, a * 8, b * 8), dtype=np.int8)
+
+    def write_slice(self,
+                    nn_output,
+                    slice_id
+                    ):
+        seg = np.argmax(np.squeeze(nn_output), axis=2).astype(np.int8)
+        self.result[slice_id] = seg
+
+    def get_volume(self):
+        return self.result.astype(np.float32)  # convert to float for saving in .tif
+
+
 def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
     assert isinstance(paths, dict), 'The paths parameter expected a dictionnay but other type is provided'
     assert isinstance(hyper, dict), 'The hyper parameter expected a dictionnay but other type is provided'
@@ -108,7 +128,7 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
 
     # freeze ckpt then convert to pb
     # new_input = tf.placeholder(tf.float32, shape=[None, hyper['patch_size'], hyper['patch_size'], 1], name='new_input')
-    new_input = tf.placeholder(tf.float32, shape=[None, None, None, 1], name='new_input')  # note: resize the input while inferencing
+    new_input = tf.placeholder(tf.float32, shape=[None, None, None, 10 if hyper['feature_map'] else 1], name='new_input')  # note: resize the input while inferencing
     new_BN = tf.placeholder_with_default(False, [], name='new_BN')  #note: it seems like T/F after freezing isn't important
 
     # load meta graph
@@ -292,92 +312,6 @@ def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, h
             pbar1.update(1)
 
 
-def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None):
-    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
-    assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
-    assert isinstance(paths, dict), 'paths should be a dict'
-    assert isinstance(hyper, dict), 'hyper should be a dict'
-
-    from mpi4py import MPI
-    # prevent GPU
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    communicator = MPI.COMM_WORLD
-    rank = communicator.Get_rank()
-    nb_process = communicator.Get_size()
-
-    # optimize ckpt to pb for inference
-    if rank == 0:
-        check_N_mkdir(paths['out_dir'])
-        freeze_ckpt_for_inference(paths=paths, hyper=hyper,
-                                  conserve_nodes=conserve_nodes)  # there's still some residual nodes
-        optimize_pb_for_inference(paths=paths,
-                                  conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
-        pbar1 = tqdm(total=len(l_input_path))
-
-    # ************************************************************************************************ I'm a Barrier
-    communicator.Barrier()
-
-    # reconstruct volumn
-    for i, path in enumerate(l_input_path):
-        # ************************************************************************************************ I'm a Barrier
-        communicator.Barrier()
-        img = np.asarray(Image.open(path))
-        n_h = (img.shape[0] - hyper['patch_size']) // hyper['stride'] + 1
-        n_w = (img.shape[1] - hyper['patch_size']) // hyper['stride'] + 1
-        remaining = n_h * n_w
-        nb_img_per_rank = remaining // (nb_process - 1)
-        rest_img = remaining % (nb_process - 1)
-
-        if rank == 0:
-            pbar2 = tqdm(total=remaining)
-            # use reconstructor to not saturate the RAM
-            if hyper['mode'] == 'classification':
-                reconstructor = reconstructor_V2_cls(img.shape, hyper['patch_size'], hyper['stride'], hyper['nb_classes'])
-            else:
-                raise NotImplementedError('inference recursive V2 not implemented yet for regression')
-
-            # start gathering batches from other rank
-            s = MPI.Status()
-            communicator.Probe(status=s)
-            while remaining > 0:
-                # if s.tag != -1:
-                #     print(s.tag)
-
-                if s.tag == tag_compute:
-                    # receive outputs
-                    core, stt_id, out_batch = communicator.recv(tag=tag_compute)
-                    reconstructor.add_batch(out_batch, stt_id)
-
-                    # progress
-                    remaining -= out_batch.shape[0]
-                    pbar2.update(out_batch.shape[0])
-
-        else:
-            if (rank - 1) <= rest_img:
-                start_id = (rank - 1) * (nb_img_per_rank + 1)
-                id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
-            else:
-                start_id = (rank - 1) * nb_img_per_rank + rest_img
-                id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
-
-            _inference_recursive_V2(
-                img=img,
-                n_h=n_h,
-                id_list=id_list,
-                pb_path=paths['optimized_pb_path'],
-                conserve_nodes=conserve_nodes,
-                hyper=hyper,
-                comm=communicator
-            )
-
-        # save recon
-        if rank == 0:
-            reconstructor.reconstruct()
-            recon = reconstructor.get_reconstruction()
-            Image.fromarray(recon).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
-            pbar1.update(1)
-
-
 def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, conserve_nodes=None, hyper=None, comm=None):
     # load graph
     tf.reset_default_graph()
@@ -419,6 +353,7 @@ def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, cons
                 # inference
                 # batch = _minmaxscalar(batch)  # note: don't forget the minmaxscalar, since during training we put it
                 batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
+
                 if do is not None:
                     feed_dict = {
                         X: batch,
@@ -481,11 +416,137 @@ def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, cons
                 raise NotImplementedError('!')
 
 
+def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None):
+    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
+    assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
+    assert isinstance(paths, dict), 'paths should be a dict'
+    assert isinstance(hyper, dict), 'hyper should be a dict'
+
+    from mpi4py import MPI
+    # prevent GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    communicator = MPI.COMM_WORLD
+    rank = communicator.Get_rank()
+    nb_process = communicator.Get_size()
+
+    # optimize ckpt to pb for inference
+    if rank == 0:
+        check_N_mkdir(paths['out_dir'])
+        freeze_ckpt_for_inference(paths=paths, hyper=hyper,
+                                  conserve_nodes=conserve_nodes)  # there's still some residual nodes
+        optimize_pb_for_inference(paths=paths,
+                                  conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
+        reconstructor = reconstructor_V3_cls(
+            image_size=np.asarray(Image.open(l_input_path[0])).shape,
+            z_len=len(l_input_path),
+            nb_class=hyper['nb_classes']
+        )
+        pbar1 = tqdm(total=len(l_input_path))
+
+    # ************************************************************************************************ I'm a Barrier
+    communicator.Barrier()
+
+    # reconstruct volumn
+    remaining = len(l_input_path)
+    nb_img_per_rank = remaining // (nb_process - 1)
+    rest_img = remaining % (nb_process - 1)
+
+    if rank == 0:
+        # start gathering batches from other rank
+        s = MPI.Status()
+        communicator.Probe(status=s)
+        while remaining >= 0:
+            if s.tag == tag_compute:
+                # receive outputs
+                slice_id, out_batch = communicator.recv(tag=tag_compute)
+                reconstructor.write_slice(out_batch, slice_id)
+
+                # progress
+                remaining -= 1
+                pbar1.update(1)
+
+    else:
+        if (rank - 1) <= rest_img:
+            start_id = (rank - 1) * (nb_img_per_rank + 1)
+            id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
+        else:
+            start_id = (rank - 1) * nb_img_per_rank + rest_img
+            id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
+
+        _inference_recursive_V3(
+            l_input_path=l_input_path,
+            id_list=id_list,
+            pb_path=paths['optimized_pb_path'],
+            conserve_nodes=conserve_nodes,
+            hyper=hyper,
+            comm=communicator
+        )
+
+    # save recon
+    if rank == 0:
+        recon = reconstructor.get_volume()
+        for i in range(len(l_input_path)):
+            Image.fromarray(recon[i]).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
+        pbar1.update(1)
+    MPI.COMM_WORLD.Finalize()
+
+
+def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: str, conserve_nodes: list, hyper: dict, comm=None):
+    # load graph
+    tf.reset_default_graph()
+    with tf.gfile.GFile(pb_path, 'rb') as f:
+        graph_def_optimized = tf.GraphDef()
+        graph_def_optimized.ParseFromString(f.read())
+
+    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
+        G = tf.get_default_graph()
+        X = G.get_tensor_by_name('import/' + 'new_input:0')
+        y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
+        bn = G.get_tensor_by_name('import/' + 'new_BN:0')
+        try:
+            do = G.get_tensor_by_name('import/' + 'new_dropout:0')
+        except Exception as e:
+            print(e)
+            print('drop out not exists in graph')
+            do = None
+            pass
+
+        print(comm.Get_rank(), ': nb of inference:{}'.format(len(id_list)))
+
+        for id in np.nditer(id_list):
+            # note: the following dimensions should be multiple of 8 if 3x Maxpooling
+
+            img = load_img(l_input_path[id])
+            img = dimension_regulator(img, maxp_times=3)
+
+            batch = img.reshape((1, *img.shape, 1))
+            # inference
+            if do is not None:
+                feed_dict = {
+                    X: batch,
+                    do: 1.0,
+                    bn: False,
+                }
+            else:
+                feed_dict = {
+                    X: batch,
+                    bn: False,
+                }
+
+            if hyper['mode'] == 'classification':
+                output = sess.run(y, feed_dict=feed_dict)
+                output = customized_softmax_np(output)
+                comm.send([id, output], dest=0, tag=tag_compute)
+            else:
+                raise NotImplementedError('!')
+
+
 if __name__ == '__main__':
     c_nodes = [
-            'LRCS4/decoder/logits/identity',
+            'LRCS4/decontractor/logits/identity',
         ]
-    graph_def_dir = './logs/2020_4_16_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS4_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1_comment_/hour1_gpu0/'
+    graph_def_dir = './logs/2020_5_4_bs8_ps512_lrprogrammed_cs3_nc30_do0.0_act_leaky_aug_True_BN_True_mdl_Unet3_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1.0_comment_3directions/hour18_gpu0/'
 
     # segment raw img per raw img
     l_bs = [512]
@@ -531,5 +592,5 @@ if __name__ == '__main__':
     l_img_path = ['./predict/data/' + f for f in os.listdir('./predict/data/')]
 
     # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
-    l_out = inference_recursive_V2(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
+    l_out = inference_recursive_V3(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
 

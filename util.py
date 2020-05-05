@@ -114,7 +114,10 @@ class plot_input_logit_label_diff():
 
     def add_input(self, input):
         assert isinstance(input, np.ndarray)
-        self.input = np.squeeze(input)
+        if input.shape[-1] == 10:
+            self.input = input[:, :, 0]
+        else:
+            self.input = np.squeeze(input)
 
     def add_logit(self, logit):
         assert isinstance(logit, np.ndarray)
@@ -140,8 +143,8 @@ class plot_input_logit_label_diff():
             final = np.zeros((self.input.shape[0] * 2 + 10, self.input.shape[1] * 2 + 10))
             final[:self.input.shape[0], :self.input.shape[1]] = self.input
             final[:self.input.shape[0], self.input.shape[1] + 10:] = self.logit
-            final[self.input.shape[0] + 10:, self.input.shape[1]:] = self.label
-            final[self.input.shape[0] + 10:, :self.input.shape[1] + 10] = self.diff
+            final[self.input.shape[0] + 10:, self.input.shape[1] + 10:] = self.label
+            final[self.input.shape[0] + 10:, :self.input.shape[1]] = self.diff
             Image.fromarray(final).save(self.out_path)
 
         elif self.input.ndim == 3:
@@ -194,4 +197,20 @@ def list_ckpts(directory):
     ckpts = sorted(ckpts)
     print(ckpts)
     return ckpts
+
+
+def dimension_regulator(img, maxp_times=3):
+    ''' some models constraint the i/o dimensions should be multiple of 8 (for 3 times maxpooling)'''
+    # note: the following dimensions should be multiple of 8 if 3x Maxpooling
+    multiple = 2 ** maxp_times
+    w, h = img.shape[0] % multiple, img.shape[1] % multiple
+    a, b = img.shape[0] // multiple, img.shape[1] // multiple
+    img = img[w // 2: w // 2 + a * multiple, h // 2: h // 2 + b * multiple]
+    return img
+
+
+def load_img(path):
+    img = np.asarray(Image.open(path))
+    return img
+
 
