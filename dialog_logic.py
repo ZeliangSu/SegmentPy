@@ -26,10 +26,7 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.pparam.setText(params['lr_p'])
             self.svsteps.setText(params['sv_step'])
             self.tbstep.setText(params['tb_step'])
-            try:
-                self.comment.setText(params['comment'])
-            except:
-                pass
+            self.comment.setText(params['comment'])
 
         # buttons
         self.buttonBox.accepted.connect(self.accept)  # ok button

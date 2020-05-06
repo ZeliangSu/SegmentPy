@@ -5,6 +5,7 @@ import os
 from math import nan
 from PIL import Image
 from input import _minmaxscalar
+from skimage import exposure
 
 # logging
 import logging
@@ -214,3 +215,6 @@ def load_img(path):
     return img
 
 
+def auto_contrast(img):
+    img = exposure.equalize_hist(img)
+    return img

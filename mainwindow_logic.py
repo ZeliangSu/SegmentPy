@@ -77,7 +77,7 @@ class predict_Worker(QRunnable):
         ]
 
         try:
-            terminal = ['python', 'test.py']  # todo: uncomment here for similation
+            # terminal = ['python', 'test.py']  # todo: uncomment here for similation
             process = subprocess.Popen(
                 terminal
             )
@@ -100,7 +100,7 @@ class predict_Worker(QRunnable):
 class training_Worker(QRunnable):
     def __init__(self, *args, **kwargs):
         super(training_Worker, self).__init__()
-        self.using_gpu = args[0]
+        self.using_gpu = str(args[0])
         self.params = args[1]
         self.signals = WorkerSignals()
 
@@ -129,16 +129,17 @@ class training_Worker(QRunnable):
             '-af', self.params['act fn'],
             '-mdl', self.params['model'],
             '-mode', self.params['cls/reg'],
-            '-mode', self.using_gpu,
+            '-dv', self.using_gpu,
             '-st', self.params['sv step'],
-            '-tb', self.params['tb step']
+            '-tb', self.params['tb step'],
+            '-cmt', self.params['comment']
         ]
 
         try:
             print(self.params)
             print('\n', terminal)
 
-            terminal = ['python', 'test.py']  # todo: uncomment here for similation
+            # terminal = ['python', 'test.py']  # todo: uncomment here for similation
             process = subprocess.Popen(
                 terminal
             )
@@ -256,6 +257,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "tb step"))
         item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(18, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "comment"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
 
         self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
 
@@ -286,17 +291,20 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         # define data folder path
         ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
         ckpt_path = ckpt_dialog.openFileNameDialog()
+        print(ckpt_path)
 
         # get to predict .tif
         predict_dialog = file_dialog(title='select folder of raw tomograms (*.tif) to predict', type='/')
         predict_dir = predict_dialog.openFolderDialog()
+        print(predict_dir)
 
         # define predict folder path (can create new folder)
         save_dialog = file_dialog(title='select folder to put prediction', type='/')
         save_dir = save_dialog.openFolderDialog()
+        print(save_dir)
 
         # spawn sub process
-        _Worker = predict_Worker(ckpt_dir=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
+        _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
         self.threadpool.start(_Worker)
         _Worker.signals.start_proc.connect(self.add_proc_surveillance)
         _Worker.signals.released_proc.connect(self.kill_process)

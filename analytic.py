@@ -912,7 +912,7 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 if __name__ == '__main__':
     # disable the GPU if there's a traning
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    graph_def_dir = './logs/2020_4_26_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS7_mode_classification_lossFn_DSC_rampdecay0.0005_k0.3_p1.0_comment_/hour11_gpu0/'
+    graph_def_dir = './logs/2020_4_26_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS7_mode_classification_lossFn_DSC_rampdecay0.0005_k0.3_p1.0_comment_(here)/hour11_gpu0/'
 
     model = re.search('mdl_(.*)_mode', graph_def_dir).group(1)
 

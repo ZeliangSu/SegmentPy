@@ -14,33 +14,49 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.WARNING)
 
-# argparser
-parser = argparse.ArgumentParser()
-parser.add_argument('-nc', '--nb_conv', type=int, metavar='', required=True, help='minimum number of convolution per layer e.g. 16, 32, 48')
-parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=True, help='number of images per batch e.g. 8, 200, 300 (impact the model size)')
-parser.add_argument('-ws', '--window_size', type=int, metavar='', required=True, help='size of the scanning window e.g. 128, 256, 512')
-parser.add_argument('-ep', '--nb_epoch', type=int, metavar='', required=True, help='number of epoch')
-parser.add_argument('-cs', '--conv_size', type=int, metavar='', required=True, help='kernel size e.g. 3x3, 5x5')
-parser.add_argument('-lr', '--learning_rate', type=str, metavar='', required=True, help='learning rate schedule e.g. ramp, exp, const')
-parser.add_argument('-ilr', '--init_lr', type=float, metavar='', required=True, help='starting learning rate e.g. 0.001, 1e-4')
-parser.add_argument('-klr', '--lr_decay_param', type=float, metavar='', required=True, help='the decay ratio e.g. 0.1')
-parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=True, help='decay every X epoch')
-parser.add_argument('-bn', '--batch_norm', type=bool, metavar='', required=True, help='use batch normalization or not')
-parser.add_argument('-do', '--dropout_prob', type=float, metavar='', required=True, help='dropout probability for the Dense-NN part')
-parser.add_argument('-ag', '--augmentation', type=bool, metavar='', required=True, help='use augmentation on the input pipeline')
-parser.add_argument('-fn', '--loss_fn', type=str, metavar='', required=True, help='indicate the loss function e.g. DSC, CE')
-parser.add_argument('-af', '--activation_fn', type=str, metavar='', required=True, help='activation function e.g. relu, leaky')
-parser.add_argument('-mdl', '--model', type=str, metavar='', required=True, help='which model to use e.g. LRCS, Xlearn, Unet')
-parser.add_argument('-mode', '--mode', type=str, metavar='', required=True, help='regression/classification')
-parser.add_argument('-dv', '--device', type=int, metavar='', required=True, help='which GPU to use e.g. -1 use CPU')
-parser.add_argument('-st', '--save_model_step', type=int, metavar='', required=False, help='save the model every X step')
-parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False, help='save the histograms of gradients and weights for the training every X step')
-parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
-args = parser.parse_args()
-print(args)
-
 
 if __name__ == '__main__':
+    # argparser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-nc', '--nb_conv', type=int, metavar='', required=True,
+                        help='minimum number of convolution per layer e.g. 16, 32, 48')
+    parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=True,
+                        help='number of images per batch e.g. 8, 200, 300 (impact the model size)')
+    parser.add_argument('-ws', '--window_size', type=int, metavar='', required=True,
+                        help='size of the scanning window e.g. 128, 256, 512')
+    parser.add_argument('-ep', '--nb_epoch', type=int, metavar='', required=True, help='number of epoch')
+    parser.add_argument('-cs', '--conv_size', type=int, metavar='', required=True, help='kernel size e.g. 3x3, 5x5')
+    parser.add_argument('-lr', '--learning_rate', type=str, metavar='', required=True,
+                        help='learning rate schedule e.g. ramp, exp, const')
+    parser.add_argument('-ilr', '--init_lr', type=float, metavar='', required=True,
+                        help='starting learning rate e.g. 0.001, 1e-4')
+    parser.add_argument('-klr', '--lr_decay_param', type=float, metavar='', required=True,
+                        help='the decay ratio e.g. 0.1')
+    parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=True, help='decay every X epoch')
+    parser.add_argument('-bn', '--batch_norm', type=bool, metavar='', required=True,
+                        help='use batch normalization or not')
+    parser.add_argument('-do', '--dropout_prob', type=float, metavar='', required=True,
+                        help='dropout probability for the Dense-NN part')
+    parser.add_argument('-ag', '--augmentation', type=bool, metavar='', required=True,
+                        help='use augmentation on the input pipeline')
+    parser.add_argument('-fn', '--loss_fn', type=str, metavar='', required=True,
+                        help='indicate the loss function e.g. DSC, CE')
+    parser.add_argument('-af', '--activation_fn', type=str, metavar='', required=True,
+                        help='activation function e.g. relu, leaky')
+    parser.add_argument('-mdl', '--model', type=str, metavar='', required=True,
+                        help='which model to use e.g. LRCS, Xlearn, Unet')
+    parser.add_argument('-mode', '--mode', type=str, metavar='', required=True, help='regression/classification')
+    parser.add_argument('-dv', '--device', type=int, metavar='', required=True, help='which GPU to use e.g. -1 use CPU')
+    parser.add_argument('-st', '--save_model_step', type=int, metavar='', required=False,
+                        help='save the model every X step')
+    parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
+                        help='save the histograms of gradients and weights for the training every X step')
+    parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
+    args = parser.parse_args()
+    print(args)
+
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(args.device)
+
     tf.reset_default_graph()
     # params
     hyperparams = {
@@ -100,7 +116,7 @@ if __name__ == '__main__':
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_lossFn_{}_{}decay{}_k{}_p{}_comment{}/hour{}_gpu{}/'.format(
+        './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_lossFn_{}_{}decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
         hyperparams['date'],
         hyperparams['batch_size'],
         hyperparams['patch_size'],
@@ -116,7 +132,7 @@ if __name__ == '__main__':
         args.loss_fn, args.learning_rate,
         args.init_lr, args.lr_decay_param,
         args.lr_period,
-        args.comment,  #note: here put your special comment
+        args.comment.replace(' ', '_'),
         hyperparams['hour'],
         hyperparams['device']
     )

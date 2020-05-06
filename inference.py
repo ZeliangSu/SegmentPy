@@ -17,21 +17,12 @@ import re
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 tag_compute = 1002
 
-
-# argparser
-parser = argparse.ArgumentParser('main.py')
-parser.add_argument('-ckpt', '--ckpt_path', type=str, metavar='', required=True, help='.meta path')
-parser.add_argument('-raw', '--raw_path', type=str, metavar='', required=True, help='raw tomograms folder path')
-parser.add_argument('-pred', '--pred_path', type=str, metavar='', required=True, help='where to put the segmentation')
-parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=False, const=8, help='identical as the trained model')
-parser.add_argument('-ws', '--window_size', type=int, metavar='', required=False, const=512, help='identical as the trained model')
-args = parser.parse_args()
-print(args)
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class reconstructor_V2_reg():
@@ -118,7 +109,7 @@ class reconstructor_V3_cls():
         self.img_size = image_size
         self.z_len = z_len
         self.nb_cls = nb_class
-        a, b = image_size[0] // 8, image_size[1] // 8
+        a, b = self.img_size[0] // 8, self.img_size[1] // 8
         self.result = np.zeros((self.z_len, a * 8, b * 8), dtype=np.int8)
 
     def write_slice(self,
@@ -126,7 +117,7 @@ class reconstructor_V3_cls():
                     slice_id
                     ):
         seg = np.argmax(np.squeeze(nn_output), axis=2).astype(np.int8)
-        self.result[slice_id] = seg
+        self.result[slice_id, :, :] = seg
 
     def get_volume(self):
         return self.result.astype(np.float32)  # convert to float for saving in .tif
@@ -445,13 +436,17 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
 
     # optimize ckpt to pb for inference
     if rank == 0:
-        check_N_mkdir(paths['out_dir'])
+
+        for img in l_img_path:
+            logger.debug(img)
+
+        check_N_mkdir(paths['inference_dir'])
         freeze_ckpt_for_inference(paths=paths, hyper=hyper,
-                                  conserve_nodes=conserve_nodes)  # there's still some residual nodes
+                                  conserve_nodes=conserve_nodes)
         optimize_pb_for_inference(paths=paths,
-                                  conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
+                                  conserve_nodes=conserve_nodes)
         reconstructor = reconstructor_V3_cls(
-            image_size=np.asarray(Image.open(l_input_path[0])).shape,
+            image_size=load_img(l_input_path[0]).shape,
             z_len=len(l_input_path),
             nb_class=hyper['nb_classes']
         )
@@ -464,15 +459,17 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
     remaining = len(l_input_path)
     nb_img_per_rank = remaining // (nb_process - 1)
     rest_img = remaining % (nb_process - 1)
+    print(nb_img_per_rank, rest_img, nb_process)
 
     if rank == 0:
         # start gathering batches from other rank
         s = MPI.Status()
         communicator.Probe(status=s)
-        while remaining >= 0:
+        while remaining > 0:
             if s.tag == tag_compute:
                 # receive outputs
                 slice_id, out_batch = communicator.recv(tag=tag_compute)
+                logger.debug(slice_id)
                 reconstructor.write_slice(out_batch, slice_id)
 
                 # progress
@@ -480,13 +477,14 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
                 pbar1.update(1)
 
     else:
-        if (rank - 1) <= rest_img:
+        if (rank - 1) < rest_img:
             start_id = (rank - 1) * (nb_img_per_rank + 1)
             id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
         else:
             start_id = (rank - 1) * nb_img_per_rank + rest_img
             id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
 
+        logger.debug('{}: {}'.format(rank, id_list))
         _inference_recursive_V3(
             l_input_path=l_input_path,
             id_list=id_list,
@@ -496,13 +494,14 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
             comm=communicator
         )
 
+    # ************************************************************************************************ I'm a Barrier
+    communicator.Barrier()
+
     # save recon
     if rank == 0:
         recon = reconstructor.get_volume()
-        for i in range(len(l_input_path)):
-            Image.fromarray(recon[i]).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
-        pbar1.update(1)
-    MPI.COMM_WORLD.Finalize()
+        for i in tqdm(range(len(l_input_path)), desc='writing data'):
+            Image.fromarray(recon[i]).save(paths['inference_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
 
 
 def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: str, conserve_nodes: list, hyper: dict, comm=None):
@@ -530,7 +529,7 @@ def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: st
 
         for id in np.nditer(id_list):
             # note: the following dimensions should be multiple of 8 if 3x Maxpooling
-
+            print('rank {}: {}'.format(comm.Get_rank(), id))
             img = load_img(l_input_path[id])
             img = dimension_regulator(img, maxp_times=3)
 
@@ -557,26 +556,45 @@ def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: st
 
 
 if __name__ == '__main__':
+    # argparser
+    parser = argparse.ArgumentParser('main.py')
+    parser.add_argument('-ckpt', '--ckpt_path', type=str, metavar='', required=True, help='.meta path')
+    parser.add_argument('-raw', '--raw_dir', type=str, metavar='', required=True, help='raw tomograms folder path')
+    parser.add_argument('-pred', '--pred_dir', type=str, metavar='', required=True,
+                        help='where to put the segmentation')
+    # todo:
+    parser.add_argument('-cls', '--nb_cls', type=int, metavar='', required=False, default=3, help='nb of classes in the vol (automatic in the future version)')
+    parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=False, default=8,
+                        help='identical as the trained model')
+    parser.add_argument('-ws', '--window_size', type=int, metavar='', required=False, default=512,
+                        help='identical as the trained model')
+    args = parser.parse_args()
+    logger.debug(args)
+
     # graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
-    ckpt_path = args.ckpt_path
+    ckpt_path = args.ckpt_path.replace('.meta', '')
     save_pb_dir = '/'.join(ckpt_path.split('/')[:-2]) + '/pb/'
+    mdl_name = re.search('mdl_(.*)_mode', ckpt_path).group(1)
 
     c_nodes = [
-            '{}/decoder/logits/identity'.format(re.search('mdl_(.*)_', ckpt_path)),
+            '{}/decoder/logits/identity'.format(mdl_name),
         ]
 
     # segment raw img per raw img
-
+    step = re.search('step(\d+)', ckpt_path).group(1)
     paths = {
-        'step': args.step,
+        'step': step,
         'working_dir': '/'.join(ckpt_path.split('/')[:-2]) + '/',
-        'ckpt_path': args.ckpt_path,
+        'ckpt_path': ckpt_path,
         'save_pb_dir': save_pb_dir,
-        'save_pb_path': save_pb_dir + 'frozen_step{}.pb'.format(args.step),
-        'optimized_pb_path': save_pb_dir + 'optimized_step{}.pb'.format(args.step),
+        'save_pb_path': save_pb_dir + 'frozen_step{}.pb'.format(step),
+        'optimized_pb_path': save_pb_dir + 'optimized_step{}.pb'.format(step),
         'GPU': 0,
-        'inference_dir': args.pred_path,
+        'inference_dir': args.pred_dir,
+        'raw_dir': args.raw_dir,
     }
+
+    logger.debug(paths['ckpt_path'])
 
     hyperparams = {
         'patch_size': args.window_size,
@@ -587,10 +605,10 @@ if __name__ == '__main__':
         'batch_normalization': True,
         'device_option': 'cpu',  #'cpu',
         'mode': 'classification',
-        'nb_classes': args.n,
+        'nb_classes': args.nb_cls,
+        'feature_map': True if mdl_name in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
     }
 
-    l_img_path = ['./predict/data/' + f for f in os.listdir('./predict/data/')]
-    # l_out = inference_recursive(inputs=[test1_raw], conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
-    l_out = inference_recursive_V3(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
-
+    l_img_path = [paths['raw_dir'] + f for f in sorted(os.listdir(paths['raw_dir']))]
+    inference_recursive_V3(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
+    print('ha')
