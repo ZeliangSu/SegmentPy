@@ -4,8 +4,8 @@ import numpy as np
 import os
 from math import nan
 from PIL import Image
-from input import _minmaxscalar
 from skimage import exposure
+import re
 
 # logging
 import logging
@@ -192,12 +192,15 @@ class ckpt():
 def list_ckpts(directory):
     fnames = os.listdir(directory)
     ckpts = []
+    fns = []
     for fname in fnames:
         if fname.endswith('.meta'):
             ckpts.append(int(fname.split('step')[1].split('.')[0]))
+            fns.append(directory + fname.replace('.meta', ''))
     ckpts = sorted(ckpts)
+    fns = sorted(fns)
     print(ckpts)
-    return ckpts
+    return ckpts, fns
 
 
 def dimension_regulator(img, maxp_times=3):
@@ -218,3 +221,37 @@ def load_img(path):
 def auto_contrast(img):
     img = exposure.equalize_hist(img)
     return img
+
+
+def _minmaxscalar(ndarray, dtype=np.float32):
+    """
+    func normalize values of a ndarray into interval of 0 to 1
+
+    input:
+    -------
+        ndarray: (numpy ndarray) input array to be normalized
+        dtype: (dtype of numpy) data type of the output of this function
+
+    output:
+    -------
+        scaled: (numpy ndarray) output normalized array
+    """
+    scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
+    return scaled
+
+
+def get_img_stack(img_dir:str, img_or_label:str):
+    fns = [img_dir + f for f in os.listdir(img_dir)]
+    imgs = []
+    for p in fns:
+        if img_or_label == 'input' or 'img':
+            if re.search('(\d+)(\.tif)', p):
+                imgs.append(load_img(p))
+        elif img_or_label == 'label':
+            if re.search('(_label)(\.tif)', p):
+                imgs.append(load_img(p))
+        else:
+            raise ValueError('input, img, or label')
+    imgs = np.stack(imgs, axis=0)
+    return imgs
+
