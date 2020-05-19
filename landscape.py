@@ -165,7 +165,7 @@ def feed_forward(sess, graph, state, direction_2D, xcoord, ycoord, inputs, outpu
                                    feed_dict={new_input_ph: inputs,
                                               new_output_ph: outputs,
                                               new_do_ph: 1.0,  #todo:
-                                              new_BN_ph: True, # todo:
+                                              new_BN_ph: True,  # todo:
                                               #note: (TF1.14)WTF? here should be True while producing loss-landscape
                                               #fixme: should check if the mov_avg/mov_std/beta/gamma change
                                               })

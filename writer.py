@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 import multiprocessing as mp
 from PIL import Image
-from util import check_N_mkdir, clean
+from util import check_N_mkdir, clean, auto_contrast
 from itertools import repeat
 from input import _inverse_one_hot
 
@@ -160,7 +160,7 @@ def _h5_writer(X_patches, y_patches, patch_shape, outdir, patch_size):
         print('\n***Created new .h5')
 
 
-def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch'):
+def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch', contrast=True):
     '''
     tensor: images(numpy array or list of image) to save of (Height, Width, nth_Conv)
     path: path(string)
@@ -185,7 +185,10 @@ def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch'):
             if elt.ndim == 3:
                 # note: save only the first
                 for j in range(elt.shape[-1]):
-                    Image.fromarray(np.asarray(elt[:, :, j])).save(path + '{}/{}.tif'.format(layer_name, j))
+                    activation = np.asarray(elt[:, :, j])
+                    if contrast:
+                        activation = auto_contrast(activation)
+                    Image.fromarray(activation).save(path + '{}/{}.tif'.format(layer_name, j))
 
             # scope: images
             elif elt.ndim == 2:
@@ -204,7 +207,10 @@ def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch'):
             elif elt.ndim == 4:
                 elt = elt.squeeze()
                 for j in range(elt.shape[0]):
-                    Image.fromarray(np.asarray(elt[j])).save(path + '{}/{}.tif'.format(layer_name, j))
+                    activation = np.asarray(elt[j])
+                    if contrast:
+                        activation = auto_contrast(activation)
+                    Image.fromarray(activation).save(path + '{}/{}.tif'.format(layer_name, j))
     else:
         #  treat dnn weights
         if tensor.ndim == 1:
@@ -234,7 +240,10 @@ def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch'):
         #  for cnn ndim=3
         elif tensor.ndim == 3:
             for i in range(tensor.shape[2]):
-                Image.fromarray(np.asarray(tensor[:, :, i], dtype=np.float)).save(path + '{}/{}.tif'.format(layer_name, i))
+                activation = np.asarray(tensor[:, :, i], dtype=np.float)
+                if contrast:
+                    activation = auto_contrast(activation)
+                Image.fromarray(activation).save(path + '{}/{}.tif'.format(layer_name, i))
 
         else:
             logger.warn('Not implement writer for this kind of data in layer :{}'.format(layer_name))

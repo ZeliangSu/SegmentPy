@@ -180,10 +180,6 @@ def ramp_decay(total_step, nb_batch, initial_lr, k=0.5, period=1):
     return lr_np.astype(float)  # the placeholder of lr is float32 mysterious using float get better accuracy
 
 
-class check_identical():
-    pass
-
-
 class ckpt():
     def here(self):
         print("I'm here")
@@ -244,14 +240,23 @@ def get_img_stack(img_dir:str, img_or_label:str):
     fns = [img_dir + f for f in os.listdir(img_dir)]
     imgs = []
     for p in fns:
-        if img_or_label == 'input' or 'img':
+        if img_or_label in ['input', 'img']:
             if re.search('(\d+)(\.tif)', p):
-                imgs.append(load_img(p))
+                imgs.append(dimension_regulator(load_img(p)))
         elif img_or_label == 'label':
             if re.search('(_label)(\.tif)', p):
-                imgs.append(load_img(p))
+                imgs.append(dimension_regulator(load_img(p)))
         else:
             raise ValueError('input, img, or label')
     imgs = np.stack(imgs, axis=0)
     return imgs
+
+
+def read_pb(pb_path):
+    # tf.reset_default_graph()
+    with tf.gfile.GFile(pb_path, 'rb') as f:
+        graph_def_optimized = tf.GraphDef()
+        graph_def_optimized.ParseFromString(f.read())
+    return graph_def_optimized
+
 

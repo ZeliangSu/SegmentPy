@@ -9,7 +9,7 @@ from inference import freeze_ckpt_for_inference
 from PIL import Image
 from scipy import interpolate
 from writer import _resultWriter
-from input import _one_hot, _minmaxscalar, _inverse_one_hot
+from input import _inverse_one_hot
 from layers import customized_softmax_np
 from filter import *
 import re
@@ -53,7 +53,7 @@ Unet_conserve_nodes = [
     'Unet/contractor/conv3/leaky',
     'Unet/contractor/conv3bis/leaky',
     'Unet/contractor/conv4/leaky',
-    'Unet/contractor/conv4bis/leaky',
+    'Unet/contractor/conv4bisbis/leaky',
     'Unet/bottom/bot5/leaky',
     'Unet/bottom/bot5bis/leaky',
     'Unet/bottom/deconv1/leaky',
@@ -140,11 +140,14 @@ LRCS4_conserve_nodes = [
 # LRCS7
 LRCS7_conserve_nodes = [
     'LRCS7/encoder/conv1/leaky',
+    'LRCS7/encoder/conv1bis/leaky',
+    'LRCS7/encoder/conv1bisbis/leaky',
     'LRCS7/encoder/conv2/leaky',
+    'LRCS7/encoder/conv2bis/leaky',
     'LRCS7/encoder/conv3/leaky',
-    'LRCS7/encoder/conv4bisbis/sigmoid',
-    # 'LRCS7/dnn/constant/add',
-    # 'LRCS7/decoder/deconv5/leaky',  #useless so omitted
+    'LRCS7/encoder/conv3bis/leaky',
+    'LRCS7/encoder/conv4/leaky',
+    'LRCS7/encoder/conv4bis/sigmoid',
     'LRCS7/decoder/deconv5bis/leaky',
     'LRCS7/decoder/deconv6/leaky',
     'LRCS7/decoder/deconv6bis/leaky',
@@ -153,6 +156,40 @@ LRCS7_conserve_nodes = [
     'LRCS7/decoder/deconv8/leaky',
     'LRCS7/decoder/deconv8bis/leaky',
     'LRCS7/decoder/logits/identity',
+]
+
+# LRCS11
+LRCS11_conserve_nodes = [
+    'LRCS11/encoder/conv1/leaky',
+    'LRCS11/encoder/conv2/leaky',
+    'LRCS11/encoder/conv3/leaky',
+    'LRCS11/encoder/conv4/sigmoid',
+    'LRCS11/decoder/deconv5/leaky',
+    'LRCS11/decoder/deconv5bis/leaky',
+    'LRCS11/decoder/deconv6/leaky',
+    'LRCS11/decoder/deconv6bis/leaky',
+    'LRCS11/decoder/deconv7/leaky',
+    'LRCS11/decoder/deconv7bis/leaky',
+    'LRCS11/decoder/deconv8/leaky',
+    'LRCS11/decoder/deconv8bis/leaky',
+    'LRCS11/decoder/logits/identity',
+]
+
+# LRCS12
+LRCS12_conserve_nodes = [
+    'LRCS12/encoder/conv1/leaky',
+    'LRCS12/encoder/conv2/leaky',
+    'LRCS12/encoder/conv3/leaky',
+    'LRCS12/encoder/conv4/sigmoid',
+    'LRCS12/decoder/deconv5/leaky',
+    'LRCS12/decoder/deconv5bis/leaky',
+    'LRCS12/decoder/deconv6/leaky',
+    'LRCS12/decoder/deconv6bis/leaky',
+    'LRCS12/decoder/deconv7/leaky',
+    'LRCS12/decoder/deconv7bis/leaky',
+    'LRCS12/decoder/deconv8/leaky',
+    'LRCS12/decoder/deconv8bis/leaky',
+    'LRCS12/decoder/logits/identity',
 ]
 
 Segnet_conserve_nodes = [
@@ -193,6 +230,7 @@ Unet3_conserve_nodes = [
     'Unet3/decontractor/logits/identity',
 ]
 
+#todo: this should be automatic
 conserve_nodes_dict = {
     'Xlearn': Xlearn_conserve_nodes,
     'Unet': Unet_conserve_nodes,
@@ -201,6 +239,8 @@ conserve_nodes_dict = {
     'LRCS2': LRCS2_conserve_nodes,
     'LRCS4': LRCS4_conserve_nodes,
     'LRCS7': LRCS7_conserve_nodes,
+    'LRCS11': LRCS11_conserve_nodes,
+    'LRCS12': LRCS12_conserve_nodes,
     'Segnet': Segnet_conserve_nodes
 }
 
@@ -271,7 +311,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # write firstly input and output images
         img_path = input_dir + os.listdir(input_dir)[0]
-        img = dimension_regulator(load_img(img_path))
+        img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet'] else 3)
         img_size = img.shape
 
         if feature_map:
@@ -292,14 +332,14 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             for func in l_func:
                 imgs.append(func(imgs[0]))
             imgs = np.stack(imgs, axis=2).astype(np.float32)
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')))]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet'] else 3)]
 
 
         else:
             imgs = [
                 img
             ]
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')))]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet'] else 3)]
 
         # save imgs
         plt_illd.add_input(np.asarray(imgs))
@@ -348,7 +388,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                     pass
                 if layer_name == 'add':
                     _resultWriter(tensors, layer_name=layer_name,
-                              path=rlt_dir)  # for cnn outputs shape: [batch, w, h, nb_conv]
+                              path=rlt_dir, batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
                 else:
                     _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
                                   path=rlt_dir, batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
@@ -912,14 +952,15 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
 if __name__ == '__main__':
     # disable the GPU if there's a traning
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    graph_def_dir = './logs/2020_4_26_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS7_mode_classification_lossFn_DSC_rampdecay0.0005_k0.3_p1.0_comment_(here)/hour11_gpu0/'
+    graph_def_dir = './logs/2020_5_19_bs8_ps512_lrprogrammed_cs3_nc24_do0.0_act_leaky_aug_True_BN_True_mdl_Unet_mode_classification_lossFn_DSC_rampdecay0.0001_k0.3_p1.0_comment_GT_more_pore/hour10_gpu0/'
 
     model = re.search('mdl_(.*)_mode', graph_def_dir).group(1)
 
 
     hyperparams = {
+        'model': model,
         'window_size': 512,
-        'batch_size': 12,
+        'batch_size': 8,
         'nb_batch': None,
         'nb_patch': None,
         'stride': 1,

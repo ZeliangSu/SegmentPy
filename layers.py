@@ -70,7 +70,16 @@ def up_2by2(input_layer, name=''):
         (tf.Tensor) row-by-row column-by-column copied tensor
     """
     with tf.name_scope(name):
-        return tf.image.resize_nearest_neighbor(input_layer, size=[2 * input_layer.shape[1], 2 * input_layer.shape[2]], name='up')
+        inshape = input_layer.get_shape().as_list()
+        new_shape = tf.shape(input_layer)[1:3]
+        new_shape = tf.multiply(new_shape, (2, 2))
+
+        upped = tf.image.resize_nearest_neighbor(input_layer, size=new_shape, name=name)
+        upped.set_shape((None, inshape[1] * 2 if inshape[1] is not None else None,
+                         inshape[2] * 2 if inshape[2] is not None else None, None))
+        return upped
+
+        # return tf.keras.layers.UpSampling2D(size=(2, 2))(input_layer)
 
 
 def up_2by2_ind(input_layer, ind, shape=None, name=''):
@@ -231,7 +240,7 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
                 return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
-def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
+def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
     """
     input:
     -------
@@ -246,33 +255,27 @@ def conv2d_transpose_layer(input_layer, shape, output_shape=None, stride=1, if_B
 
     """
     with tf.name_scope(name):
-        shape = [shape[0], shape[1], shape[3], shape[2]]  # switch in/output channels [height, width, output_channels, in_channels]
-        W = init_weights(shape, name, reuse=reuse)
-
-        # get batch_size
-        dyn_input_shape = tf.shape(input_layer)
-        batch_size = dyn_input_shape[0]
-
         # make transpose layer
-        transpose = tf.nn.conv2d_transpose(input_layer, W, output_shape=[batch_size, output_shape[1], output_shape[2], output_shape[3]],
-                                           strides=[1, stride, stride, 1], padding='SAME', name='transpose')
+        transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
+                                               strides=tuple((stride, stride)), padding='SAME',
+                                               name=name, reuse=reuse)
 
         # add activation function
         if 'logit' in name:
             b = init_bias([shape[2]], name, reuse=reuse)
             output_activation = tf.identity(transpose + b, name='identity')
-            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+            return output_activation, {name + '_b': b, name + '_activation': output_activation}
         else:
             # Batch Normalization
             if if_BN:
                 output = batch_norm(transpose, is_train=is_train, name=name + '_BN', reuse=reuse)
                 output_activation = _activatioin(output, type=activation)
-                return output_activation, {name + '_W': W, name + '_activation': output_activation}
+                return output_activation, {name + '_activation': output_activation}
             else:
                 b = init_bias([shape[2]], name, reuse=reuse)
                 output = transpose + b
                 output_activation = _activatioin(output, type=activation)
-                return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+                return output_activation, {name + '_b': b, name + '_activation': output_activation}
 
 
 def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
@@ -418,15 +421,34 @@ def DSC(y_true, logits, name='Dice_Similarity_Coefficient'):
         y_true = tf.cast(y_true, tf.float32)
         numerator = 2 * tf.reduce_sum(y_true * logits, axis=axis)
         denominator = tf.reduce_sum(y_true + logits, axis=axis)
-        loss_op = 1 - (numerator) / (denominator)
+        loss_op = 1 - numerator / denominator
         return loss_op
+
+
+def DSC_np(y_true, logits):
+    # [batch_size, height, weight, class]
+
+    axis = (1, 2, 3)
+    # minimize equally for all classes (even for minor class)
+    y_true = y_true.astype(np.float32)
+    numerator = 2 * np.sum(y_true * logits, axis=axis)
+    denominator = np.sum(y_true + logits, axis=axis)
+    loss_val = 1 - numerator / denominator
+    return np.mean(loss_val)
 
 
 def Cross_Entropy(y_true, logits, name='cross_entropy'):
     y_true = tf.cast(y_true, tf.float32) #(8, 512, 512, 3)
     inter = tf.log(tf.clip_by_value(logits, 1e-10, 1.0))  #(8, 512, 512, 3)
-    loss = -tf.reduce_mean(y_true * inter, name=name)
-    return loss
+    loss_val = -tf.reduce_mean(y_true * inter, name=name)
+    return loss_val
+
+
+def Cross_Entropy_np(y_true, logits):
+    y_true = y_true.astype(np.float32) #(8, 512, 512, 3)
+    inter = np.log(np.clip(logits, 1e-10, 1.0))  #(8, 512, 512, 3)
+    loss_val = -np.mean(y_true * inter)
+    return loss_val
 
 
 def batch_norm(input_layer, is_train, name='', reuse=False):
@@ -515,19 +537,6 @@ def train_operation(adam, gradients, name='train_op'):
         return adam.apply_gradients(gradients, name='applyGrads')
 
 
-def customized_softmax(inputs):
-    with tf.name_scope("customized_softmax"):
-        # todo: inputs = tf.clip_by_value(inputs, min=1e-10)  # to avoid exploding
-        reduce_max = tf.reduce_max(inputs, axis=3, keepdims=True)  #note: ???
-        # note: keepdims=True, max_axis.shape = (B, H, W, 1)
-        # note: keepdims=False max_axis.shape = (B, H, W)
-        nominator = tf.exp(inputs - reduce_max)  #note: here can avoid the loss becoming too big as the number of pixel increases with the number of class
-                                                 # can be demonstrated easily: sum(log(small proba)_i) = inf
-        # nominator = tf.exp(inputs)  #note: shape = (B, H, W, 3)
-        denominator = tf.reduce_sum(nominator, axis=3, keepdims=True)  #note: shape = (B, H, W, 1)
-        return nominator / denominator
-
-
 def _activatioin(output, type='relu'):
     if type == 'relu':
         output_activation = tf.nn.relu(output, name='relu')
@@ -542,6 +551,19 @@ def _activatioin(output, type='relu'):
     else:
         raise NotImplementedError('Activation function not found!')
     return output_activation
+
+
+def customized_softmax(inputs):
+    with tf.name_scope("customized_softmax"):
+        # todo: inputs = tf.clip_by_value(inputs, min=1e-10)  # to avoid exploding
+        reduce_max = tf.reduce_max(inputs, axis=3, keepdims=True)  #note: ???
+        # note: keepdims=True, max_axis.shape = (B, H, W, 1)
+        # note: keepdims=False max_axis.shape = (B, H, W)
+        nominator = tf.exp(inputs - reduce_max)  #note: here can avoid the loss becoming too big as the number of pixel increases with the number of class
+                                                 # can be demonstrated easily: sum(log(small proba)_i) = inf
+        # nominator = tf.exp(inputs)  #note: shape = (B, H, W, 3)
+        denominator = tf.reduce_sum(nominator, axis=3, keepdims=True)  #note: shape = (B, H, W, 1)
+        return nominator / denominator
 
 
 def customized_softmax_np(inputs):

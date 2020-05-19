@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import os
-from util import check_N_mkdir
+from util import check_N_mkdir, read_pb
 from itertools import product
 from PIL import Image
 from tqdm import tqdm
@@ -132,7 +132,6 @@ def freeze_ckpt_for_inference(paths=None, hyper=None, conserve_nodes=None):
     tf.reset_default_graph()
 
     # freeze ckpt then convert to pb
-    # new_input = tf.placeholder(tf.float32, shape=[None, hyper['patch_size'], hyper['patch_size'], 1], name='new_input')
     new_input = tf.placeholder(tf.float32, shape=[None, None, None, 10 if hyper['feature_map'] else 1], name='new_input')  # note: resize the input while inferencing
     new_BN = tf.placeholder_with_default(False, [], name='new_BN')  #note: it seems like T/F after freezing isn't important
 
@@ -319,10 +318,7 @@ def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, h
 
 def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, conserve_nodes=None, hyper=None, comm=None):
     # load graph
-    tf.reset_default_graph()
-    with tf.gfile.GFile(pb_path, 'rb') as f:
-        graph_def_optimized = tf.GraphDef()
-        graph_def_optimized.ParseFromString(f.read())
+    graph_def_optimized = read_pb(pb_path)
 
     with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
         _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
@@ -526,33 +522,33 @@ def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: st
             pass
 
         print(comm.Get_rank(), ': nb of inference:{}'.format(len(id_list)))
+        if id_list.size != 0:
+            for id in np.nditer(id_list):
+                # note: the following dimensions should be multiple of 8 if 3x Maxpooling
+                logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
+                img = load_img(l_input_path[id])
+                img = dimension_regulator(img, maxp_times=3)
 
-        for id in np.nditer(id_list):
-            # note: the following dimensions should be multiple of 8 if 3x Maxpooling
-            print('rank {}: {}'.format(comm.Get_rank(), id))
-            img = load_img(l_input_path[id])
-            img = dimension_regulator(img, maxp_times=3)
+                batch = img.reshape((1, *img.shape, 1))
+                # inference
+                if do is not None:
+                    feed_dict = {
+                        X: batch,
+                        do: 1.0,
+                        bn: False,
+                    }
+                else:
+                    feed_dict = {
+                        X: batch,
+                        bn: False,
+                    }
 
-            batch = img.reshape((1, *img.shape, 1))
-            # inference
-            if do is not None:
-                feed_dict = {
-                    X: batch,
-                    do: 1.0,
-                    bn: False,
-                }
-            else:
-                feed_dict = {
-                    X: batch,
-                    bn: False,
-                }
-
-            if hyper['mode'] == 'classification':
-                output = sess.run(y, feed_dict=feed_dict)
-                output = customized_softmax_np(output)
-                comm.send([id, output], dest=0, tag=tag_compute)
-            else:
-                raise NotImplementedError('!')
+                if hyper['mode'] == 'classification':
+                    output = sess.run(y, feed_dict=feed_dict)
+                    output = customized_softmax_np(output)
+                    comm.send([id, output], dest=0, tag=tag_compute)
+                else:
+                    raise NotImplementedError('!')
 
 
 if __name__ == '__main__':
