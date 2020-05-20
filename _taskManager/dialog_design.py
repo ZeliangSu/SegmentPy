@@ -6,7 +6,9 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -207,8 +209,8 @@ class Ui_Dialog(object):
         self.label_13.setText(_translate("Dialog", "decay periode / decay every n epoch"))
         self.pparam.setPlaceholderText(_translate("Dialog", "(e.g. 1, 0.5, 4) float "))
         self.label_14.setText(_translate("Dialog", "activation function type"))
-        self.actfn.setItemText(0, _translate("Dialog", "relu"))
-        self.actfn.setItemText(1, _translate("Dialog", "leaky"))
+        self.actfn.setItemText(0, _translate("Dialog", "leaky"))
+        self.actfn.setItemText(1, _translate("Dialog", "relu"))
         self.actfn.setItemText(2, _translate("Dialog", "sigmoid"))
         self.actfn.setItemText(3, _translate("Dialog", "tanh"))
         self.actfn.setItemText(4, _translate("Dialog", "custom"))
@@ -224,14 +226,3 @@ class Ui_Dialog(object):
         self.label_18.setText(_translate("Dialog", "tb: gradients and weights every n steps"))
         self.tbstep.setPlaceholderText(_translate("Dialog", "(e.g. 50...) integer"))
         self.comment.setPlaceholderText(_translate("Dialog", "enter extra comment here"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Dialog = QtWidgets.QDialog()
-    ui = Ui_Dialog()
-    ui.setupUi(Dialog)
-    Dialog.show()
-    sys.exit(app.exec_())
-

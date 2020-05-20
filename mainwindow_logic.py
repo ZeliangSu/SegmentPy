@@ -10,6 +10,7 @@ import traceback, sys, os
 from queue import Queue
 from time import sleep
 import subprocess
+import signal as sig
 
 from tensorflow.python.client import device_lib
 
@@ -25,25 +26,21 @@ def get_available_gpus():
     return [int(x.name.split(':')[-1]) for x in local_device_protos if x.device_type == 'GPU']
 
 
-class gpuSignals(QObject):
-    available = pyqtSignal(int)
-
-
 class queueManager(QThread):
     def __init__(self, gpu_queue: Queue):
         super().__init__()
         self.enqueueListener = gpu_queue
-        self.available_gpu = gpuSignals()
+        self.signals = WorkerSignals()
 
     @pyqtSlot()
     def run(self):
         while True:
-            sleep(120)  # note: at least wait 2 min for thread security, unknown GPU/inputpipeline bug
             if self.enqueueListener.empty():
                 continue  # note: don't use continu here, or saturate the CPU
             else:
                 _gpu = list(self.enqueueListener.queue)[0]
-                self.available_gpu.available.emit(_gpu)
+                self.signals.available_gpu.emit(_gpu)
+            sleep(120)  # note: at least wait 2 min for thread security, unknown GPU/inputpipeline bug
 
 
 class WorkerSignals(QObject):
@@ -51,6 +48,7 @@ class WorkerSignals(QObject):
     released_gpu = pyqtSignal(object)
     start_proc = pyqtSignal(tuple)
     released_proc = pyqtSignal(tuple)
+    available_gpu = pyqtSignal(int)
 
 
 class predict_Worker(QRunnable):
@@ -76,25 +74,22 @@ class predict_Worker(QRunnable):
             '--pred', self.save_dir
         ]
 
-        try:
-            # terminal = ['python', 'test.py']  # todo: uncomment here for similation
-            process = subprocess.Popen(
-                terminal
-            )
-            signal = ('pred on {}: pid:{}'.format(self.device, process.pid), process)
-            # put proc queue pid and proc
-            self.signals.start_proc.emit(signal)
-            _ = process.communicate()[0]
+        # terminal = ['python', 'test.py']  # todo: uncomment here for similation
+        # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
 
-        except Exception as e:
+        process = subprocess.Popen(
+            terminal,
+        )
+        signal = ('pred on {}: pid:{}'.format(self.device, process.pid), process)
+        # put proc queue pid and proc
+        self.signals.start_proc.emit(signal)
+        o, e = process.communicate()
+
+        if e:
             logger.debug(e)
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
-            self.signals.released_proc.emit(signal)
+            self.signals.error.emit((e, traceback.format_exc()))
 
-        finally:
-            self.signals.released_proc.emit(signal)
+        self.signals.released_proc.emit(signal)
 
 
 class training_Worker(QRunnable):
@@ -135,38 +130,34 @@ class training_Worker(QRunnable):
             '-cmt', self.params['comment']
         ]
 
-        try:
-            print(self.params)
-            print('\n', terminal)
+        print(self.params)
+        print('\n', terminal)
 
-            # terminal = ['python', 'test.py']  # todo: uncomment here for similation
-            process = subprocess.Popen(
-                terminal
-            )
+        # terminal = ['python', 'dummy.py']  # todo: uncomment here for similation
+        # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
 
-            # set signal
-            signal = ('train on {}: pid:{}'.format(self.using_gpu, process.pid), process)
+        process = subprocess.Popen(
+            terminal,
+        )
+        # set signal
+        signal = ('train on {}: pid:{}'.format(self.using_gpu, process.pid), self.using_gpu, process)
 
-            # put proc queue pid and proc
-            self.signals.start_proc.emit(signal)
-            _ = process.communicate()[0]
+        # put proc queue pid and proc
+        self.signals.start_proc.emit(signal)
+        o, error = process.communicate()
 
-        except Exception as e:
-            logger.debug(e)
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
-            self.signals.released_proc.emit(signal)
+        if error:
+            self.signals.error.emit((error, traceback.format_exc()))
 
-        finally:
-            self.signals.released_gpu.emit(self.using_gpu)
-            self.signals.released_proc.emit(signal)
+        self.signals.released_gpu.emit(self.using_gpu)
+        self.signals.released_proc.emit(signal)
 
 
 class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def __init__(self, *args, **kwargs):
         QMainWindow.__init__(self, *args, **kwargs)
         self.setupUi(self)
+        self.menubar.setNativeMenuBar(False)
 
         # init the gpu queue and proc list
         self.gpu_queue = Queue()
@@ -181,7 +172,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.refresh_proc_list()
 
         self.threadpool = QThreadPool()
-        self.qManager.available_gpu.available.connect(self.start)
+        self.qManager.signals.available_gpu.connect(self.start)
 
         _translate = QtCore.QCoreApplication.translate
         # init the hyper-params tablewidget
@@ -283,9 +274,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.tableWidget.setColumnCount(nb_col + 1)
             for i, (k, v) in enumerate(output.items()):
                 self.tableWidget.setItem(i, nb_col - 1, QTableWidgetItem(v))
-
-        # bold first column
-        self.bold(column=1)
+            # bold first column
+            self.bold(column=1)
+        else:
+            pass
 
     def predict(self):
         # define data folder path
@@ -307,22 +299,26 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
         self.threadpool.start(_Worker)
         _Worker.signals.start_proc.connect(self.add_proc_surveillance)
-        _Worker.signals.released_proc.connect(self.kill_process)
+        _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
-    def customHeader(self):
+    def setHeader(self):
         self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
 
     def bold(self, column):
         font = QtGui.QFont()
         font.setBold(True)
         for row_id in range(self.tableWidget.rowCount()):
-            self.tableWidget.item(row_id, column).setFont(font)
+            item = self.tableWidget.item(row_id, column)
+            if item is not None:
+                item.setFont(font)
 
     def unbold(self, column):
         font = QtGui.QFont()
         font.setBold(False)
         for row_id in range(self.tableWidget.rowCount()):
-            self.tableWidget.item(row_id, column).setFont(font)
+            item = self.tableWidget.item(row_id, column)
+            if item is not None:
+                item.setFont(font)
 
     def start(self):
         if not self.gpu_queue.empty() and self.verify_column_not_None():
@@ -335,31 +331,37 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             _Worker.signals.start_proc.connect(self.add_proc_surveillance)
 
             # release gpu and process
+            _Worker.signals.error.connect(self.print_in_log)
             _Worker.signals.released_gpu.connect(self.enqueue)
-            _Worker.signals.released_proc.connect(self.kill_process)
+            _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
         elif not self.verify_column_not_None():
             print('Should fulfill the first column. \r')
         else:
             print('Waiting for available gpu \r')
 
+    def print_in_log(self, content):
+        # todo: in the log window
+        print(content)
+
     def loop(self):
         self.qManager.start()
+        # self.loop_button.setIcon('./_taskManager/')
 
     def stop(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("Oooppssss!")
-        msg.setInformativeText('Cannot stop a specific thread yet')
-        msg.setWindowTitle("Error")
-        msg.exec_()
+        # refers to: https://stackoverflow.com/questions/37601672/how-can-i-get-the-indices-of-qlistwidgetselecteditems
+        selected = self.ongoing_process.selectionModel().selectedIndexes()
+        for item in selected:
+            # options
+            # os.kill(self.proc_list[item.row()][2].pid, sig.SIGTERM)
+            # self.proc_list[item.row()][2].terminate()
+            self.proc_list[item.row()][2].kill()
 
     def clean(self):
         column = self.tableWidget.currentColumn()
         self.tableWidget.removeColumn(column)
-
         if column == 1:
-            self.customHeader()
+            self.setHeader()
             self.bold(column=1)
 
     def forward(self):
@@ -389,6 +391,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             for row in range(nb_row):
                 out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, column).text()
             self.tableWidget.removeColumn(column)
+            self.setHeader()
+            self.bold(column=1)
             return out
 
     def enqueue(self, gpu):
@@ -399,10 +403,13 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.proc_list.append(signal)
         self.refresh_proc_list()
 
-    def kill_process(self, signal):
-        signal[1].kill()
-        self.proc_list.remove(signal)
-        self.refresh_proc_list()
+    def remove_process_from_list(self, signal: tuple):
+        # (str, subprocess.Popen)
+        try:
+            self.proc_list.remove(signal)
+            self.refresh_proc_list()
+        except Exception as e:
+            logger.error(e)
 
     def refresh_gpu_list(self):
         self.AvailableGPUs.clear()
@@ -411,8 +418,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         )
 
     def refresh_proc_list(self):
+        # this method only manipulate str in QlistWidget
         self.ongoing_process.clear()
-        self.ongoing_process.addItems(['{} {}'.format(t[0], t[1]) for t in self.proc_list])
+        self.ongoing_process.addItems(['{}'.format(t[0]) for t in self.proc_list])
 
     def verify_column_not_None(self, column=1):
         nb_row = self.tableWidget.rowCount()

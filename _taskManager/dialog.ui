@@ -263,12 +263,12 @@
          <widget class="QComboBox" name="actfn">
           <item>
            <property name="text">
-            <string>relu</string>
+            <string>leaky</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>leaky</string>
+            <string>relu</string>
            </property>
           </item>
           <item>

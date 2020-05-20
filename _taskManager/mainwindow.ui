@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1019</width>
-    <height>701</height>
+    <width>1089</width>
+    <height>729</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -98,9 +98,9 @@
     <property name="geometry">
      <rect>
       <x>890</x>
-      <y>110</y>
-      <width>111</width>
-      <height>231</height>
+      <y>90</y>
+      <width>181</width>
+      <height>251</height>
      </rect>
     </property>
    </widget>
@@ -110,7 +110,7 @@
       <x>10</x>
       <y>70</y>
       <width>861</width>
-      <height>571</height>
+      <height>601</height>
      </rect>
     </property>
     <property name="dragEnabled">
@@ -120,7 +120,7 @@
      <bool>false</bool>
     </property>
     <property name="rowCount">
-     <number>18</number>
+     <number>19</number>
     </property>
     <property name="columnCount">
      <number>2</number>
@@ -131,6 +131,7 @@
     <attribute name="horizontalHeaderDefaultSectionSize">
      <number>100</number>
     </attribute>
+    <row/>
     <row/>
     <row/>
     <row/>
@@ -259,12 +260,17 @@
       <string>mode</string>
      </property>
     </item>
+    <item row="18" column="0">
+     <property name="text">
+      <string>comment</string>
+     </property>
+    </item>
    </widget>
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>890</x>
-      <y>90</y>
+      <x>930</x>
+      <y>70</y>
       <width>101</width>
       <height>16</height>
      </rect>
@@ -380,7 +386,7 @@
      <rect>
       <x>890</x>
       <y>390</y>
-      <width>111</width>
+      <width>181</width>
       <height>231</height>
      </rect>
     </property>
@@ -388,9 +394,9 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>890</x>
+      <x>930</x>
       <y>370</y>
-      <width>111</width>
+      <width>110</width>
       <height>16</height>
      </rect>
     </property>
@@ -404,11 +410,14 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1019</width>
+     <width>1089</width>
      <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="title">
      <string>Menu</string>
     </property>
@@ -416,7 +425,7 @@
    </widget>
    <widget class="QMenu" name="menuQuit">
     <property name="title">
-     <string>Quit</string>
+     <string>plug-ins</string>
     </property>
    </widget>
    <addaction name="menuMenu"/>

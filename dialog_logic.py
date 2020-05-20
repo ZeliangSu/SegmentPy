@@ -14,6 +14,7 @@ class dialog_logic(QDialog, Ui_Dialog):
             with open('./_taskManager/latest.json', 'r') as file:
                 params = json.load(file)
 
+            # set line editors
             self.mdl.setText(params['mdl'])
             self.ksize.setText(params['conv_size'])
             self.nbconv.setText(params['nb_conv'])
@@ -27,6 +28,14 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.svsteps.setText(params['sv_step'])
             self.tbstep.setText(params['tb_step'])
             self.comment.setText(params['comment'])
+
+            # set QComboBox
+            self.batnorm.setCurrentIndex(self.batnorm.findText(params['batch_norm']))
+            self.aug.setCurrentIndex(self.aug.findText(params['aug']))
+            self.lrtype.setCurrentIndex(self.lrtype.findText(params['lr_type']))
+            self.actfn.setCurrentIndex(self.actfn.findText(params['act_fn']))
+            self.lossfn.setCurrentIndex(self.lossfn.findText(params['lss_fn']))
+            self.clsReg.setCurrentIndex(self.clsReg.findText(params['cls_reg']))
 
         # buttons
         self.buttonBox.accepted.connect(self.accept)  # ok button
