@@ -38,19 +38,21 @@
 #          for testing
 #
 ####################################
-import subprocess
-import os
-import signal
+# import subprocess
+# import os
+# import signal
+#
+# if __name__ == '__main__':
+#     proc = subprocess.Popen([
+#         'mpiexec', '--use-hwthread-cpus', 'python', 'test.py',
+#     ])
+#     try:
+#         print('here')
+#         o, e = proc.communicate()
+#         # os.system('mpirun --use-hwthread-cpus python test.py')
+#     except signal.SIGTERM as e:
+#         print(e)
+#         print('here')
+#         proc.terminate()
 
-if __name__ == '__main__':
-    proc = subprocess.Popen([
-        'mpiexec', '--use-hwthread-cpus', 'python', 'test.py',
-    ])
-    try:
-        print('here')
-        o, e = proc.communicate()
-        # os.system('mpirun --use-hwthread-cpus python test.py')
-    except signal.SIGTERM as e:
-        print(e)
-        print('here')
-        proc.terminate()
+

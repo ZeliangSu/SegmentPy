@@ -262,7 +262,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.clean_button.clicked.connect(self.clean)
         self.loop_button.clicked.connect(self.loop)
         self.forward_button.clicked.connect(self.forward)
-        self.dashboard_button.clicked.connect(self.dashboard)
+        self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
 
     def openDialog(self):
@@ -377,13 +377,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 self.bold(column=1)
                 self.unbold(column=2)
 
-    def dashboard(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("Oooppssss!")
-        msg.setInformativeText('Dashboard is coming in the next version')
-        msg.setWindowTitle("Error")
-        msg.exec_()
+    def openDashboard(self):
+        self.Dashboard = dashboard_logic(None)
+        self.Dashboard.exec()
 
     def grab_params(self, column=1):
             nb_row = self.tableWidget.rowCount()

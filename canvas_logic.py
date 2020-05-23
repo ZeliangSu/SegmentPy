@@ -1,25 +1,109 @@
-from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QErrorMessage, QMessageBox, QGraphicsView
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QWidget, QMessageBox
 
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
 from tensorboard_extractor import lr_curve_extractor
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('QT5Agg')
+
+import re
+import numpy as np
 
 
-class Canvas(QGraphicsView):
-    def __init__(self):
-        QtGui.QGraphicsView.__init__(self)
+class MPL(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        scene = QtGui.QGraphicsScene(self)
-        self.scene = scene
+        # back end attributes
+        self.paths = {}  # {1:'/.../.../', 2:'/.../.../'}
+        self.curves = {}  # {1:pd.df, 2:pd.df
 
-        figure = Figure()
-        axes = figure.gca()
-        axes.set_title("title")
-        axes.plot(plt.contourf(xx, yy, Z,cmap=plt.cm.autumn, alpha=0.8))
-        canvas = FigureCanvas(figure)
-        canvas.setGeometry(0, 0, 500, 500)
-        scene.addWidget(canvas)
+        # front end
+        self.setAcceptDrops(True)
 
-        self.setScene(scene)
+        # init curves
+        figure_train = plt.figure(dpi=50)
+        figure_val = plt.figure(dpi=50)
+        self.canvas_train = canvas(figure_train)
+        self.canvas_val = canvas(figure_val)
+
+        # note: set parent to allow super class mainwindow control these canvas
+        self.canvas_train.setParent(parent)
+        self.canvas_val.setParent(parent)
+
+        # init toolbar
+        Toolbar1 = toolbar(self.canvas_train, self)
+        Toolbar2 = toolbar(self.canvas_val, self)
+
+        # set layout
+        QVBL1 = QtWidgets.QVBoxLayout()
+        QVBL1.addWidget(self.canvas_train)
+        QVBL1.addWidget(Toolbar1)
+
+        QVBL2 = QtWidgets.QVBoxLayout()
+        QVBL2.addWidget(self.canvas_val)
+        QVBL2.addWidget(Toolbar2)
+
+        self.QHBL = QtWidgets.QHBoxLayout()
+        self.QHBL.addLayout(QVBL1)
+        self.QHBL.addLayout(QVBL2)
+        self.setLayout(self.QHBL)
+
+        # finally draw the canvas
+        self.canvas_train.draw()
+        self.canvas_val.draw()
+
+    def load_event(self, key):
+        if key not in self.curves.keys():
+            ac_tn, ac_val, ls_tn, ls_val = lr_curve_extractor(self.paths[key])
+            self.curves[key] = [ac_tn, ac_val, ls_tn, ls_val]
+
+    def plot(self):
+        if self.paths.__len__() == 0:
+            return
+
+        fig_tn = self.canvas_train.figure
+        fig_val = self.canvas_val.figure
+        fig_tn.clear()
+        fig_val.clear()
+        tn_ax = fig_tn.add_subplot(111)
+        val_ax = fig_val.add_subplot(111)
+
+        for k, v in self.paths.items():
+            self.load_event(k)
+            tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
+            val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+
+        fig_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        self.canvas_train.draw()
+        self.canvas_val.draw()
+
+    def dragEnterEvent(self, QDragEnterEvent):
+        print('detected: ', QDragEnterEvent.mimeData().text())
+        QDragEnterEvent.accept()  # jump to dropEvent
+
+    def dropEvent(self, QDropEvent):
+        # note: $ ends of the input
+        if re.search('hour\d+_gpu\d+\/$', QDropEvent.mimeData().text()) is not None:
+
+            max_id = 0
+            if self.paths.__len__() != 0:
+                for i in self.paths.keys():
+                    max_id = max(max_id, int(i))
+
+            # add event folder path
+            self.paths[max_id + 1] = QDropEvent.mimeData().text().replace('file://', '')
+
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Oooppssss")
+            msg.setInformativeText('Drag a folder which ends with format: (hour?_gpu?/) \nand which contains train/test of tf events folder!')
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return
+
+        self.plot()
