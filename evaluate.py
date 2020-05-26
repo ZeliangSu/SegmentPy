@@ -71,7 +71,7 @@ def _get_nodes(graph_def: tf.GraphDef, out_node: list, hyper: dict, if_numpy=Tru
         }
 
 
-def re_test(paths: dict, hyper: dict, numpy: bool):
+def testing(paths: dict, hyper: dict, numpy: bool):
     # evaluate in cpu to avoid the training in gpu
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -116,7 +116,7 @@ def re_test(paths: dict, hyper: dict, numpy: bool):
 
             # load params and evaluate
             logger.debug(step)
-            acc, lss = evaluate(
+            acc, lss = _evaluate(
                 sess=sess,
                 writer=test_writer,
                 global_step=step,
@@ -131,7 +131,7 @@ def re_test(paths: dict, hyper: dict, numpy: bool):
     np.savetxt(fname='/'.join(paths['ckpt_dir'].split('/')[:-2]) + '/' + 'new_test/new_curve.csv', X=ds.transpose())
 
 
-def evaluate(sess: tf.Session,
+def _evaluate(sess: tf.Session,
              writer: tf.summary.FileWriter,
              global_step: int,
              nodes: dict,

@@ -1,11 +1,9 @@
 import datetime
-import os
+import numpy as np
 import argparse
 
-from input import inputpipeline_V2
-from model import *
-from train import train_test
-from util import check_N_mkdir, exponential_decay, ramp_decay
+from train import main_train
+from util import exponential_decay, ramp_decay
 from input import coords_gen
 
 # logging
@@ -14,7 +12,7 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.WARNING)
 
-
+# force to run this on main
 if __name__ == '__main__':
     # argparser
     parser = argparse.ArgumentParser()
@@ -26,11 +24,11 @@ if __name__ == '__main__':
                         help='size of the scanning window e.g. 128, 256, 512')
     parser.add_argument('-ep', '--nb_epoch', type=int, metavar='', required=True, help='number of epoch')
     parser.add_argument('-cs', '--conv_size', type=int, metavar='', required=True, help='kernel size e.g. 3x3, 5x5')
-    parser.add_argument('-lr', '--learning_rate', type=str, metavar='', required=True,
+    parser.add_argument('-lr', '--lr_decay_type', type=str, metavar='', required=True,
                         help='learning rate schedule e.g. ramp, exp, const')
     parser.add_argument('-ilr', '--init_lr', type=float, metavar='', required=True,
                         help='starting learning rate e.g. 0.001, 1e-4')
-    parser.add_argument('-klr', '--lr_decay_param', type=float, metavar='', required=True,
+    parser.add_argument('-klr', '--lr_decay_ratio', type=float, metavar='', required=True,
                         help='the decay ratio e.g. 0.1')
     parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=True, help='decay every X epoch')
     parser.add_argument('-bn', '--batch_norm', type=bool, metavar='', required=True,
@@ -55,34 +53,44 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
+    # note: copy this in terminal for debugging
+    #  'python main_train.py -mdl LRCS -nc 32 -bs 8 -ws 512 -ep 5 -cs 3 -lr ramp -ilr 1e-4 -klr 0.3 -plr 1 -bn True -do 0.1 -ag True -fn leaky -af DSC -mode classification -dv 0 -st 500 -tb 50 -cmt None
+
     # os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(args.device)
 
-    tf.reset_default_graph()
     # params
     hyperparams = {
-        'patch_size': args.window_size,
-        'batch_size': args.batch_size,  #Xlearn < 20, Unet < 20 saturate GPU memory
-        'nb_epoch': args.nb_epoch,
-        'nb_batch': None,
-        'conv_size': args.conv_size,
-        'nb_conv': args.nb_conv,
-        'dropout': args.dropout_prob,
-        'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
-        'hour': '{}'.format(datetime.datetime.now().hour),
-        'device': args.device,
-        'augmentation': args.augmentation,
-        'activation': args.activation_fn,
-        'batch_normalization': args.batch_norm,
-        'save_step': 500 if args.save_model_step is not None else args.save_model_step,
-        'save_summary_step': 50 if args.save_tb is not None else args.save_tb,
-        'folder_name': None,
+        ############### model ###################
         'model': args.model,
         'mode': args.mode,
+        'dropout': args.dropout_prob,
+        'augmentation': args.augmentation,
+        'batch_normalization': args.batch_norm,
+        'activation': args.activation_fn,
         'loss_option': args.loss_fn,
-    }
 
-    hyperparams['input_coords'] = coords_gen(train_dir='./traindata/',
-                                             test_dir='./testdata/',
+        ############### hyper-paras ##############
+        'patch_size': args.window_size,
+        'batch_size': args.batch_size,
+        'conv_size': args.conv_size,
+        'nb_conv': args.nb_conv,
+
+        ############### misc #####################
+        'nb_epoch': args.nb_epoch,
+        'device': args.device,
+        'save_step': 500 if args.save_model_step is None else args.save_model_step,
+        'save_summary_step': 50 if args.save_tb is None else args.save_tb,
+        'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
+        'hour': '{}'.format(datetime.datetime.now().hour),
+
+        'train_dir': './train/',
+        'val_dir': './valid/',
+        'test_dir': './test/',
+        }
+
+    # coordinations gen
+    hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
+                                             test_dir=hyperparams['test_dir'],
                                              window_size=hyperparams['patch_size'],
                                              train_test_ratio=0.9,
                                              stride=5,
@@ -93,109 +101,48 @@ if __name__ == '__main__':
     hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
 
     # get learning rate schedule
-    if args.learning_rate == 'exp':
+    if args.lr_decay_type == 'exp':
         hyperparams['learning_rate'] = exponential_decay(
             hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
             args.init_lr,
-            k=args.lr_decay_param
+            k=args.lr_decay_ratio
         )  # float32 or np.array of programmed learning rate
-
-    elif args.learning_rate == 'ramp':
+    elif args.lr_decay_type == 'ramp':
         hyperparams['learning_rate'] = ramp_decay(
             hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
             hyperparams['nb_batch'],
             args.init_lr,
-            k=args.lr_decay_param,
+            k=args.lr_decay_ratio,
             period=args.lr_period,
         )  # float32 or np.array of programmed learning rate
-
-    elif args.learning_rate == 'const':
+    elif args.lr_decay_type == 'const':
         hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
     else:
-        raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.learning_rate))
+        raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_bs{}_ps{}_lr{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mdl_{}_mode_{}_lossFn_{}_{}decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
-        hyperparams['date'],
-        hyperparams['batch_size'],
-        hyperparams['patch_size'],
-        hyperparams['learning_rate'] if not isinstance(hyperparams['learning_rate'], np.ndarray) else 'programmed',
-        hyperparams['conv_size'],
-        hyperparams['nb_conv'],
-        hyperparams['dropout'],
-        hyperparams['activation'],
-        str(hyperparams['augmentation']),
-        str(hyperparams['batch_normalization']),
-        hyperparams['model'],
-        hyperparams['mode'],
-        args.loss_fn, args.learning_rate,
-        args.init_lr, args.lr_decay_param,
-        args.lr_period,
-        args.comment.replace(' ', '_'),
-        hyperparams['hour'],
-        hyperparams['device']
-    )
+        './logs/{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+            hyperparams['date'],
+            hyperparams['model'],
+            hyperparams['batch_size'],
+            hyperparams['patch_size'],
+            hyperparams['conv_size'],
+            hyperparams['nb_conv'],
+            hyperparams['dropout'],
+            hyperparams['activation'],
+            str(hyperparams['augmentation']),
+            str(hyperparams['batch_normalization']),
+            hyperparams['mode'],
+            args.loss_fn,
+            args.lr_decay_type,
+            args.init_lr,
+            args.lr_decay_ratio,
+            args.lr_period,
+            args.comment.replace(' ', '_'),
+            hyperparams['hour'],
+            hyperparams['device']
+        )
 
-    # init input pipeline
-    if hyperparams['model'] in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3']:
-        print('**********************************Use weka-like input')
-        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train',
-                                        augmentation=hyperparams['augmentation'], mode='weka')
-        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='weka')
-
-    else:
-        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'], mode='classification')
-        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='classification')
-
-    # define other placeholder
-    if hyperparams['dropout'] is not None:
-        drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
-    else:
-        drop_prob = tf.placeholder_with_default(1.0, [], name='dropout_prob')
-
-    if hyperparams['batch_normalization']:
-        BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
-    else:
-        BN_phase = False
-
-    # init model
-    lr = tf.placeholder(tf.float32, name='learning_rate')
-    list_placeholders = [drop_prob, lr, BN_phase]
-    train_nodes = classification_nodes(pipeline=train_inputs,
-                                       placeholders=list_placeholders,
-                                       model_name=hyperparams['model'],
-                                       patch_size=hyperparams['patch_size'],
-                                       batch_size=hyperparams['batch_size'],
-                                       conv_size=hyperparams['conv_size'],
-                                       nb_conv=hyperparams['nb_conv'],
-                                       activation=hyperparams['activation'],
-                                       batch_norm=hyperparams['batch_normalization'],
-                                       loss_option=hyperparams['loss_option'],
-                                       is_training=True,
-                                       device=hyperparams['device']
-                                       )
-    # fixme: the following load 2 modes in one gpu
-    test_nodes = classification_nodes(pipeline=test_inputs,
-                                      placeholders=list_placeholders,
-                                      model_name=hyperparams['model'],
-                                      patch_size=hyperparams['patch_size'],
-                                      batch_size=hyperparams['batch_size'],
-                                      conv_size=hyperparams['conv_size'],
-                                      nb_conv=hyperparams['nb_conv'],
-                                      activation=hyperparams['activation'],
-                                      batch_norm=hyperparams['batch_normalization'],
-                                      loss_option=hyperparams['loss_option'],
-                                      is_training=False,
-                                      device=hyperparams['device']
-                                      )
-
-    # print number of params
-    print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
-
-    # create logs folder
-    check_N_mkdir('./logs/')
-
-    # start training
-    train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
+    main_train(hyperparams)
 

@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
@@ -10,6 +11,13 @@ matplotlib.use('QT5Agg')
 
 import re
 import numpy as np
+
+
+# logging
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
 class MPL(QWidget):
@@ -57,6 +65,7 @@ class MPL(QWidget):
 
     def load_event(self, key):
         if key not in self.curves.keys():
+
             ac_tn, ac_val, ls_tn, ls_val = lr_curve_extractor(self.paths[key])
             self.curves[key] = [ac_tn, ac_val, ls_tn, ls_val]
 
@@ -70,11 +79,19 @@ class MPL(QWidget):
         fig_val.clear()
         tn_ax = fig_tn.add_subplot(111)
         val_ax = fig_val.add_subplot(111)
+        try:
+            # sometimes no event conducts to NoneType
+            self.setAcceptDrops(False)
+            self.setCursor(Qt.WaitCursor)
+            for k, v in self.paths.items():
+                self.load_event(k)
+                tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
+                val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+            self.setAcceptDrops(True)
 
-        for k, v in self.paths.items():
-            self.load_event(k)
-            tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
-            val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+        except Exception as e:
+            logger.debug(e)
+            self.setAcceptDrops(True)
 
         fig_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
         fig_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)

@@ -5,14 +5,13 @@ from PyQt5 import QtCore, QtGui
 from _taskManager.mainwindow_design import Ui_LRCSNet
 from dialog_logic import dialog_logic
 from _taskManager.file_dialog import file_dialog
+from dashboard_logic import dashboard_logic
 
 import traceback, sys, os
 from queue import Queue
 from time import sleep
 import subprocess
-import signal as sig
-
-from tensorflow.python.client import device_lib
+from threading import Thread
 
 # logging
 import logging
@@ -21,9 +20,22 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
-def get_available_gpus():
+def get_available_gpus_wrapper():
+    """this threading wrapper can get rid of residus tensorflow in gpus"""
+    gpu_list = []
+    t = Thread(target=get_available_gpus, args=(gpu_list,))
+    t.start()
+    t.join()
+    return gpu_list
+
+
+def get_available_gpus(l: list):
+    from tensorflow.python.client import device_lib
     local_device_protos = device_lib.list_local_devices()
-    return [int(x.name.split(':')[-1]) for x in local_device_protos if x.device_type == 'GPU']
+    for x in local_device_protos:
+        if x.device_type == 'GPU':
+            l.append(int(x.name.split(':')[-1]))
+    return l
 
 
 class queueManager(QThread):
@@ -40,7 +52,7 @@ class queueManager(QThread):
             else:
                 _gpu = list(self.enqueueListener.queue)[0]
                 self.signals.available_gpu.emit(_gpu)
-            sleep(120)  # note: at least wait 2 min for thread security, unknown GPU/inputpipeline bug
+            sleep(20)  # note: at least wait 2 min for thread security, unknown GPU/inputpipeline bug
 
 
 class WorkerSignals(QObject):
@@ -80,7 +92,7 @@ class predict_Worker(QRunnable):
         process = subprocess.Popen(
             terminal,
         )
-        signal = ('pred on {}: pid:{}'.format(self.device, process.pid), process)
+        signal = ('pred on {}: pid:{}'.format(self.device, process.pid), self.device, process, self.ckpt_path)
         # put proc queue pid and proc
         self.signals.start_proc.emit(signal)
         o, e = process.communicate()
@@ -140,7 +152,7 @@ class training_Worker(QRunnable):
             terminal,
         )
         # set signal
-        signal = ('train on {}: pid:{}'.format(self.using_gpu, process.pid), self.using_gpu, process)
+        signal = ('train on {}: pid:{}'.format(self.using_gpu, process.pid), self.using_gpu, process, self.params)
 
         # put proc queue pid and proc
         self.signals.start_proc.emit(signal)
@@ -161,10 +173,15 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
         # init the gpu queue and proc list
         self.gpu_queue = Queue()
-        for i in get_available_gpus():
+        gpu_list = get_available_gpus_wrapper()
+
+        for i in gpu_list:
             self.gpu_queue.put(i)
-        if len(get_available_gpus()) == 0:
+        if len(gpu_list) == 0:
             self.gpu_queue.put('cpu')
+            # self.gpu_queue.put(1)  # todo: uncomment here for similation
+            # self.gpu_queue.put(2)  # todo: uncomment here for similation
+            # self.gpu_queue.put(3)  # todo: uncomment here for similation
 
         self.qManager = queueManager(gpu_queue=self.gpu_queue)
         self.refresh_gpu_list()
@@ -264,6 +281,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.forward_button.clicked.connect(self.forward)
         self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
+
+        #
 
     def openDialog(self):
         self.dialog = dialog_logic(None)
@@ -417,6 +436,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         # this method only manipulate str in QlistWidget
         self.ongoing_process.clear()
         self.ongoing_process.addItems(['{}'.format(t[0]) for t in self.proc_list])
+        for i, sig in zip(range(self.ongoing_process.count()), self.proc_list):
+            self.ongoing_process.item(i).setWhatsThis(str(sig[3]).replace(',', '\n'))
 
     def verify_column_not_None(self, column=1):
         nb_row = self.tableWidget.rowCount()

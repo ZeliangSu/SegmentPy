@@ -1,8 +1,6 @@
 import numpy as np
 import h5py
 import tensorflow as tf
-import multiprocessing as mp
-import warnings
 from itertools import product
 from PIL import Image
 from augmentation import random_aug
@@ -30,7 +28,7 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
         initialization operation
     """
 
-    warnings.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
+    logger.warn('The tf.py_func() will be deprecated at TF2.0, replaced by tf.function() please change later the inputpipeline() in input.py')
 
     is_training = True if suffix in ['train', 'cv', 'test'] else False
 

@@ -1,194 +1,142 @@
-import tensorflow as tf
-from input import inputpipeline
 import datetime
-import os
-from layers import *
-from tqdm import tqdm
+import argparse
+
+from train import main_train
+from util import exponential_decay, ramp_decay
+from input import coords_gen
+
 import numpy as np
+import re
+import os
+
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# params
-hyperparams = {
-    'patch_size': 80,
-    'batch_size': 300,  #Xlearn < 20, Unet < 20 saturate GPU memory
-    'nb_epoch': 100,
-    'nb_batch': None,
-    'conv_size': 9,
-    'nb_conv': 80,
-    'learning_rate': 1e-3,  #float or np.array of programmed learning rate
-    'dropout': 0.1,
-    'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
-    'hour': '{}'.format(datetime.datetime.now().hour),
-    'device_option': 'specific_gpu:0',
-    'augmentation': False,
-    'activation': 'relu',
-    'save_step': 1000,
-    'folder_name': None,
-}
+# for re that detect -1e-5, 0.0001, all type
+ultimate_numeric_pattern = '[-+]?(?:(?:\\d*\\.\\d+)|(?:\\d+\\.?))(?:[Ee][+-]?\\d+)?'
 
-hyperparams['resume_folder_name'] = './logs/2019_11_5_bs300_ps80_lr0.001_cs9_nc80_do0.1_act_relu_aug_True_commentLRCS_conv4bbdnn_leaky/hour17/'
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-ckpt', '--from_checkpoint', type=str, metavar='', required=True, help='full/absolute path to the ckpt is required')
+    parser.add_argument('-ep', '--nb_epoch', type=int, metavar='', required=True, help='encore howmany epochs')
+    parser.add_argument('-dv', '--device', type=int, metavar='', required=True, help='on which gpu')
+    parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
+    args = parser.parse_args()
 
-# Xlearn
-conserve_nodes = [
-    'model/decoder/logits/identity',
-]
+    # params
+    hyperparams = {
+        ############### model ###################
+        'from_ckpt': args.from_checkpoint,
+        'model': str(re.search('\_mdl\_([a-zA-Z]+\d+)\_', args.from_checkpoint).group(1)),
+        'dropout': float(re.search('\_do(\d+)', args.from_checkpoint).group(1)),
+        'augmentation': bool(re.search('\_aug\_(True|False)\_', args.from_checkpoint).group(1)),
+        'batch_normalization': bool(re.search('\_BN\_(True|False)\_', args.from_checkpoint).group(1)),
+        'activation': str(re.search('\_act\_(\w+)\_', args.from_checkpoint).group(1)),
+        'loss_option': str(re.search('\_lossFn\_(\w+)\_', args.from_checkpoint).group(1)),
 
-# get list of file names
-hyperparams['totrain_files'] = [os.path.join('./proc/train/{}/'.format(hyperparams['patch_size']),
-                              f) for f in os.listdir('./proc/train/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
-hyperparams['totest_files'] = [os.path.join('./proc/test/{}/'.format(hyperparams['patch_size']),
-                             f) for f in os.listdir('./proc/test/{}/'.format(hyperparams['patch_size'])) if f.endswith('.h5')]
+        ############### hyper-paras ##############
+        'patch_size': int(re.search('\_ps(\d+)', args.from_checkpoint).group(1)),
+        'batch_size': int(re.search('\_bs(\d+)', args.from_checkpoint).group(1)),
+        'conv_size': int(re.search('\_cs(\d+)', args.from_checkpoint).group(1)),
+        'nb_conv': int(re.search('\_nc(\d+)', args.from_checkpoint).group(1)),
+        'init_lr': int(re.search('decay({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
+        'lr_decay_ratio': int(re.search('k({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
+        'lr_period': int(re.search('p({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
 
-# find where one stopped
-ckpt_dir = hyperparams['resume_folder_name'] + 'ckpt/'
-tmp = []
-for fname in os.listdir(ckpt_dir):
-    if fname.endswith('.meta'):
-        tmp.append(int(fname.split('step')[1].split('.')[0]))
-hyperparams['end_at_step'] = max(tmp)
-hyperparams['ckpt_path'] = ckpt_dir + 'step{}'.format(hyperparams['end_at_step'])
+        ############### misc #####################
+        'device_option': args.device,
+        'nb_epoch': args.nb_epoch,
+        'save_step': 500 if args.save_model_step is None else args.save_model_step,
+        'save_summary_step': 50 if args.save_tb is None else args.save_tb,
+        'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
+        'hour': '{}'.format(datetime.datetime.now().hour),
 
-# init input pipeline
-train_inputs = inputpipeline(hyperparams['batch_size'], suffix='train', augmentation=hyperparams['augmentation'])
-test_inputs = inputpipeline(hyperparams['batch_size'], suffix='test')
+        'train_dir': './train/',
+        'val_dir': './valid/',
+        'test_dir': './test/',
+    }
 
-new_training_type = tf.placeholder(tf.string, name='new_training_type')
-new_drop_prob = tf.placeholder(tf.float32, name='new_dropout_prob')
-new_lr = tf.placeholder(tf.float32, name='new_learning_rate')
+    logger.warn('new folder name format will be change and adapted in the next version')
+    try:
+        # old folder name format
+        hyperparams['lr_decay_type'] = str(re.search('\_([a-z]+)decay', args.from_checkpoint).group(1))
+    except Exception as e:
+        logger.debug(e)
+        # new format
+        hyperparams['lr_decay_type'] = str(re.search('\_lrtype([a-z]+)\_', args.from_checkpoint).group(1))
 
-with tf.name_scope('resume_input_pipeline'):
-    X_dyn_batsize = hyperparams['batch_size']
-    def f1(): return train_inputs
-    def f2(): return test_inputs
-    inputs = tf.cond(tf.equal(new_training_type, 'new_test'), lambda: f2(), lambda: f1(), name='new_input_cond')
+    # coordinations gen
+    hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
+                                             test_dir=hyperparams['test_dir'],
+                                             window_size=hyperparams['patch_size'],
+                                             train_test_ratio=0.9,
+                                             stride=5,
+                                             nb_batch=None,
+                                             batch_size=hyperparams['batch_size'])
 
-# reload model from checkpoint
-restorer = tf.train.import_meta_graph(
-            hyperparams['ckpt_path'] + '.meta',
-            input_map={
-                'input_pipeline/input_cond/Merge_1': inputs['img'],
-                'dropout_prob': new_drop_prob,
-                'learning_rate': new_lr,
-                'training_type': new_training_type,
-            },
-            clear_devices=True
+    # calculate nb_batch
+    hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
+
+    # get learning rate schedule
+    if hyperparams['lr_decay_type'] == 'exp':
+        hyperparams['learning_rate'] = exponential_decay(
+            hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
+            args.init_lr,
+            k=args.lr_decay_param
+        )  # float32 or np.array of programmed learning rate
+    elif hyperparams['lr_decay_type'] == 'ramp':
+        hyperparams['learning_rate'] = ramp_decay(
+            hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
+            hyperparams['nb_batch'],
+            args.init_lr,
+            k=args.lr_decay_param,
+            period=args.lr_period,
+        )  # float32 or np.array of programmed learning rate
+    elif hyperparams['lr_decay_type'] == 'const':
+        hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
+    else:
+        raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.learning_rate))
+
+    # coordinations gen
+    hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
+                                             test_dir=hyperparams['test_dir'],
+                                             window_size=hyperparams['patch_size'],
+                                             train_test_ratio=0.9,
+                                             stride=5,
+                                             nb_batch=None,
+                                             batch_size=hyperparams['batch_size'])
+
+    # calculate nb_batch
+    hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
+
+    # name the log directory
+    hyperparams['folder_name'] = \
+        './logs/{}_RESUME_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+            hyperparams['date'],
+            hyperparams['model'],
+            hyperparams['batch_size'],
+            hyperparams['patch_size'],
+            hyperparams['conv_size'],
+            hyperparams['nb_conv'],
+            hyperparams['dropout'],
+            hyperparams['activation'],
+            str(hyperparams['augmentation']),
+            str(hyperparams['batch_normalization']),
+            hyperparams['mode'],
+            hyperparams['loss_option'],
+            hyperparams['lr_decay_type'],
+            hyperparams['init_lr'],
+            hyperparams['lr_decay_ratio'],
+            hyperparams['lr_period'],
+            args.comment.replace(' ', '_'),
+            hyperparams['hour'],
+            hyperparams['device']
         )
 
-# calculate nb_batch
-hyperparams['nb_batch'] = len(hyperparams['totrain_files']) // hyperparams['batch_size']
+    with open(os.path.join(hyperparams['folder_name'], 'from_ckpt.txt')) as f:
+        f.write(hyperparams['from_ckpt'])
 
-# get logit
-input_graph = tf.get_default_graph()
-input_graph_def = input_graph.as_graph_def()
-new_logit = input_graph.get_tensor_by_name(conserve_nodes[0] + ':0')
-
-# construct operation
-with tf.name_scope('new_operation'):
-    # optimizer/train operation
-    mse = loss_fn(inputs['label'], new_logit, name='new_loss_fn')
-    # https://github.com/tensorflow/tensorflow/issues/30017#issuecomment-522228763
-    opt = optimizer(new_lr, name='new_optimizeR')
-
-    # program gradients
-    grads = opt.compute_gradients(mse)
-    grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
-
-    # visualize graph in Board
-    tf.summary.FileWriter('./dummy/graph/', tf.get_default_graph())
-
-    # train operation
-    def f3():
-        return opt.apply_gradients(grads, name='new_train_op')
-    def f4():
-        return tf.no_op(name='new_no_op')
-    train_op = tf.cond(tf.equal(new_training_type, 'train_type'), lambda: f3(), lambda: f4(), name='new_train_cond')
-
-    with tf.name_scope('new_summary'):
-        merged = tf.summary.merge([grad_sum])  # fixme: withdraw summary of histories for GPU resource reason
-
-    with tf.name_scope('new_metrics'):
-        m_loss, loss_up_op, m_acc, acc_up_op = metrics(new_logit, inputs['label'], mse, new_training_type)
-
-# clean graph
-tf.reset_default_graph()
-
-# run train section
-with tf.Session(graph=input_graph) as sess:
-    restorer.restore(sess, hyperparams['ckpt_path'])
-
-    # https://github.com/tensorflow/tensorflow/issues/30017#issuecomment-522228763
-    uninitialized_vars = []
-    for var in tf.all_variables():
-        try:
-            sess.run(var)
-        except tf.errors.FailedPreconditionError:
-            uninitialized_vars.append(var)
-
-    tf.initialize_variables(uninitialized_vars)
-
-    # init summary
-    folder = hyperparams['resume_folder_name']
-    train_writer = tf.summary.FileWriter(folder + 'train/', sess.graph)
-    cv_writer = tf.summary.FileWriter(folder + 'cv/', sess.graph)
-    test_writer = tf.summary.FileWriter(folder + 'test/', sess.graph)
-
-    saver = tf.train.Saver(max_to_keep=100000000)
-    _globalStep = None
-    try:
-        for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):
-
-            # init ops
-            sess.run(train_inputs['iterator_init_op'],
-                     feed_dict={train_inputs['fnames_ph']: hyperparams['totrain_files'],
-                                train_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(
-                                    hyperparams['totrain_files'])})
-            sess.run(test_inputs['iterator_init_op'],
-                     feed_dict={test_inputs['fnames_ph']: hyperparams['totest_files'],
-                                test_inputs['patch_size_ph']: [hyperparams['patch_size']] * len(
-                                    hyperparams['totest_files'])})
-
-            # retrain
-            for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
-                if isinstance(hyperparams['learning_rate'], np.ndarray):
-                    learning_rate = hyperparams['learning_rate'][ep * hyperparams['nb_batch'] + step]
-                else:
-                    learning_rate = hyperparams['learning_rate']
-                try:
-                    # note: 80%train 10%cross-validation 10%test
-                    if step % 9 == 8:
-                        # 10 percent of the data will be use to cross-validation
-                        summary, _, _ = sess.run(
-                            [merged, loss_up_op, acc_up_op],
-                            feed_dict={new_training_type: 'cv',
-                                       new_drop_prob: 1,
-                                       new_lr: learning_rate})
-                        cv_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
-
-                        # in situ testing without loading weights unlike cs-230-stanford
-                        summary, _, _ = sess.run(
-                            [merged, loss_up_op, acc_up_op],
-                            feed_dict={new_training_type: 'test',
-                                       new_drop_prob: 1,
-                                       new_lr: learning_rate})
-                        test_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
-                    else:
-                        summary, _, _, _ = sess.run(
-                            [merged, train_op, loss_up_op, acc_up_op],
-                            feed_dict={new_training_type: 'train',
-                                       new_drop_prob: hyperparams['dropout'],
-                                       new_lr: learning_rate})
-                        train_writer.add_summary(summary, ep * hyperparams['nb_batch'] + step)
-                except tf.errors.OutOfRangeError as e:
-                    print(e)
-                    break
-
-                if step % hyperparams['save_step'] == 0:
-                    _globalStep = hyperparams['end_at_step'] + step + ep * hyperparams['nb_batch']
-                    saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
-    except (KeyboardInterrupt, SystemExit):
-        saver.save(sess, folder + 'ckpt/step{}'.format(_globalStep))
-    saver.save(sess, folder + 'ckpt/step{}'.format(hyperparams['end_at_step'] + hyperparams['nb_epoch'] * hyperparams['nb_batch']))
+    main_train(hyperparams, resume=True)
 

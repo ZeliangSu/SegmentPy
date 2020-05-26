@@ -2,8 +2,12 @@ import tensorflow as tf
 import os
 
 from tqdm import tqdm
-import numpy as np
 import re
+
+from model import *
+from input import coords_gen
+from util import check_N_mkdir
+from input import inputpipeline_V2
 
 # logging
 import logging
@@ -12,21 +16,81 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def resume_training():
-    # re-define input pipeline's pyfunc
-    # todo: might need TF2 as TF114 does not store pyfunc
-    pass
+def main_train(
+        hyperparams: dict,  # can be a class
+        resume=False):
+
+    # clean graph exists in memory
+    tf.reset_default_graph()
+
+    # init input pipeline
+    if hyperparams['model'] in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3']:
+        print('**********************************Use weka-like input')
+        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train',
+                                        augmentation=hyperparams['augmentation'], mode='weka')
+        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='weka')
+
+    else:
+        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train',
+                                        augmentation=hyperparams['augmentation'], mode='classification')
+        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='classification')
+
+    # define other placeholder
+    if hyperparams['dropout'] is not None:
+        drop_prob = tf.placeholder(tf.float32, name='dropout_prob')
+    else:
+        drop_prob = tf.placeholder_with_default(1.0, [], name='dropout_prob')
+
+    if hyperparams['batch_normalization']:
+        BN_phase = tf.placeholder_with_default(False, (), name='BN_phase')
+    else:
+        BN_phase = False
+
+    # init model
+    lr = tf.placeholder(tf.float32, name='learning_rate')
+    list_placeholders = [drop_prob, lr, BN_phase]
+    train_nodes = classification_nodes(pipeline=train_inputs,
+                                       placeholders=list_placeholders,
+                                       model_name=hyperparams['model'],
+                                       patch_size=hyperparams['patch_size'],
+                                       batch_size=hyperparams['batch_size'],
+                                       conv_size=hyperparams['conv_size'],
+                                       nb_conv=hyperparams['nb_conv'],
+                                       activation=hyperparams['activation'],
+                                       batch_norm=hyperparams['batch_normalization'],
+                                       loss_option=hyperparams['loss_option'],
+                                       is_training=True,
+                                       device=hyperparams['device']
+                                       )
+    # fixme: the following load 2 modes in one gpu
+    test_nodes = classification_nodes(pipeline=test_inputs,
+                                      placeholders=list_placeholders,
+                                      model_name=hyperparams['model'],
+                                      patch_size=hyperparams['patch_size'],
+                                      batch_size=hyperparams['batch_size'],
+                                      conv_size=hyperparams['conv_size'],
+                                      nb_conv=hyperparams['nb_conv'],
+                                      activation=hyperparams['activation'],
+                                      batch_norm=hyperparams['batch_normalization'],
+                                      loss_option=hyperparams['loss_option'],
+                                      is_training=False,
+                                      device=hyperparams['device']
+                                      )
+
+    # print number of params
+    print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
+
+    # create logs folder
+    check_N_mkdir('./logs/')
+
+    # start training/resume training
+    if resume:
+        _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
+    else:
+        _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=True)
 
 
-def train_1_epoch():
-    pass
-
-
-def test_1_epoch():
-    pass
-
-
-def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
+def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=False):
     """
     input:
     -------
@@ -49,7 +113,6 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
     #######################
 
     # init list
-
     with tf.Session() as sess:
         tf.summary.FileWriter('./dummy/debug/', sess.graph)
         # init params
@@ -64,6 +127,11 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
             os.mkdir(folder + 'ckpt/')
 
         saver = tf.train.Saver(max_to_keep=100000000)
+        if resume:
+            if 'from_ckpt' in hyperparams.keys():
+                saver.restore(sess, hyperparams['from_checkpoint'])
+            else:
+                raise ValueError('missing checkpoint path for resume')
         try:
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
                 # init ops
@@ -128,22 +196,19 @@ def train_test(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams):
                     #save model
                     if global_step % hyperparams['save_step'] == 0:
                         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
-                        # model_saved_at.append(step)
-
                         ########################
                         #
                         # test session
                         #
                         ########################
-                        # if step != 0:
                         # change feed dict
                         feed_dict = {
-                            train_nodes['learning_rate']: 1.0,
-                            train_nodes['drop']: 1.0,
+                            test_nodes['learning_rate']: 1.0,
+                            test_nodes['drop']: 1.0,
                         }
 
                         if hyperparams['batch_normalization']:
-                            feed_dict[train_nodes['BN_phase']] = False
+                            feed_dict[test_nodes['BN_phase']] = False
 
                         # load graph in the second device
                         loader = tf.train.Saver()
