@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1089</width>
+    <width>1021</width>
     <height>729</height>
    </rect>
   </property>
@@ -14,403 +14,410 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="start_button">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>10</y>
-      <width>91</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Start(a)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>001-play-button.png</normaloff>001-play-button.png</iconset>
-    </property>
-    <property name="shortcut">
-     <string>A</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="stop_button">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>10</y>
-      <width>91</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Stop(d)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>002-stop.png</normaloff>002-stop.png</iconset>
-    </property>
-    <property name="shortcut">
-     <string>D</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="add_button">
-    <property name="geometry">
-     <rect>
-      <x>290</x>
-      <y>10</y>
-      <width>91</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Add(q)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>001-plus.png</normaloff>001-plus.png</iconset>
-    </property>
-    <property name="shortcut">
-     <string>Q</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="clean_button">
-    <property name="geometry">
-     <rect>
-      <x>380</x>
-      <y>10</y>
-      <width>101</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Clean(w)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>002-minus.png</normaloff>002-minus.png</iconset>
-    </property>
-    <property name="shortcut">
-     <string>W</string>
-    </property>
-   </widget>
-   <widget class="QListWidget" name="AvailableGPUs">
-    <property name="geometry">
-     <rect>
-      <x>890</x>
-      <y>90</y>
-      <width>181</width>
-      <height>251</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QTableWidget" name="tableWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>70</y>
-      <width>861</width>
-      <height>601</height>
-     </rect>
-    </property>
-    <property name="dragEnabled">
-     <bool>false</bool>
-    </property>
-    <property name="sortingEnabled">
-     <bool>false</bool>
-    </property>
-    <property name="rowCount">
-     <number>19</number>
-    </property>
-    <property name="columnCount">
-     <number>2</number>
-    </property>
-    <attribute name="horizontalHeaderMinimumSectionSize">
-     <number>18</number>
-    </attribute>
-    <attribute name="horizontalHeaderDefaultSectionSize">
-     <number>100</number>
-    </attribute>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <row/>
-    <column/>
-    <column/>
+   <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <property name="text">
-      <string>model</string>
-     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QPushButton" name="start_button">
+          <property name="text">
+           <string>Start(a)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>001-play-button.png</normaloff>001-play-button.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>A</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="loop_button">
+          <property name="text">
+           <string>Loop(s)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>exchange_2.png</normaloff>
+            <normalon>exchange.png</normalon>exchange_2.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>S</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="stop_button">
+          <property name="text">
+           <string>Stop(d)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>002-stop.png</normaloff>002-stop.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>D</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="add_button">
+          <property name="text">
+           <string>Add(q)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>001-plus.png</normaloff>001-plus.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>Q</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="clean_button">
+          <property name="text">
+           <string>Clean(w)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>002-minus.png</normaloff>002-minus.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>W</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="forward_button">
+          <property name="text">
+           <string>Forward(e)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>001-reply.png</normaloff>001-reply.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>E</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="line">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="predict_button">
+          <property name="text">
+           <string>Predict(p)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>rubik.png</normaloff>rubik.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="dashboard_button">
+          <property name="text">
+           <string>Dashboard(r)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>002-speedometer.png</normaloff>002-speedometer.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="shortcut">
+           <string>R</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetMaximumSize</enum>
+        </property>
+        <item>
+         <widget class="QTableWidget" name="tableWidget">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>801</width>
+            <height>601</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="dragEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="sortingEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="rowCount">
+           <number>19</number>
+          </property>
+          <property name="columnCount">
+           <number>2</number>
+          </property>
+          <attribute name="horizontalHeaderMinimumSectionSize">
+           <number>18</number>
+          </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>100</number>
+          </attribute>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <column/>
+          <column/>
+          <item row="0" column="0">
+           <property name="text">
+            <string>model</string>
+           </property>
+          </item>
+          <item row="1" column="0">
+           <property name="text">
+            <string>conv nb</string>
+           </property>
+          </item>
+          <item row="2" column="0">
+           <property name="text">
+            <string>kernel size</string>
+           </property>
+          </item>
+          <item row="3" column="0">
+           <property name="text">
+            <string>batch size</string>
+           </property>
+          </item>
+          <item row="4" column="0">
+           <property name="text">
+            <string>window size</string>
+           </property>
+          </item>
+          <item row="5" column="0">
+           <property name="text">
+            <string>nb_epoch</string>
+           </property>
+           <property name="background">
+            <brush brushstyle="NoBrush">
+             <color alpha="255">
+              <red>128</red>
+              <green>255</green>
+              <blue>7</blue>
+             </color>
+            </brush>
+           </property>
+          </item>
+          <item row="6" column="0">
+           <property name="text">
+            <string>lr type</string>
+           </property>
+           <property name="background">
+            <brush brushstyle="NoBrush">
+             <color alpha="255">
+              <red>128</red>
+              <green>255</green>
+              <blue>7</blue>
+             </color>
+            </brush>
+           </property>
+          </item>
+          <item row="7" column="0">
+           <property name="text">
+            <string>init lr</string>
+           </property>
+          </item>
+          <item row="8" column="0">
+           <property name="text">
+            <string>k param</string>
+           </property>
+          </item>
+          <item row="9" column="0">
+           <property name="text">
+            <string>p param</string>
+           </property>
+          </item>
+          <item row="10" column="0">
+           <property name="text">
+            <string>loss fn</string>
+           </property>
+          </item>
+          <item row="11" column="0">
+           <property name="text">
+            <string>act fn</string>
+           </property>
+          </item>
+          <item row="12" column="0">
+           <property name="text">
+            <string>batch norm</string>
+           </property>
+          </item>
+          <item row="13" column="0">
+           <property name="text">
+            <string>augmentation</string>
+           </property>
+          </item>
+          <item row="14" column="0">
+           <property name="text">
+            <string>dropout</string>
+           </property>
+          </item>
+          <item row="15" column="0">
+           <property name="text">
+            <string>sv step</string>
+           </property>
+          </item>
+          <item row="16" column="0">
+           <property name="text">
+            <string>tb step</string>
+           </property>
+          </item>
+          <item row="17" column="0">
+           <property name="text">
+            <string>mode</string>
+           </property>
+          </item>
+          <item row="18" column="0">
+           <property name="text">
+            <string>comment</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>181</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Available GPUs:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="AvailableGPUs">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>181</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>181</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Ongoing Process:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="ongoing_process">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>181</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </item>
-    <item row="1" column="0">
-     <property name="text">
-      <string>conv nb</string>
-     </property>
-    </item>
-    <item row="2" column="0">
-     <property name="text">
-      <string>kernel size</string>
-     </property>
-    </item>
-    <item row="3" column="0">
-     <property name="text">
-      <string>batch size</string>
-     </property>
-    </item>
-    <item row="4" column="0">
-     <property name="text">
-      <string>window size</string>
-     </property>
-    </item>
-    <item row="5" column="0">
-     <property name="text">
-      <string>nb_epoch</string>
-     </property>
-     <property name="background">
-      <brush brushstyle="NoBrush">
-       <color alpha="255">
-        <red>128</red>
-        <green>255</green>
-        <blue>7</blue>
-       </color>
-      </brush>
-     </property>
-    </item>
-    <item row="6" column="0">
-     <property name="text">
-      <string>lr type</string>
-     </property>
-     <property name="background">
-      <brush brushstyle="NoBrush">
-       <color alpha="255">
-        <red>128</red>
-        <green>255</green>
-        <blue>7</blue>
-       </color>
-      </brush>
-     </property>
-    </item>
-    <item row="7" column="0">
-     <property name="text">
-      <string>init lr</string>
-     </property>
-    </item>
-    <item row="8" column="0">
-     <property name="text">
-      <string>k param</string>
-     </property>
-    </item>
-    <item row="9" column="0">
-     <property name="text">
-      <string>p param</string>
-     </property>
-    </item>
-    <item row="10" column="0">
-     <property name="text">
-      <string>loss fn</string>
-     </property>
-    </item>
-    <item row="11" column="0">
-     <property name="text">
-      <string>act fn</string>
-     </property>
-    </item>
-    <item row="12" column="0">
-     <property name="text">
-      <string>batch norm</string>
-     </property>
-    </item>
-    <item row="13" column="0">
-     <property name="text">
-      <string>augmentation</string>
-     </property>
-    </item>
-    <item row="14" column="0">
-     <property name="text">
-      <string>dropout</string>
-     </property>
-    </item>
-    <item row="15" column="0">
-     <property name="text">
-      <string>sv step</string>
-     </property>
-    </item>
-    <item row="16" column="0">
-     <property name="text">
-      <string>tb step</string>
-     </property>
-    </item>
-    <item row="17" column="0">
-     <property name="text">
-      <string>mode</string>
-     </property>
-    </item>
-    <item row="18" column="0">
-     <property name="text">
-      <string>comment</string>
-     </property>
-    </item>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>930</x>
-      <y>70</y>
-      <width>101</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Available GPUs:</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="loop_button">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>10</y>
-      <width>91</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Loop(s)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>exchange.png</normaloff>exchange.png</iconset>
-    </property>
-    <property name="shortcut">
-     <string>S</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="forward_button">
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>10</y>
-      <width>111</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Forward(e)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>001-reply.png</normaloff>001-reply.png</iconset>
-    </property>
-    <property name="shortcut">
-     <string>E</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="dashboard_button">
-    <property name="geometry">
-     <rect>
-      <x>740</x>
-      <y>10</y>
-      <width>131</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Dashboard(r)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>002-speedometer.png</normaloff>002-speedometer.png</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>20</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="shortcut">
-     <string>R</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="predict_button">
-    <property name="geometry">
-     <rect>
-      <x>630</x>
-      <y>10</y>
-      <width>112</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Predict(p)</string>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>rubik.png</normaloff>rubik.png</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>20</width>
-      <height>20</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="Line" name="line">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>10</y>
-      <width>20</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Vertical</enum>
-    </property>
-   </widget>
-   <widget class="QListWidget" name="ongoing_process">
-    <property name="geometry">
-     <rect>
-      <x>890</x>
-      <y>390</y>
-      <width>181</width>
-      <height>231</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>930</x>
-      <y>370</y>
-      <width>110</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Ongoing Process:</string>
-    </property>
-   </widget>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1089</width>
+     <width>1021</width>
      <height>22</height>
     </rect>
    </property>
@@ -427,6 +434,8 @@
     <property name="title">
      <string>plug-ins</string>
     </property>
+    <addaction name="Activations"/>
+    <addaction name="Exit"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuQuit"/>
@@ -435,6 +444,16 @@
   <action name="actionAbout_us">
    <property name="text">
     <string>About us</string>
+   </property>
+  </action>
+  <action name="Activations">
+   <property name="text">
+    <string>Activations</string>
+   </property>
+  </action>
+  <action name="Exit">
+   <property name="text">
+    <string>Exit</string>
    </property>
   </action>
  </widget>

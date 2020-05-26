@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QErrorMessage, QMessageBox
+from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QErrorMessage, QMessageBox, QLabel
 from PyQt5 import QtCore, QtGui
 
 from _taskManager.mainwindow_design import Ui_LRCSNet
@@ -43,10 +43,12 @@ class queueManager(QThread):
         super().__init__()
         self.enqueueListener = gpu_queue
         self.signals = WorkerSignals()
+        self.toggle = False
 
     @pyqtSlot()
     def run(self):
-        while True:
+        self.toggle = True
+        while self.toggle:
             if self.enqueueListener.empty():
                 continue  # note: don't use continu here, or saturate the CPU
             else:
@@ -54,6 +56,9 @@ class queueManager(QThread):
                 self.signals.available_gpu.emit(_gpu)
             sleep(20)  # note: at least wait 2 min for thread security, unknown GPU/inputpipeline bug
 
+    @pyqtSlot()
+    def stop(self):
+        self.toggle = False
 
 class WorkerSignals(QObject):
     error = pyqtSignal(tuple)
@@ -146,7 +151,7 @@ class training_Worker(QRunnable):
         print('\n', terminal)
 
         # terminal = ['python', 'dummy.py']  # todo: uncomment here for similation
-        # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
+        terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
 
         process = subprocess.Popen(
             terminal,
@@ -277,12 +282,12 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.stop_button.clicked.connect(self.stop)
         self.add_button.clicked.connect(self.openDialog)
         self.clean_button.clicked.connect(self.clean)
-        self.loop_button.clicked.connect(self.loop)
+        self.loop_button.clicked.connect(self.loop_state)
         self.forward_button.clicked.connect(self.forward)
         self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
 
-        #
+        # todo: plug in for activations
 
     def openDialog(self):
         self.dialog = dialog_logic(None)
@@ -363,9 +368,17 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         # todo: in the log window
         print(content)
 
+    def loop_state(self):
+        if self.loop_button.isChecked():
+            self.loop()
+        else:
+            self.stop_loop()
+
     def loop(self):
         self.qManager.start()
-        # self.loop_button.setIcon('./_taskManager/')
+
+    def stop_loop(self):
+        self.qManager.terminate()
 
     def stop(self):
         # refers to: https://stackoverflow.com/questions/37601672/how-can-i-get-the-indices-of-qlistwidgetselecteditems
@@ -437,7 +450,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.ongoing_process.clear()
         self.ongoing_process.addItems(['{}'.format(t[0]) for t in self.proc_list])
         for i, sig in zip(range(self.ongoing_process.count()), self.proc_list):
-            self.ongoing_process.item(i).setWhatsThis(str(sig[3]).replace(',', '\n'))
+            self.ongoing_process.item(i).setToolTip(str(sig[3]).replace(',', '\n'))
 
     def verify_column_not_None(self, column=1):
         nb_row = self.tableWidget.rowCount()
