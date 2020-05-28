@@ -1,10 +1,8 @@
 import numpy as np
-from reader import _tifReader
 import pandas as pd
 import matplotlib.pyplot as plt
 from randomForest import load_model, predict
-from inference import inference_recursive
-from util import check_N_mkdir
+from util import check_N_mkdir, _tifReader
 
 filt_names = [
     'gaussian_blur',

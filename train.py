@@ -85,9 +85,9 @@ def main_train(
 
     # start training/resume training
     if resume:
-        _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
-    else:
         _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=True)
+    else:
+        _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
 
 
 def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=False):

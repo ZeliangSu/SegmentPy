@@ -8,6 +8,7 @@ class file_dialog(QWidget):
         super().__init__()
         self.title = title
         self.type = type
+        self.filter = filter
         self.initUI()
 
     def initUI(self):

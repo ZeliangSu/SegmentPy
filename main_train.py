@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('-mdl', '--model', type=str, metavar='', required=True,
                         help='which model to use e.g. LRCS, Xlearn, Unet')
     parser.add_argument('-mode', '--mode', type=str, metavar='', required=True, help='regression/classification')
-    parser.add_argument('-dv', '--device', type=int, metavar='', required=True, help='which GPU to use e.g. -1 use CPU')
+    parser.add_argument('-dv', '--device', metavar='', required=True, help='which GPU to use e.g. -1 use CPU')
     parser.add_argument('-st', '--save_model_step', type=int, metavar='', required=False,
                         help='save the model every X step')
     parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
         ############### misc #####################
         'nb_epoch': args.nb_epoch,
-        'device': args.device,
+        'device': -1 if args.device == 'cpu' else args.device,
         'save_step': 500 if args.save_model_step is None else args.save_model_step,
         'save_summary_step': 50 if args.save_tb is None else args.save_tb,
         'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),

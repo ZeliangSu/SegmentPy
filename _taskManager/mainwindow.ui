@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1021</width>
-    <height>729</height>
+    <width>1146</width>
+    <height>724</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,8 +21,14 @@
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QPushButton" name="start_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Start(a)</string>
+           <string>Start(A)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -35,8 +41,14 @@
         </item>
         <item>
          <widget class="QPushButton" name="loop_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Loop(s)</string>
+           <string>Loop(S)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -53,8 +65,14 @@
         </item>
         <item>
          <widget class="QPushButton" name="stop_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Stop(d)</string>
+           <string>Stop(D)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -67,8 +85,14 @@
         </item>
         <item>
          <widget class="QPushButton" name="add_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Add(q)</string>
+           <string>Add(Q)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -81,8 +105,14 @@
         </item>
         <item>
          <widget class="QPushButton" name="clean_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Clean(w)</string>
+           <string>Clean(W)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -95,8 +125,14 @@
         </item>
         <item>
          <widget class="QPushButton" name="forward_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Forward(e)</string>
+           <string>Forward(E)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -104,6 +140,26 @@
           </property>
           <property name="shortcut">
            <string>E</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Resume(Z)</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>002-reload.png</normaloff>002-reload.png</iconset>
+          </property>
+          <property name="shortcut">
+           <string>Z</string>
           </property>
          </widget>
         </item>
@@ -117,7 +173,7 @@
         <item>
          <widget class="QPushButton" name="predict_button">
           <property name="text">
-           <string>Predict(p)</string>
+           <string>Predict(X)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -129,12 +185,15 @@
             <height>20</height>
            </size>
           </property>
+          <property name="shortcut">
+           <string>X</string>
+          </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="dashboard_button">
           <property name="text">
-           <string>Dashboard(r)</string>
+           <string>Dashboard(C)</string>
           </property>
           <property name="icon">
            <iconset>
@@ -147,7 +206,7 @@
            </size>
           </property>
           <property name="shortcut">
-           <string>R</string>
+           <string>C</string>
           </property>
          </widget>
         </item>
@@ -417,7 +476,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1021</width>
+     <width>1146</width>
      <height>22</height>
     </rect>
    </property>

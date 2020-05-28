@@ -101,7 +101,8 @@ def classification_nodes(pipeline,
                          batch_norm=True,
                          loss_option='cross_entropy',
                          is_training=False,
-                         device=0
+                         device=0,
+                         grad_view=False,
                          ):
 
     # check entries
@@ -164,8 +165,14 @@ def classification_nodes(pipeline,
             for layer_param in list_params:
                 for k, v in layer_param.items():
                     tmp.append(tf.summary.histogram(k, v))
-            m_param = tf.summary.merge(tmp)
-            merged = tf.summary.merge([m_param, m_loss, m_acc, grad_sum])
+            if len(tmp) > 0:
+                m_param = tf.summary.merge(tmp)
+                merged = tf.summary.merge([m_param, m_loss, m_acc])
+            else:
+                merged = tf.summary.merge([m_loss, m_acc])
+            if grad_view:
+                merged = tf.summary.merge([merged, grad_sum])
+
     else:
         with tf.device('/cpu:0' if device==-1 else '/device:GPU:{}'.format(device)):
             with tf.name_scope('operation'):
@@ -177,8 +184,11 @@ def classification_nodes(pipeline,
             for layer_param in list_params:
                 for k, v in layer_param.items():
                     tmp.append(tf.summary.histogram(k, v))
-            m_param = tf.summary.merge(tmp)
-            merged = tf.summary.merge([m_param, m_loss, m_acc])
+            if len(tmp) > 0:
+                m_param = tf.summary.merge(tmp)
+                merged = tf.summary.merge([m_param, m_loss, m_acc])
+            else:
+                merged = tf.summary.merge([m_loss, m_acc])
 
     return {
         'y_pred': logits,
@@ -309,7 +319,7 @@ def model_LRCS(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8bb]
+        return logits, []
 
 
 def model_LRCS_improved(pipeline,
@@ -434,7 +444,7 @@ def model_LRCS_improved(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4bb, mf1, m5, m8bb]
+        return logits, []
 
 
 def model_LRCS_constant(pipeline,
@@ -638,7 +648,7 @@ def model_LRCS_shallow(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_LRCS_simple(pipeline,
@@ -781,7 +791,7 @@ def model_LRCS_purConv(pipeline,
                                            name='conv1bbb', reuse=reuse)
 
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m1]
+        return logits, []
 
 
 def model_LRCS_LeCun(pipeline,
@@ -885,7 +895,7 @@ def model_LRCS_LeCun(pipeline,
                                             if_BN=False, is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_LRCS_Weka(pipeline,
@@ -976,7 +986,7 @@ def model_LRCS_Weka(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_LRCS_weka_constant(pipeline,
@@ -1070,7 +1080,7 @@ def model_LRCS_weka_constant(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_LRCS_lecun_thinner_weka_encoder(pipeline,
@@ -1166,7 +1176,7 @@ def model_LRCS_lecun_thinner_weka_encoder(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_LRCS_lecun_thinner_encoder(pipeline,
@@ -1262,7 +1272,7 @@ def model_LRCS_lecun_thinner_encoder(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_LRCS_mix_skipconnect(pipeline,
@@ -1358,7 +1368,7 @@ def model_LRCS_mix_skipconnect(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m5b, m8bb]
+        return logits, []
 
 
 def model_Segnet_like(pipeline,
@@ -1444,8 +1454,10 @@ def model_Segnet_like(pipeline,
                                            is_train=BN_phase, activation=activation, name='deconv5', reuse=reuse)  # [height, width, in_channels, output_channels]
                 deconv_5bis, _ = conv2d_layer(deconv_5, [conv_size, conv_size, nb_conv * 8, nb_conv * 4], if_BN=if_BN,
                                               is_train=BN_phase, activation=activation, name='deconv5bis', reuse=reuse)
+                deconv_5bisbis, _ = conv2d_layer(deconv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
+                                              is_train=BN_phase, activation=activation, name='deconv5bis', reuse=reuse)
 
-                up1 = up_2by2_ind(deconv_5bis, ind3, name='up1')
+                up1 = up_2by2_ind(deconv_5bisbis, ind3, name='up1')
                 deconv_6, m6 = conv2d_layer(up1, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
                                            is_train=BN_phase, activation=activation, name='deconv6', reuse=reuse)
                 deconv_6bis, _ = conv2d_layer(deconv_6, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], if_BN=if_BN,
@@ -1467,7 +1479,7 @@ def model_Segnet_like(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4bb, m5, m6, m8bb]
+        return logits, []
 
 
 def model_Segnet_improved(pipeline,
@@ -1582,7 +1594,7 @@ def model_Segnet_improved(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4b, m5, m6, m9bb]
+        return logits, []
 
 
 def model_Segnet_constant(pipeline,
@@ -1691,7 +1703,7 @@ def model_Segnet_constant(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4b, m6, m9bb]
+        return logits, []
 
 
 def model_Segnet_shallow(pipeline,
@@ -1786,7 +1798,7 @@ def model_Segnet_shallow(pipeline,
                                             if_BN=False,is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m4, m6, m9bb]
+        return logits, []
 
 
 def model_Unet(pipeline,
@@ -1912,7 +1924,7 @@ def model_Unet(pipeline,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False, is_train=BN_phase, name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4b, m5, m5b, m5u, m6, m9bb]
+        return logits, []
 
 
 def model_Unet_shallow(pipeline,
@@ -2028,7 +2040,7 @@ def model_Unet_shallow(pipeline,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False, is_train=BN_phase, name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m4, m5, m5u, m6, m9bb]
+        return logits, []
 
 
 def model_Unet_weka(pipeline,
@@ -2126,7 +2138,7 @@ def model_Unet_weka(pipeline,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False, is_train=BN_phase, name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m4, m5, m5u, m6, m9bb]
+        return logits, []
 
 
 def model_Unet_upsample(pipeline,
@@ -2233,7 +2245,7 @@ def model_Unet_upsample(pipeline,
                                             [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                             if_BN=False, is_train=BN_phase, name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3, m4, m5, m5u, m6, m9bb]
+        return logits, []
 
 
 def model_xlearn_like(pipeline,
@@ -2374,7 +2386,7 @@ def model_xlearn_like(pipeline,
                                             if_BN=False, is_train=BN_phase,
                                             name='logits', reuse=reuse)
         print_nodes_name_shape(tf.get_default_graph())
-        return logits, [m3b, m4bb, mf1, mf2, mf3, m5, m8b]
+        return logits, []
 
 
 def custom(pipeline,

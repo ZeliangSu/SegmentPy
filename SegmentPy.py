@@ -6,12 +6,15 @@ from _taskManager.mainwindow_design import Ui_LRCSNet
 from dialog_logic import dialog_logic
 from _taskManager.file_dialog import file_dialog
 from dashboard_logic import dashboard_logic
+from nodes_list_logic import node_list_logic
+from util import print_nodes_name
 
 import traceback, sys, os
 from queue import Queue
 from time import sleep
 import subprocess
 from threading import Thread
+import re
 
 # logging
 import logging
@@ -151,7 +154,7 @@ class training_Worker(QRunnable):
         print('\n', terminal)
 
         # terminal = ['python', 'dummy.py']  # todo: uncomment here for similation
-        terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
+        # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
 
         process = subprocess.Popen(
             terminal,
@@ -287,7 +290,81 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
 
-        # todo: plug in for activations
+        # menu bar
+        self.Activations.triggered.connect(self.activation_plugin)
+        self.Loss_Landscape.triggered.connect(self.loss_landscape)
+        self.Random_Forest.triggered.connect(self.random_forest)
+
+    def activation_plugin(self):
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
+        import tensorflow as tf
+        dialog = file_dialog(title='select ckpts (*.meta) to retrieve activations', type='.meta')
+        ckpt_paths = dialog.openFileNamesDialog()
+
+        # restore from ckpt the nodes
+        tf.reset_default_graph()
+        logger.debug(ckpt_paths[0])
+        _ = tf.train.import_meta_graph(
+            ckpt_paths[0],
+            clear_devices=True,
+        )
+
+        # get arguments
+        graph = tf.get_default_graph().as_graph_def()
+        nodes = print_nodes_name(graph)
+        steps = [re.search('step(\d+)', ck_pth).group(1) for ck_pth in ckpt_paths]
+
+        # retrive nodes of activations
+        options = []
+        for node in nodes:
+            tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity)$', node)
+            if tmp is not None:
+                tmp = tmp.string
+                if 'identity' in tmp:
+                    iden = tmp
+                else:
+                    options.append(tmp)
+
+        # open nodes list dialog
+        nodes_list = node_list_logic(options=options)
+        nodes_list.exec()
+        if nodes_list.result() == 1:
+            acts = nodes_list.return_nodes()
+            if iden:
+                acts.append(iden)
+            types = nodes_list.return_analysis_types()
+            if len(types) == 0:
+                types = ['activation']
+
+            terminal = [
+                'python', 'main_analytic.py',
+                '-ckpt', *ckpt_paths,
+                '-step', *steps,
+                '-type', *types,
+                '-node', *acts,
+            ]
+
+            logger.debug(terminal)
+
+            proc = subprocess.Popen(
+                terminal
+            )
+            proc.wait()
+
+    def loss_landscape(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText("Plug-in loss landscape of Goldstein et al. is coming in the next version. \nYou can try at terminal with main_loss_landscape.py")
+        msg.setWindowTitle("Oopsss")
+        msg.exec_()
+
+    def random_forest(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(
+            "Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py")
+        msg.setWindowTitle("Oopsss")
+        msg.exec_()
 
     def openDialog(self):
         self.dialog = dialog_logic(None)
@@ -304,26 +381,30 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             pass
 
     def predict(self):
+
         # define data folder path
         ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
         ckpt_path = ckpt_dialog.openFileNameDialog()
         print(ckpt_path)
 
-        # get to predict .tif
-        predict_dialog = file_dialog(title='select folder of raw tomograms (*.tif) to predict', type='/')
-        predict_dir = predict_dialog.openFolderDialog()
-        print(predict_dir)
+        if ckpt_path is not None:
+            # get to predict .tif
+            predict_dialog = file_dialog(title='select folder of raw tomograms (*.tif) to predict', type='/')
+            predict_dir = predict_dialog.openFolderDialog()
+            print(predict_dir)
 
-        # define predict folder path (can create new folder)
-        save_dialog = file_dialog(title='select folder to put prediction', type='/')
-        save_dir = save_dialog.openFolderDialog()
-        print(save_dir)
+            # define predict folder path (can create new folder)
+            if predict_dir is not None:
+                save_dialog = file_dialog(title='select folder to put prediction', type='/')
+                save_dir = save_dialog.openFolderDialog()
+                print(save_dir)
 
-        # spawn sub process
-        _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
-        self.threadpool.start(_Worker)
-        _Worker.signals.start_proc.connect(self.add_proc_surveillance)
-        _Worker.signals.released_proc.connect(self.remove_process_from_list)
+                if save_dir is not None:
+                    # spawn sub process
+                    _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
+                    self.threadpool.start(_Worker)
+                    _Worker.signals.start_proc.connect(self.add_proc_surveillance)
+                    _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
     def setHeader(self):
         self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
@@ -406,6 +487,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.tableWidget.removeColumn(column + 1)
 
             if column == 2:
+                self.setHeader()
                 self.bold(column=1)
                 self.unbold(column=2)
 

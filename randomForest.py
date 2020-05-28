@@ -4,9 +4,8 @@ from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.externals import joblib
 from subprocess import call
 from PIL import Image
-from util import check_N_mkdir
+from util import check_N_mkdir, _tifReader
 from itertools import repeat
-from reader import _tifReader
 from filter import *
 
 

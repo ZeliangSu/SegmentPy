@@ -17,7 +17,7 @@ import re
 import logging
 import log
 logger = log.setup_custom_logger('root')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 # Xlearn
 Xlearn_conserve_nodes = [
@@ -310,9 +310,15 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
         new_input = g_main.get_tensor_by_name('new_input:0')
 
         # write firstly input and output images
-        img_path = input_dir + os.listdir(input_dir)[0]
-        img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet'] else 3)
+        l = []
+        for f in os.listdir(input_dir):
+            if '_label' not in f:
+                l.append(input_dir + f)
+
+        img_path = l[0]
+        img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet'] else 3)
         img_size = img.shape
+        logger.info('input shape: {}'.format(img_size))
 
         if feature_map:
             # weka like input
@@ -332,14 +338,16 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             for func in l_func:
                 imgs.append(func(imgs[0]))
             imgs = np.stack(imgs, axis=2).astype(np.float32)
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet'] else 3)]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet'] else 3)]
+            logger.info('label shape: {}'.format(labels[0].shape))
 
 
         else:
             imgs = [
                 img
             ]
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet'] else 3)]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet'] else 3)]
+            logger.info('label shape: {}'.format(labels[0].shape))
 
         # save imgs
         plt_illd.add_input(np.asarray(imgs))
@@ -353,7 +361,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
         feed_dict = {
             new_input: np.array(imgs).reshape((-1, img_size[0], img_size[1], 10 if hyper['feature_map'] else 1)),
         }
-        if hyperparams['batch_normalization']:
+        if hyper['batch_normalization']:
             new_BN_phase = g_main.get_tensor_by_name('new_BN:0')
             feed_dict[new_BN_phase] = False
 
