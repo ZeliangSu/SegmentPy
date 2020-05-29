@@ -172,6 +172,12 @@
         </item>
         <item>
          <widget class="QPushButton" name="predict_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
            <string>Predict(X)</string>
           </property>
@@ -192,6 +198,12 @@
         </item>
         <item>
          <widget class="QPushButton" name="dashboard_button">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>36</height>
+           </size>
+          </property>
           <property name="text">
            <string>Dashboard(C)</string>
           </property>
@@ -487,20 +499,23 @@
     <property name="title">
      <string>Menu</string>
     </property>
-    <addaction name="actionAbout_us"/>
+    <addaction name="About_us"/>
+    <addaction name="separator"/>
+    <addaction name="Exit"/>
    </widget>
-   <widget class="QMenu" name="menuQuit">
+   <widget class="QMenu" name="menuPlugin">
     <property name="title">
      <string>plug-ins</string>
     </property>
     <addaction name="Activations"/>
-    <addaction name="Exit"/>
+    <addaction name="Loss_Landscape"/>
+    <addaction name="Random_Forest"/>
    </widget>
    <addaction name="menuMenu"/>
-   <addaction name="menuQuit"/>
+   <addaction name="menuPlugin"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionAbout_us">
+  <action name="About_us">
    <property name="text">
     <string>About us</string>
    </property>
@@ -513,6 +528,16 @@
   <action name="Exit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="Loss_Landscape">
+   <property name="text">
+    <string>Loss-Landscape</string>
+   </property>
+  </action>
+  <action name="Random_Forest">
+   <property name="text">
+    <string>Random-Forest</string>
    </property>
   </action>
  </widget>

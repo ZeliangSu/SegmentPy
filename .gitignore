@@ -11,3 +11,7 @@ debug.log
 paper/
 predict/
 dummy.py
+train/*
+valid/*
+test/*
+predict/*
