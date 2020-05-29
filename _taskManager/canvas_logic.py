@@ -5,12 +5,12 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
 from tensorboard_extractor import lr_curve_extractor
+from util import duplicate_event
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QT5Agg')
 
 import re
-import numpy as np
 
 
 # logging
@@ -65,9 +65,12 @@ class MPL(QWidget):
 
     def load_event(self, key):
         if key not in self.curves.keys():
-
-            ac_tn, ac_val, ls_tn, ls_val = lr_curve_extractor(self.paths[key])
-            self.curves[key] = [ac_tn, ac_val, ls_tn, ls_val]
+            duplicate_event(self.paths[key])
+            try:
+                ac_tn, ac_val, ls_tn, ls_val = lr_curve_extractor(self.paths[key] + 'event/')
+                self.curves[key] = [ac_tn, ac_val, ls_tn, ls_val]
+            except Exception as e:
+                logger.error(e)
 
     def plot(self):
         if self.paths.__len__() == 0:
@@ -87,10 +90,12 @@ class MPL(QWidget):
                 self.load_event(k)
                 tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
                 val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+            self.setCursor(Qt.ArrowCursor)
             self.setAcceptDrops(True)
 
         except Exception as e:
             logger.debug(e)
+            self.setCursor(Qt.ArrowCursor)
             self.setAcceptDrops(True)
 
         fig_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
@@ -104,7 +109,14 @@ class MPL(QWidget):
 
     def dropEvent(self, QDropEvent):
         # note: $ ends of the input
-        if re.search('hour\d+_gpu\d+\/$', QDropEvent.mimeData().text()) is not None:
+        tmp = re.search(
+        '(.*hour\d+_gpu\d+)',
+        QDropEvent.mimeData().text()
+        )
+        if tmp is not None:
+            tmp = tmp.group(1)
+            if not tmp.endswith('/'):
+                tmp += '/'
 
             max_id = 0
             if self.paths.__len__() != 0:
@@ -112,7 +124,9 @@ class MPL(QWidget):
                     max_id = max(max_id, int(i))
 
             # add event folder path
-            self.paths[max_id + 1] = QDropEvent.mimeData().text().replace('file://', '')
+            path = tmp.replace('file://', '')
+            logger.debug(path)
+            self.paths[max_id + 1] = path
 
         else:
             msg = QMessageBox()
