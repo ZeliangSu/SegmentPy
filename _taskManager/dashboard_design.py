@@ -124,4 +124,4 @@ class Ui_dashboard(object):
         self.save_button.setShortcut(_translate("dashboard", "S"))
         self.label_3.setText(_translate("dashboard", "Save path :"))
         self.folder_button.setText(_translate("dashboard", "..."))
-from canvas_logic import MPL
+from _taskManager.canvas_logic import MPL

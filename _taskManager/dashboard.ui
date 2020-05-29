@@ -22,7 +22,7 @@
   <property name="modal">
    <bool>false</bool>
   </property>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>14</x>
@@ -252,7 +252,7 @@
   <customwidget>
    <class>MPL</class>
    <extends>QWidget</extends>
-   <header>canvas_logic.h</header>
+   <header>_taskManager.canvas_logic.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
