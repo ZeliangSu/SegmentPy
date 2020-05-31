@@ -510,6 +510,8 @@
     <addaction name="Activations"/>
     <addaction name="Loss_Landscape"/>
     <addaction name="Random_Forest"/>
+    <addaction name="Volumes_Viewer"/>
+    <addaction name="Metrics"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuPlugin"/>
@@ -538,6 +540,16 @@
   <action name="Random_Forest">
    <property name="text">
     <string>Random-Forest</string>
+   </property>
+  </action>
+  <action name="Volumes_Viewer">
+   <property name="text">
+    <string>Volumes-Viewer</string>
+   </property>
+  </action>
+  <action name="Metrics">
+   <property name="text">
+    <string>Metrics</string>
    </property>
   </action>
  </widget>

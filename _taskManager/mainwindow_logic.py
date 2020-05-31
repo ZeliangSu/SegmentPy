@@ -7,6 +7,7 @@ from _taskManager.dialog_logic import dialog_logic
 from _taskManager.file_dialog import file_dialog
 from _taskManager.dashboard_logic import dashboard_logic
 from _taskManager.nodes_list_logic import node_list_logic
+from _taskManager.volumes_viewer_logic import volViewer_logic
 from util import print_nodes_name
 
 import traceback, sys, os
@@ -294,6 +295,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Activations.triggered.connect(self.activation_plugin)
         self.Loss_Landscape.triggered.connect(self.loss_landscape)
         self.Random_Forest.triggered.connect(self.random_forest)
+        self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
+
+    def volViewer_plugin(self):
+        self.volViewer = volViewer_logic()
+        self.volViewer.exec_()
 
     def activation_plugin(self):
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
@@ -351,20 +357,24 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             )
             proc.wait()
 
-    def loss_landscape(self):
+    def log_window(self, title: str, Msg: str):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
-        msg.setText("Plug-in loss landscape of Goldstein et al. is coming in the next version. \nYou can try at terminal with main_loss_landscape.py")
-        msg.setWindowTitle("Oopsss")
+        msg.setText(Msg)
+        msg.setWindowTitle(title)
         msg.exec_()
 
+    def loss_landscape(self):
+        self.log_window(
+            title='Ooppsss',
+            Msg="Plug-in loss landscape of Goldstein et al. is coming in the next version. \nYou can try at terminal with main_loss_landscape.py"
+        )
+
     def random_forest(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText(
-            "Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py")
-        msg.setWindowTitle("Oopsss")
-        msg.exec_()
+        self.log_window(
+            title='Ooppsss',
+            Msg="Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py"
+        )
 
     def openDialog(self):
         self.dialog = dialog_logic(None)
