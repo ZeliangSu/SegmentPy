@@ -306,56 +306,56 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         import tensorflow as tf
         dialog = file_dialog(title='select ckpts (*.meta) to retrieve activations', type='.meta')
         ckpt_paths = dialog.openFileNamesDialog()
-
-        # restore from ckpt the nodes
-        tf.reset_default_graph()
-        logger.debug(ckpt_paths[0])
-        _ = tf.train.import_meta_graph(
-            ckpt_paths[0],
-            clear_devices=True,
-        )
-
-        # get arguments
-        graph = tf.get_default_graph().as_graph_def()
-        nodes = print_nodes_name(graph)
-        steps = [re.search('step(\d+)', ck_pth).group(1) for ck_pth in ckpt_paths]
-
-        # retrive nodes of activations
-        options = []
-        for node in nodes:
-            tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4)$', node)
-            if tmp is not None:
-                tmp = tmp.string
-                if 'identity' in tmp:
-                    iden = tmp
-                else:
-                    options.append(tmp)
-
-        # open nodes list dialog
-        nodes_list = node_list_logic(options=options)
-        nodes_list.exec()
-        if nodes_list.result() == 1:
-            acts = nodes_list.return_nodes()
-            if iden:
-                acts.append(iden)
-            types = nodes_list.return_analysis_types()
-            if len(types) == 0:
-                types = ['activation']
-
-            terminal = [
-                'python', 'main_analytic.py',
-                '-ckpt', *ckpt_paths,
-                '-step', *steps,
-                '-type', *types,
-                '-node', *acts,
-            ]
-
-            logger.debug(terminal)
-
-            proc = subprocess.Popen(
-                terminal
+        if len(ckpt_paths) != 0:
+            # restore from ckpt the nodes
+            tf.reset_default_graph()
+            logger.debug(ckpt_paths[0])
+            _ = tf.train.import_meta_graph(
+                ckpt_paths[0],
+                clear_devices=True,
             )
-            proc.wait()
+
+            # get arguments
+            graph = tf.get_default_graph().as_graph_def()
+            nodes = print_nodes_name(graph)
+            steps = [re.search('step(\d+)', ck_pth).group(1) for ck_pth in ckpt_paths]
+
+            # retrive nodes of activations
+            options = []
+            for node in nodes:
+                tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4)$', node)
+                if tmp is not None:
+                    tmp = tmp.string
+                    if 'identity' in tmp:
+                        iden = tmp
+                    else:
+                        options.append(tmp)
+
+            # open nodes list dialog
+            nodes_list = node_list_logic(options=options)
+            nodes_list.exec()
+            if nodes_list.result() == 1:
+                acts = nodes_list.return_nodes()
+                if iden:
+                    acts.append(iden)
+                types = nodes_list.return_analysis_types()
+                if len(types) == 0:
+                    types = ['activation']
+
+                terminal = [
+                    'python', 'main_analytic.py',
+                    '-ckpt', *ckpt_paths,
+                    '-step', *steps,
+                    '-type', *types,
+                    '-node', *acts,
+                ]
+
+                logger.debug(terminal)
+
+                proc = subprocess.Popen(
+                    terminal
+                )
+                proc.wait()
 
     def log_window(self, title: str, Msg: str):
         msg = QMessageBox()

@@ -115,7 +115,7 @@ if __name__ == '__main__':
             k=args.lr_decay_ratio,
             period=args.lr_period,
         )  # float32 or np.array of programmed learning rate
-    elif args.lr_decay_type == 'const':
+    elif args.lr_decay_type == 'constant':
         hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
     else:
         raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))

@@ -6,6 +6,7 @@ from math import nan
 from PIL import Image
 from skimage import exposure
 import re
+import shutil
 
 # logging
 import logging
@@ -31,7 +32,6 @@ def print_nodes_name(graph):
         for n in graph.as_graph_def().node:
             logger.info(n.name)
         return [n.name for n in graph.as_graph_def().node]
-
 
 
 def print_nodes_name_shape(graph):
@@ -90,6 +90,17 @@ def get_all_trainable_variables(metagraph_path):
         dnn_bs = [sess.run(v) for v in all_vars if v.name.endswith('b:0') and v.name.startswith('dnn')]
 
     return wn, bn, ws, bs, dnn_wn, dnn_bn, dnn_ws, dnn_bs
+
+
+def duplicate_event(path: str):
+    assert path.endswith('/'), 'should give a dir'
+    if not os.path.exists(path + 'event/'):
+        shutil.copytree(path + 'train/', path + 'event/')
+        for f in os.listdir(path + 'test/'):
+            if os.path.exists(path + 'event/' + f):
+                shutil.copyfile(path + 'test/' + f, path + 'event/' + re.sub('tfevents\.(\d+)(\.|\()', r'\1(1)\2', f))
+            else:
+                shutil.copyfile(path + 'test/' + f, path + 'event/' + f)
 
 
 def check_N_mkdir(path_to_dir):

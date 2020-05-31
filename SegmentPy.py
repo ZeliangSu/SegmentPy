@@ -10,6 +10,7 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
+
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon('./_taskManager/logo.png'))
