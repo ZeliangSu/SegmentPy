@@ -82,21 +82,19 @@ class MPL(QWidget):
         fig_val.clear()
         tn_ax = fig_tn.add_subplot(111)
         val_ax = fig_val.add_subplot(111)
-        try:
-            # sometimes no event conducts to NoneType
-            self.setAcceptDrops(False)
-            self.setCursor(Qt.WaitCursor)
-            for k, v in self.paths.items():
-                self.load_event(k)
+
+        # sometimes no event conducts to NoneType
+        self.setAcceptDrops(False)
+        self.setCursor(Qt.WaitCursor)
+        for k, v in self.paths.items():
+            self.load_event(k)
+            try:
                 tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
                 val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
-            self.setCursor(Qt.ArrowCursor)
-            self.setAcceptDrops(True)
-
-        except Exception as e:
-            logger.debug(e)
-            self.setCursor(Qt.ArrowCursor)
-            self.setAcceptDrops(True)
+            except Exception as e:
+                logger.debug(e)
+        self.setCursor(Qt.ArrowCursor)
+        self.setAcceptDrops(True)
 
         fig_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
         fig_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)

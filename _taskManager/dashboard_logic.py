@@ -83,10 +83,14 @@ class dashboard_logic(QDialog, Ui_dashboard):
             ac_val[k] = np.asarray(v[1].value)
             ls_tn[k] = np.asarray(v[2].value)
             ls_val[k] = np.asarray(v[3].value)
-        pd.DataFrame(ac_tn).to_csv(self.get_save_path() + 'acc_train.csv', header=True, index=False, sep=';')
-        pd.DataFrame(ac_val).to_csv(self.get_save_path() + 'acc_val.csv', header=True, index=False, sep=';')
-        pd.DataFrame(ls_tn).to_csv(self.get_save_path() + 'loss_train.csv', header=True, index=False, sep=';')
-        pd.DataFrame(ls_val).to_csv(self.get_save_path() + 'loss_val.csv', header=True, index=False, sep=';')
+        try:
+            pd.DataFrame(ac_tn).to_csv(self.get_save_path() + 'acc_train.csv', header=True, index=False, sep=';')
+            pd.DataFrame(ac_val).to_csv(self.get_save_path() + 'acc_val.csv', header=True, index=False, sep=';')
+            pd.DataFrame(ls_tn).to_csv(self.get_save_path() + 'loss_train.csv', header=True, index=False, sep=';')
+            pd.DataFrame(ls_val).to_csv(self.get_save_path() + 'loss_val.csv', header=True, index=False, sep=';')
+        except Exception as e:
+            # fixme: length or number of steps different with throw pandas bug
+            logger.debug(e)
 
 
 def test():

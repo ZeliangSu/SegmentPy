@@ -98,7 +98,10 @@ def duplicate_event(path: str):
         shutil.copytree(path + 'train/', path + 'event/')
         for f in os.listdir(path + 'test/'):
             if os.path.exists(path + 'event/' + f):
-                shutil.copyfile(path + 'test/' + f, path + 'event/' + re.sub('tfevents\.(\d+)(\.|\()', r'\1(1)\2', f))
+                # e.g. re.sub('tfevents\.(\d+)(\.)t', r'\1(1)\2','events.out.tfevents.1591006736.tomoserver')
+                # --> 'events.out.1591006736(1).omoserver'
+                # --> should fill it
+                shutil.copyfile(path + 'test/' + f, path + 'event/' + re.sub('(tfevents\.\d+)(\.)', r'\1(1)\2', f))
             else:
                 shutil.copyfile(path + 'test/' + f, path + 'event/' + f)
 
