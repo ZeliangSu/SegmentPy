@@ -220,9 +220,10 @@ def dimension_regulator(img, maxp_times=3):
     ''' some models constraint the i/o dimensions should be multiple of 8 (for 3 times maxpooling)'''
     # note: the following dimensions should be multiple of 8 if 3x Maxpooling
     multiple = 2 ** maxp_times
-    w, h = img.shape[0] % multiple, img.shape[1] % multiple
-    a, b = img.shape[0] // multiple, img.shape[1] // multiple
-    img = img[w // 2: w // 2 + a * multiple, h // 2: h // 2 + b * multiple]
+    # note: fiji (w:1572, h:1548) --> PIL --> np.shape(row: 1548, col: 1572)
+    w, h = img.shape[1] % multiple, img.shape[0] % multiple
+    a, b = img.shape[1] // multiple, img.shape[0] // multiple
+    img = img[h // 2: h // 2 + b * multiple, w // 2: w // 2 + a * multiple]
     return img
 
 
