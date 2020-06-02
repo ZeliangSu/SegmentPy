@@ -23,7 +23,8 @@ if __name__ == '__main__':
     print(args)
 
     for ckpt_path in args.checkpoint_path:
-        model = re.search('mdl_([a-zA-Z\d+])', ckpt_path).group(1)
+        print(ckpt_path)
+        model = re.search('mdl_([A-Za-z]*\d*)', ckpt_path).group(1)
         hyperparams = {
             'model': model,
             'window_size': re.search('ps(\d+)', ckpt_path).group(1),
@@ -54,6 +55,8 @@ if __name__ == '__main__':
             }
             conserve_nodes = args.conserve_nodes
 
+            logger.info('paths: {}'.format(paths))
+            logger.info('hyper: {}'.format(hyperparams))
             for type in args.retrieve_type:
                 if type == 'activation':
                     partialRlt_and_diff(paths=paths, hyperparams=hyperparams, conserve_nodes=conserve_nodes)
