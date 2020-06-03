@@ -262,7 +262,7 @@ def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=No
 
         # add activation function
         if 'logit' in name:
-            b = init_bias([shape[2]], name, reuse=reuse)
+            b = init_bias([shape[3]], name, reuse=reuse)
             output_activation = tf.identity(transpose + b, name='identity')
             return output_activation, {name + '_b': b, name + '_activation': output_activation}
         else:
@@ -272,7 +272,7 @@ def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=No
                 output_activation = _activatioin(output, type=activation)
                 return output_activation, {name + '_activation': output_activation}
             else:
-                b = init_bias([shape[2]], name, reuse=reuse)
+                b = init_bias([shape[3]], name, reuse=reuse)
                 output = transpose + b
                 output_activation = _activatioin(output, type=activation)
                 return output_activation, {name + '_b': b, name + '_activation': output_activation}

@@ -26,20 +26,12 @@ logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 def get_available_gpus_wrapper():
     """this threading wrapper can get rid of residus tensorflow in gpus"""
-    gpu_list = []
-    t = Thread(target=get_available_gpus, args=(gpu_list,))
-    t.start()
-    t.join()
+    if not os.path.exists('./device.txt'):
+        proc = subprocess.Popen(['python', 'device.py'])
+        proc.wait()
+    with open('./device.txt', 'r') as f:
+        gpu_list = [line.rstrip() for line in f.readlines()]
     return gpu_list
-
-
-def get_available_gpus(l: list):
-    from tensorflow.python.client import device_lib
-    local_device_protos = device_lib.list_local_devices()
-    for x in local_device_protos:
-        if x.device_type == 'GPU':
-            l.append(int(x.name.split(':')[-1]))
-    return l
 
 
 class queueManager(QThread):
@@ -63,6 +55,7 @@ class queueManager(QThread):
     @pyqtSlot()
     def stop(self):
         self.toggle = False
+
 
 class WorkerSignals(QObject):
     error = pyqtSignal(tuple)
