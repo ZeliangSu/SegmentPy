@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1146</width>
-    <height>724</height>
+    <width>1157</width>
+    <height>754</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,7 +32,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>001-play-button.png</normaloff>001-play-button.png</iconset>
+            <normaloff>play-button.png</normaloff>play-button.png</iconset>
           </property>
           <property name="shortcut">
            <string>A</string>
@@ -76,7 +76,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>002-stop.png</normaloff>002-stop.png</iconset>
+            <normaloff>stop.png</normaloff>stop.png</iconset>
           </property>
           <property name="shortcut">
            <string>D</string>
@@ -96,7 +96,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>001-plus.png</normaloff>001-plus.png</iconset>
+            <normaloff>plus.png</normaloff>plus.png</iconset>
           </property>
           <property name="shortcut">
            <string>Q</string>
@@ -116,7 +116,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>002-minus.png</normaloff>002-minus.png</iconset>
+            <normaloff>minus.png</normaloff>minus.png</iconset>
           </property>
           <property name="shortcut">
            <string>W</string>
@@ -136,7 +136,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>001-reply.png</normaloff>001-reply.png</iconset>
+            <normaloff>reply.png</normaloff>reply.png</iconset>
           </property>
           <property name="shortcut">
            <string>E</string>
@@ -156,7 +156,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>002-reload.png</normaloff>002-reload.png</iconset>
+            <normaloff>resume.png</normaloff>resume.png</iconset>
           </property>
           <property name="shortcut">
            <string>Z</string>
@@ -209,7 +209,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>002-speedometer.png</normaloff>002-speedometer.png</iconset>
+            <normaloff>speedometer.png</normaloff>speedometer.png</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -488,7 +488,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1146</width>
+     <width>1157</width>
      <height>22</height>
     </rect>
    </property>
