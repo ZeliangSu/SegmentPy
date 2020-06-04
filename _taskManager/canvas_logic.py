@@ -129,9 +129,9 @@ class MPL(QWidget):
             self.load_event(k)
             try:
                 ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
-                ls_tn_ax.plot(self.curves[k][0].step, self.curves[k][2].value, label=k)
+                ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k)
                 ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
-                ls_val_ax.plot(self.curves[k][1].step, self.curves[k][3].value, label=k)
+                ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k)
             except Exception as e:
                 logger.debug(e)
         self.setCursor(Qt.ArrowCursor)
@@ -141,7 +141,6 @@ class MPL(QWidget):
         fig_lss_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
         fig_acc_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
         fig_lss_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
-
 
         self.canvas_acc_train.draw()
         self.canvas_lss_train.draw()

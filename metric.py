@@ -1,53 +1,325 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from randomForest import load_model, predict
-from util import check_N_mkdir, _tifReader
-
-filt_names = [
-    'gaussian_blur',
-    'sobel',
-    'hessian',
-    'dog',
-    # 'membrane_proj',
-    'anisotropic_diffusion1',
-    'anisotropic_diffusion2',
-    'gabor',
-    'bilateral',
-    'median',
-]
 
 
-class SU_series:
-    def __init__(self, number):
-        self.series = [0]
-        self.sum = [0]
-        _series = []
-        _i = []
-        _somme = []
-        self.set_range(number)
+def _roll(array, neib_value, shift=0, axis=0):
+    _array = np.roll(array == neib_value, shift=shift, axis=axis)
+    # Cancel the last slice rolled/shifted to the first slice
+    if axis == 0:
+        if shift >= 0:
+            _array[:shift, :, :] = 0
+        else:
+            _array[shift:, :, :] = 0
+        return _array
+    elif axis == 1:
+        if shift >= 0:
+            _array[:, :shift, :] = 0
+        else:
+            _array[:, shift:, :] = 0
+        return _array
+    elif axis == 2:
+        if shift >= 0:
+            _array[:, :, :shift] = 0
+        else:
+            _array[:, :, -shift:] = 0
+    return _array
 
-    def set_range(self, range):
-        self.range = range
 
-    def make_series(self):
-        for i in range(1, self.range):
-            _series = self.series + [i]
-            _i = [i]
-            _somme = []
-            for j in _series:
-                _somme += [j + i]
-            for k in _somme:
-                if k in self.sum:
-                    _somme = []
-                    _i = []
-                    break
-            self.sum += _somme
-            self.series += _i
+def _roll_bis(array, that_value, shift=0, axis=0):
+    # Roll the 3D array along axis with certain unity
+    _array = np.roll(array != that_value, shift=shift, axis=axis)
 
-    def get_series(self):
-        self.make_series()
-        return self.series
+    # Cancel the last slice rolled/shifted to the first slice
+    if axis == 0:
+        if shift >= 0:
+            _array[:1, :, :] = 0
+        else:
+            _array[-1:, :, :] = 0
+        return _array
+    elif axis == 1:
+        if shift >= 0:
+            _array[:, :1, :] = 0
+        else:
+            _array[:, -1:, :] = 0
+        return _array
+    elif axis == 2:
+        if shift >= 0:
+            _array[:, :, :1] = 0
+        else:
+            _array[:, :, -1:] = 0
+        return _array
+
+
+def shift_helper(array, neib_value, shift1=0, axis1=0, shift2=0, axis2=0, shift3=0, axis3=0):
+    # Roll the 3D array along axis with certain unity
+    _array = _roll(_roll(_roll(array, neib_value, shift=shift1, axis=axis1),
+                         1, shift=shift2, axis=axis2),
+                   1, shift=shift3, axis=axis3)
+    return _array
+
+
+def shift_helper_bis(array, that_value, shift1=0, axis1=0, shift2=0, axis2=0, shift3=0, axis3=0):
+    # Roll the 3D array along axis with certain unity
+    _array = _roll_bis(_roll_bis(_roll_bis(array, that_value, shift=shift1, axis=axis1),
+                         1, shift=shift2, axis=axis2),
+                   1, shift=shift3, axis=axis3)
+    return _array
+
+
+def compneib26(array, phase1, phase2=None):
+    if phase2 is not None:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                    & (shift_helper(array, phase2, shift1=-1, axis1=0)
+                    | shift_helper(array, phase2, shift1=1, axis1=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=-1, axis2=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=1, axis2=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=-1, axis2=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=1, axis2=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1, shift2=-1, axis2=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1, shift2=1, axis2=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=1, shift2=-1, axis2=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=1, shift2=1, axis2=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2, shift2=1, axis2=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                    | shift_helper(array, phase2, shift1=1, axis1=2, shift2=1, axis2=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=-1, axis2=1, shift3=-1, axis3=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=-1, axis2=1, shift3=1, axis3=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=1, axis2=1, shift3=-1, axis3=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=1, axis2=1, shift3=1, axis3=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=-1, axis2=1, shift3=-1, axis3=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=-1, axis2=1, shift3=1, axis3=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=1, axis2=1, shift3=-1, axis3=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=1, axis2=1, shift3=1, axis3=2)
+                    ))] = 1
+    else:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                        & (shift_helper_bis(array, phase1, shift1=-1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1, shift2=-1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1, shift2=1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1, shift2=-1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1, shift2=1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2, shift2=1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=2, shift2=1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=-1, axis2=1, shift3=-1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=-1, axis2=1, shift3=1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=1, axis2=1, shift3=-1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=1, axis2=1, shift3=1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=-1, axis2=1, shift3=-1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=-1, axis2=1, shift3=1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=1, axis2=1, shift3=-1, axis3=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=1, axis2=1, shift3=1, axis3=2)
+                           ))] = 1
+    return _array
+
+
+def compneib18(array, phase1, phase2=None):
+    if phase2 is not None:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                    & (shift_helper(array, phase2, shift1=-1, axis1=0)
+                    | shift_helper(array, phase2, shift1=1, axis1=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=-1, axis2=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=1, axis2=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=-1, axis2=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=0, shift2=1, axis2=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1, shift2=-1, axis2=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1, shift2=1, axis2=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=1, shift2=-1, axis2=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=1, shift2=1, axis2=2)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2, shift2=1, axis2=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                    | shift_helper(array, phase2, shift1=1, axis1=2, shift2=1, axis2=0)
+                    ))] = 1
+    else:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                        & (shift_helper_bis(array, phase1, shift1=-1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1, shift2=-1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1, shift2=1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1, shift2=-1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1, shift2=1, axis2=2)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2, shift2=1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2, shift2=-1, axis2=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=2, shift2=1, axis2=0)
+                           ))] = 1
+    return _array
+
+
+def compneib8(array, phase1, phase2=None):
+    if phase2 is not None:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                        & (shift_helper(array, phase2, shift1=-1, axis1=0)
+                           | shift_helper(array, phase2, shift1=1, axis1=0)
+                           | shift_helper(array, phase2, shift1=-1, axis1=1)
+                           | shift_helper(array, phase2, shift1=1, axis1=1)
+                           | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper(array, phase2, shift1=-1, axis1=0, shift2=1, axis2=1)
+                           | shift_helper(array, phase2, shift1=1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper(array, phase2, shift1=1, axis1=0, shift2=1, axis2=1)
+                    ))] = 1
+    else:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                        & (shift_helper_bis(array, phase1, shift1=-1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=0, shift2=1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=-1, axis2=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0, shift2=1, axis2=1)
+                           ))] = 1
+    return _array
+
+
+def compneib6(array, phase1, phase2=None):
+    if phase2 is not None:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                    & (shift_helper(array, phase2, shift1=-1, axis1=0)
+                    | shift_helper(array, phase2, shift1=1, axis1=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=1)
+                    | shift_helper(array, phase2, shift1=-1, axis1=2)
+                    | shift_helper(array, phase2, shift1=1, axis1=2)
+                    ))] = 1
+    else:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                        & (shift_helper_bis(array, phase1, shift1=-1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=2)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=2)
+                           ))] = 1
+    return _array
+
+
+def compneib4(array, phase1, phase2=None):
+    if phase2 is not None:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                    & (shift_helper(array, phase2, shift1=-1, axis1=0)
+                    | shift_helper(array, phase2, shift1=1, axis1=0)
+                    | shift_helper(array, phase2, shift1=-1, axis1=1)
+                    | shift_helper(array, phase2, shift1=1, axis1=1)
+                    ))] = 1
+    else:
+        _array = np.zeros(array.shape)
+        _array[np.where((array == phase1)
+                        & (shift_helper_bis(array, phase1, shift1=-1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=0)
+                           | shift_helper_bis(array, phase1, shift1=-1, axis1=1)
+                           | shift_helper_bis(array, phase1, shift1=1, axis1=1)
+                           ))] = 1
+    return _array
+
+
+def choose_nb_neighb(mode, array, mtx):
+    if mode == 6:
+        _array = compneib6(array, **mtx)
+    elif mode == 18:
+        _array = compneib18(array, **mtx)
+    elif mode == 26:
+        _array = compneib26(array, **mtx)
+    elif mode == 4:  # 2D
+        _array = compneib4(array, **mtx)
+    elif mode == 8:  # 2D
+        _array = compneib8(array, **mtx)
+    else:
+        raise ValueError
+    return _array
+
+
+def get_surface(seg, phase: int):
+    assert isinstance(seg, np.ndarray)
+    surf = compneib8(seg, phase)
+    return surf
+
+
+def get_interface(seg, phase1: int, phase2: int):
+    assert isinstance(seg, np.ndarray)
+    interface = compneib8(seg, phase1, phase2)
+    return interface
+
+
+def get_diff_map(seg, ground_truth):
+    assert isinstance(seg, np.ndarray)
+    assert isinstance(ground_truth, np.ndarray)
+    assert seg.shape == ground_truth.shape
+    diff = np.zeros_like(seg)
+    diff[np.where(seg != ground_truth)] = 1
+    return diff
+
+
+def one_hot_2D(img):
+    assert isinstance(img, np.ndarray)
+    img = img.astype(np.int32)
+    # get how many classes
+    nb_classes = len(np.unique(img))
+    # one hot
+    out = []
+    for i in range(nb_classes):
+        tmp = np.zeros(img.shape)
+        tmp[np.where(img == i)] = 1
+        # tmp[np.where(tensor == i)] = 5  # uncomment this line to do 5-hot
+        out.append(tmp)
+    # stack along the last channel
+    out = np.stack(out, axis=2).astype(np.int)
+    return out
+
+
+def IoU(seg, ground_truth):
+    # get the series
+    assert isinstance(seg, np.ndarray)
+    assert isinstance(ground_truth, np.ndarray)
+    assert seg.shape == ground_truth.shape
+
+    _IoU = {}
+    hotted_seg = one_hot_2D(seg)  # (h, w, cls)
+    hotted_gt = one_hot_2D(ground_truth)  # (h, w, cls)
+
+    tmp = hotted_gt * hotted_seg
+
+    for cls in np.unique(seg):
+        _IoU[cls] = len(np.where(tmp[:, :, cls] != 0)[0]) / hotted_seg[:, :, cls].size
+    return _IoU
 
 
 def DSC(seg, ground_truth):
@@ -57,52 +329,19 @@ def DSC(seg, ground_truth):
     :param ground_truth: 3D np ndaaray of a ground truth tomographic volume with different classes e.g. 0, 1, 2, ...
     :return: the value of Dice Similarity Coefficient of two inputs volumes
     '''
+    # todo: only 2D version is used here considering it's hard to generate 3D ground truths
 
     # get the series
-    Series_a = SU_series(11).get_series()
+    assert isinstance(seg, np.ndarray)
+    assert isinstance(ground_truth, np.ndarray)
+    assert len(seg.shape) == len(ground_truth.shape)
 
-    # init
     _DSC = {}
-
-    # parse vols
-    seg = seg.astype(int)
-    seg_class = np.unique(seg)
-    gt_class = np.unique(ground_truth)
-    assert seg_class.all() == gt_class.all(), "There shouln't be different class! Seg:{}, Ground:{}'.format(seg_class, gt_class)"
-    for i in range(seg_class.size):
-        seg_class[i] = Series_a[i]  #0, 1, 3, 7...
-        gt_class[i] = Series_a[i]   #0, 1, 3, 7...
-
-    # convert 0,1,2,3 to 0,1,3,7 of the volumes
-    for i in range(len(seg_class)):
-        seg[np.where(seg == i)] = Series_a[i]
-        ground_truth[np.where(ground_truth == i)] = Series_a[i]
-
-    # sum 2 vols
-    tmp = seg + ground_truth
-
-    # calculate DSC
-    if len(seg_class) <= 11:
-        # uniques: [0, 1, 2, 3, 4, 6...]
-        # counts: [T0, f01, T1, f03, f13, T3...]
-        # dic: {0:T0, 1:f01, 2:T1, 3:f03, 4:f13, 6:T3...]
-        uniques, counts = np.unique(tmp, return_counts=True)
-        dic = dict(np.asarray((uniques, counts), dtype=int).T)
-
-        # some init
-        f_cls = 0
-
-        # calculate DSC for each class
-        for cls in seg_class:
-            T_cls = dic[cls * 2]
-            for rest in np.delete(seg_class, np.where(seg_class == cls)):
-                f_cls += dic[cls + rest]
-
-            # add DSC for each class in the dict
-            # 2T_cls / (2T_cls + f_cls)
-            _DSC[cls] = 2 * T_cls / (2 * T_cls + f_cls)
-    else:
-        raise NotImplementedError("only 11 classes(phases) are supported")
+    hotted_seg = one_hot_2D(seg)  # (h, w, cls)
+    hotted_gt = one_hot_2D(ground_truth)  # (h, w, cls)
+    tp = 2 * np.product(hotted_seg, hotted_gt, axis=2) / np.sum(hotted_seg, hotted_gt, axis=2)
+    for cls in np.unique(seg):
+        _DSC[cls] = tp[cls]
     return _DSC
 
 
@@ -116,6 +355,13 @@ def ACC(seg, ground_truth):
     seg = seg.astype(int)
     ACC = np.where(seg == ground_truth)[0].size / seg.size
     return ACC
+
+
+def volume_fractions(vol: np.ndarray):
+    vol_frac = {}
+    for ph in np.unique(vol):
+        vol_frac[ph] = len(np.where(vol == ph)[0]) / vol.size
+    return vol_frac
 
 
 def hist_inversing(init_arr, seg_arr, bins=2**10, classes=None, csv=None, plot=False, rlt_path=None):
@@ -192,36 +438,36 @@ if __name__ == '__main__':
         'GPU': 0,
     }
 
-    X_stack, y_stack, _ = _tifReader(paths['in_dir'])
+    # X_stack, y_stack, _ = _tifReader(paths['in_dir'])
+    # #
+    # # # RF inf
+    # clf = load_model(model_path=paths['RF_model_path'])
+    # vol_RF = predict(X_stack, clf, rlt_dir=paths['RF_out_dir'], filt_names=filt_names)
+    # #
+    # # # NN inf
+    # vol_NN = inference_recursive(inputs=X_stack, conserve_nodes=conserve_nodes, paths=paths, hyper=hyperparams)
+    # #
+    # # # compute metrics
+    # vol_RF = np.asarray(vol_RF)
+    # vol_NN = np.asarray(vol_NN)
     #
-    # # RF inf
-    clf = load_model(model_path=paths['RF_model_path'])
-    vol_RF = predict(X_stack, clf, rlt_dir=paths['RF_out_dir'], filt_names=filt_names)
+    # # or read from folder
+    # vol_RF, _, _ = _tifReader(paths['RF_out_dir'])
+    # vol_NN, _, _ = _tifReader(paths['out_dir'])
+    # X_stack, y_stack, _ = _tifReader(paths['in_dir'])
+    # vol_RF = np.asarray(vol_RF)
+    # vol_NN = np.asarray(vol_NN)
+    # y_stack = np.asarray(y_stack)
     #
-    # # NN inf
-    vol_NN = inference_recursive(inputs=X_stack, conserve_nodes=conserve_nodes, paths=paths, hyper=hyperparams)
+    # # or load from rlt
+    # print('\nRF:', DSC(vol_RF, y_stack))
+    # print('\nNN:', DSC(vol_NN, y_stack))
+    # print('\nRF:', ACC(vol_RF, y_stack))
+    # print('\nNN:', ACC(vol_NN, y_stack))
     #
-    # # compute metrics
-    vol_RF = np.asarray(vol_RF)
-    vol_NN = np.asarray(vol_NN)
-
-    # or read from folder
-    vol_RF, _, _ = _tifReader(paths['RF_out_dir'])
-    vol_NN, _, _ = _tifReader(paths['out_dir'])
-    X_stack, y_stack, _ = _tifReader(paths['in_dir'])
-    vol_RF = np.asarray(vol_RF)
-    vol_NN = np.asarray(vol_NN)
-    y_stack = np.asarray(y_stack)
-
-    # or load from rlt
-    print('\nRF:', DSC(vol_RF, y_stack))
-    print('\nNN:', DSC(vol_NN, y_stack))
-    print('\nRF:', ACC(vol_RF, y_stack))
-    print('\nNN:', ACC(vol_NN, y_stack))
-
-    # plot inverse histogram
-    # check path
-    check_N_mkdir(paths['rlt_dir'])
-    hist_inversing(X_stack, vol_RF, classes=['NMC', 'CBD', 'pore'], plot=True, rlt_path=paths['rlt_dir'] + 'RF.png')
-    hist_inversing(X_stack, vol_NN, classes=['NMC', 'CBD', 'pore'], plot=True, rlt_path=paths['rlt_dir'] + 'NN.png')
+    # # plot inverse histogram
+    # # check path
+    # check_N_mkdir(paths['rlt_dir'])
+    # hist_inversing(X_stack, vol_RF, classes=['NMC', 'CBD', 'pore'], plot=True, rlt_path=paths['rlt_dir'] + 'RF.png')
+    # hist_inversing(X_stack, vol_NN, classes=['NMC', 'CBD', 'pore'], plot=True, rlt_path=paths['rlt_dir'] + 'NN.png')
 

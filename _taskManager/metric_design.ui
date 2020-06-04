@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1164</width>
+    <width>1199</width>
     <height>914</height>
    </rect>
   </property>
@@ -16,6 +16,43 @@
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
     <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <widget class="QLabel" name="total_pix">
+       <property name="text">
+        <string>Total pixels:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="total_IoU">
+       <property name="text">
+        <string>Accuracy:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="total_acc">
+       <property name="text">
+        <string>IoU:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
@@ -35,7 +72,7 @@
             </size>
            </property>
            <property name="text">
-            <string>Vol. Frac. (pixel / %):</string>
+            <string>Ref. Vol. Frac. (pixel / %):</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -43,7 +80,45 @@
           </widget>
          </item>
          <item>
-          <widget class="QListView" name="listView">
+          <widget class="QListWidget" name="gt1_vol_frac">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>150</width>
+             <height>16777215</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_5">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>150</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Ref. Surface (pixel / %):</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="gt1_surf">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -73,7 +148,7 @@
             </size>
            </property>
            <property name="text">
-            <string>Interface (pixel / %):</string>
+            <string>Ref. Interface (pixel / %):</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -81,7 +156,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QListView" name="listView_3">
+          <widget class="QListWidget" name="gt1_interf">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -103,7 +178,7 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
-            <widget class="QLabel" name="raw">
+            <widget class="QLabel" name="raw_frame">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>1</horstretch>
@@ -143,7 +218,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="diff">
+            <widget class="QLabel" name="diff_frame">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>1</horstretch>
@@ -172,7 +247,7 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
-            <widget class="QLabel" name="gt1">
+            <widget class="QLabel" name="gt1_frame">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>1</horstretch>
@@ -192,7 +267,7 @@
               <enum>QFrame::Box</enum>
              </property>
              <property name="text">
-              <string>Drop a segmentation here</string>
+              <string>Drop a (reference) segmentation here</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
@@ -200,7 +275,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="gt2">
+            <widget class="QLabel" name="gt2_frame">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>1</horstretch>
@@ -259,7 +334,45 @@
           </widget>
          </item>
          <item>
-          <widget class="QListView" name="listView_2">
+          <widget class="QListWidget" name="gt2_vol_frac">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>150</width>
+             <height>16777215</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_6">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>150</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Surface (pixel / %):</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="gt2_surf">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -297,7 +410,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QListWidget" name="listWidget">
+          <widget class="QListWidget" name="gt2_interf">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -332,30 +445,42 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="clean_button">
          <property name="text">
-          <string>Refresh(R)</string>
+          <string>Clean(C)</string>
+         </property>
+         <property name="shortcut">
+          <string>C</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="add_button">
          <property name="text">
           <string>Add(A)</string>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButton_4">
-         <property name="text">
-          <string>Previous(1)</string>
+         <property name="shortcut">
+          <string>A</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_3">
+        <widget class="QPushButton" name="previous_button">
+         <property name="text">
+          <string>Previous(1)</string>
+         </property>
+         <property name="shortcut">
+          <string>1</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="next_button">
          <property name="text">
           <string>Next(2)</string>
+         </property>
+         <property name="shortcut">
+          <string>2</string>
          </property>
         </widget>
        </item>
@@ -375,7 +500,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QScrollBar" name="horizontalScrollBar">
+      <widget class="QScrollBar" name="pageSlider">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
