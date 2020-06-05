@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPaintEvent, QPixmap, QImage, QPainter
+from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
 from PyQt5.QtCore import Qt, QPoint
 
 from _taskManager.volumes_viewer_design import Ui_volViewer

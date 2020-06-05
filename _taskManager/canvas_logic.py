@@ -32,36 +32,67 @@ class MPL(QWidget):
         self.setAcceptDrops(True)
 
         # init curves
-        figure_train = plt.figure(dpi=50)
-        figure_val = plt.figure(dpi=50)
-        self.canvas_train = canvas(figure_train)
-        self.canvas_val = canvas(figure_val)
+        figure_acc_train = plt.figure(dpi=50)
+        figure_lss_train = plt.figure(dpi=50)
+        figure_acc_val = plt.figure(dpi=50)
+        figure_lss_val = plt.figure(dpi=50)
+
+        self.canvas_acc_train = canvas(figure_acc_train)
+        self.canvas_lss_train = canvas(figure_lss_train)
+        self.canvas_acc_val = canvas(figure_acc_val)
+        self.canvas_lss_val = canvas(figure_lss_val)
 
         # note: set parent to allow super class mainwindow control these canvas
-        self.canvas_train.setParent(parent)
-        self.canvas_val.setParent(parent)
+        self.canvas_acc_train.setParent(parent)
+        self.canvas_lss_train.setParent(parent)
+        self.canvas_acc_val.setParent(parent)
+        self.canvas_lss_val.setParent(parent)
 
         # init toolbar
-        Toolbar1 = toolbar(self.canvas_train, self)
-        Toolbar2 = toolbar(self.canvas_val, self)
+        Toolbar1 = toolbar(self.canvas_acc_train, self)
+        Toolbar2 = toolbar(self.canvas_acc_val, self)
+        Toolbar3 = toolbar(self.canvas_lss_train, self)
+        Toolbar4 = toolbar(self.canvas_lss_val, self)
 
         # set layout
         QVBL1 = QtWidgets.QVBoxLayout()
-        QVBL1.addWidget(self.canvas_train)
+        QVBL1.addWidget(self.canvas_acc_train)
         QVBL1.addWidget(Toolbar1)
 
         QVBL2 = QtWidgets.QVBoxLayout()
-        QVBL2.addWidget(self.canvas_val)
+        QVBL2.addWidget(self.canvas_acc_val)
         QVBL2.addWidget(Toolbar2)
 
+        QVBL3 = QtWidgets.QVBoxLayout()
+        QVBL3.addWidget(self.canvas_lss_val)
+        QVBL3.addWidget(Toolbar3)
+
+        QVBL4 = QtWidgets.QVBoxLayout()
+        QVBL4.addWidget(self.canvas_lss_val)
+        QVBL4.addWidget(Toolbar4)
+
+        # set layout
         self.QHBL = QtWidgets.QHBoxLayout()
         self.QHBL.addLayout(QVBL1)
         self.QHBL.addLayout(QVBL2)
         self.setLayout(self.QHBL)
 
+        self.QHBL2 = QtWidgets.QHBoxLayout()
+        self.QHBL2.addLayout(QVBL3)
+        self.QHBL2.addLayout(QVBL4)
+        self.setLayout(self.QHBL2)
+
+        # together
+        self.QVBL_all = QtWidgets.QVBoxLayout()
+        self.QVBL_all.addLayout(self.QHBL)
+        self.QVBL_all.addLayout(self.QHBL2)
+        self.setLayout(self.QVBL_all)
+
         # finally draw the canvas
-        self.canvas_train.draw()
-        self.canvas_val.draw()
+        self.canvas_acc_train.draw()
+        self.canvas_lss_train.draw()
+        self.canvas_acc_val.draw()
+        self.canvas_lss_val.draw()
 
     def load_event(self, key):
         if key not in self.curves.keys():
@@ -76,12 +107,20 @@ class MPL(QWidget):
         if self.paths.__len__() == 0:
             return
 
-        fig_tn = self.canvas_train.figure
-        fig_val = self.canvas_val.figure
-        fig_tn.clear()
-        fig_val.clear()
-        tn_ax = fig_tn.add_subplot(111)
-        val_ax = fig_val.add_subplot(111)
+        fig_acc_tn = self.canvas_acc_train.figure
+        fig_acc_val = self.canvas_acc_val.figure
+        fig_lss_tn = self.canvas_lss_train.figure
+        fig_lss_val = self.canvas_lss_val.figure
+
+        fig_acc_tn.clear()
+        fig_lss_tn.clear()
+        fig_acc_val.clear()
+        fig_lss_val.clear()
+
+        ac_tn_ax = fig_acc_tn.add_subplot(111)
+        ls_tn_ax = fig_lss_tn.add_subplot(111)
+        ac_val_ax = fig_acc_val.add_subplot(111)
+        ls_val_ax = fig_lss_val.add_subplot(111)
 
         # sometimes no event conducts to NoneType
         self.setAcceptDrops(False)
@@ -89,17 +128,24 @@ class MPL(QWidget):
         for k, v in self.paths.items():
             self.load_event(k)
             try:
-                tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
-                val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+                ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
+                ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k)
+                ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+                ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k)
             except Exception as e:
                 logger.debug(e)
         self.setCursor(Qt.ArrowCursor)
         self.setAcceptDrops(True)
 
-        fig_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
-        fig_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
-        self.canvas_train.draw()
-        self.canvas_val.draw()
+        fig_acc_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_lss_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_acc_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_lss_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+
+        self.canvas_acc_train.draw()
+        self.canvas_lss_train.draw()
+        self.canvas_acc_val.draw()
+        self.canvas_lss_val.draw()
 
     def dragEnterEvent(self, QDragEnterEvent):
         print('detected: ', QDragEnterEvent.mimeData().text())
