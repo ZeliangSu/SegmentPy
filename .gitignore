@@ -15,3 +15,5 @@ train/*
 valid/*
 test/*
 predict/*
+device.txt
+_taskManager/latest.json

@@ -1,6 +1,7 @@
 import datetime
 import numpy as np
 import argparse
+import os
 
 from train import main_train
 from util import exponential_decay, ramp_decay
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     # note: copy this in terminal for debugging
     #  'python main_train.py -mdl LRCS -nc 32 -bs 8 -ws 512 -ep 5 -cs 3 -lr ramp -ilr 1e-4 -klr 0.3 -plr 1 -bn True -do 0.1 -ag True -fn leaky -af DSC -mode classification -dv 0 -st 500 -tb 50 -cmt None
 
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(args.device)
+    os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(-1 if args.device == 'cpu' else args.device)
 
     # params
     hyperparams = {
