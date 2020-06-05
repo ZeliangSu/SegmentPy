@@ -9,12 +9,14 @@ import os
 import logging
 import log
 
-logger = log.setup_custom_logger('root', level=logging.WARNING)
-logger.setLevel(logging.WARNING)
-logging.basicConfig(level=logging.WARNING)
+# logging
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.INFO)  #changeHere: debug level
 
 
-def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
+def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
     """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -51,6 +53,7 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
                 batch = batch.map(_pyfn_classification_parser_wrapper_V2, num_parallel_calls=ncores)
             elif mode == 'weka':
                 batch = batch.map(_pyfn_classification_parser_wrapper_weka, num_parallel_calls=ncores)
+                raise NotImplementedError
 
             # random augment data
             if augmentation:
@@ -63,10 +66,21 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(), suffix='', augmentation=
             # batch = batch.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
 
             # construct iterator
-            it = tf.data.Iterator.from_structure(batch.output_types, batch.output_shapes)
+            it = tf.data.Iterator.from_structure(
+                batch.output_types,
+                batch.output_shapes
+                # (tf.TensorShape([None, None, None, 1]), tf.TensorShape([None, None, None, 3]))
+            )
+
             iter_init_op = it.make_initializer(batch, name='iter_init_op')
             # get next img and label
             X_it, y_it = it.get_next()
+
+            # fixme
+            # X_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, 1])
+            # y_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, 1])
+            # X_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, -1])
+            # y_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, -1])
 
             # dict
             inputs = {'img': X_it,
@@ -150,6 +164,7 @@ def _pyfn_aug_wrapper(X_img, y_img):
 def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
+    logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
     assert img.shape == label.shape, 'img and label shape should be equal'
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
@@ -158,6 +173,7 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
     y = _one_hot(y)
     # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C
     return X, y.astype(np.int32)
+    # return _minmaxscalar(X), y.astype(np.int32)
 
 
 def parse_h5_one_hot_V3(fname, window_size, x_coord, y_coord):
@@ -166,6 +182,7 @@ def parse_h5_one_hot_V3(fname, window_size, x_coord, y_coord):
     assert img.shape == label.shape, 'img and label shape should be equal'
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
+    logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
 
     # note: the order of the following list shouldn't be changed either training or testing
     l_func = [

@@ -311,3 +311,9 @@ def _tifReader(dir):
            shapes #lists
 
 
+def boolean_string(s):
+    if s in ['False', 'false']:
+        return False
+    else:
+        return True
+

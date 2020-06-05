@@ -2,9 +2,10 @@ import datetime
 import numpy as np
 import argparse
 import os
+import shutil
 
 from train import main_train
-from util import exponential_decay, ramp_decay
+from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
 from input import coords_gen
 
 # logging
@@ -12,6 +13,7 @@ import logging
 import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.WARNING)
+
 
 # force to run this on main
 if __name__ == '__main__':
@@ -32,11 +34,11 @@ if __name__ == '__main__':
     parser.add_argument('-klr', '--lr_decay_ratio', type=float, metavar='', required=True,
                         help='the decay ratio e.g. 0.1')
     parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=True, help='decay every X epoch')
-    parser.add_argument('-bn', '--batch_norm', type=bool, metavar='', required=True,
+    parser.add_argument('-bn', '--batch_norm', type=str, metavar='', required=True,
                         help='use batch normalization or not')
     parser.add_argument('-do', '--dropout_prob', type=float, metavar='', required=True,
                         help='dropout probability for the Dense-NN part')
-    parser.add_argument('-ag', '--augmentation', type=bool, metavar='', required=True,
+    parser.add_argument('-ag', '--augmentation', type=str, metavar='', required=True,
                         help='use augmentation on the input pipeline')
     parser.add_argument('-fn', '--loss_fn', type=str, metavar='', required=True,
                         help='indicate the loss function e.g. DSC, CE')
@@ -51,99 +53,180 @@ if __name__ == '__main__':
     parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
                         help='save the histograms of gradients and weights for the training every X step')
     parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
-    args = parser.parse_args()
-    print(args)
 
-    # note: copy this in terminal for debugging
-    #  'python main_train.py -mdl LRCS -nc 32 -bs 8 -ws 512 -ep 5 -cs 3 -lr ramp -ilr 1e-4 -klr 0.3 -plr 1 -bn True -do 0.1 -ag True -fn leaky -af DSC -mode classification -dv 0 -st 500 -tb 50 -cmt None
+    try:
+        args = parser.parse_args()
+        print(args)
+        print(bool(args.augmentation))
+        # note: copy this in terminal for debugging
+        #  'python main_train.py -mdl LRCS -nc 32 -bs 8 -ws 512 -ep 5 -cs 3 -lr ramp -ilr 1e-4 -klr 0.3 -plr 1 -bn True -do 0.1 -ag True -fn leaky -af DSC -mode classification -dv 0 -st 500 -tb 50 -cmt None
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(-1 if args.device == 'cpu' else args.device)
+        os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(-1 if args.device == 'cpu' else args.device)
 
-    # params
-    hyperparams = {
-        ############### model ###################
-        'model': args.model,
-        'mode': args.mode,
-        'dropout': args.dropout_prob,
-        'augmentation': args.augmentation,
-        'batch_normalization': args.batch_norm,
-        'activation': args.activation_fn,
-        'loss_option': args.loss_fn,
+        # params
+        hyperparams = {
+            ############### model ###################
+            'model': args.model,
+            'mode': args.mode,
+            'dropout': args.dropout_prob,
+            'augmentation': boolean_string(args.augmentation),
+            'batch_normalization': boolean_string(args.batch_norm),
+            'activation': args.activation_fn,
+            'loss_option': args.loss_fn,
 
-        ############### hyper-paras ##############
-        'patch_size': args.window_size,
-        'batch_size': args.batch_size,
-        'conv_size': args.conv_size,
-        'nb_conv': args.nb_conv,
+            ############### hyper-paras ##############
+            'patch_size': args.window_size,
+            'batch_size': args.batch_size,
+            'conv_size': args.conv_size,
+            'nb_conv': args.nb_conv,
 
-        ############### misc #####################
-        'nb_epoch': args.nb_epoch,
-        'device': -1 if args.device == 'cpu' else args.device,
-        'save_step': 500 if args.save_model_step is None else args.save_model_step,
-        'save_summary_step': 50 if args.save_tb is None else args.save_tb,
-        'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
-        'hour': '{}'.format(datetime.datetime.now().hour),
+            ############### misc #####################
+            'nb_epoch': args.nb_epoch,
+            'device': -1 if args.device == 'cpu' else args.device,
+            'save_step': 500 if args.save_model_step is None else args.save_model_step,
+            'save_summary_step': 50 if args.save_tb is None else args.save_tb,
+            'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
+            'hour': '{}'.format(datetime.datetime.now().hour),
 
-        'train_dir': './train/',
-        'val_dir': './valid/',
-        'test_dir': './test/',
+            'train_dir': './train/',
+            'val_dir': './valid/',
+            'test_dir': './test/',
+            }
+
+        # coordinations gen
+        hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
+                                                 test_dir=hyperparams['test_dir'],
+                                                 window_size=hyperparams['patch_size'],
+                                                 train_test_ratio=0.9,
+                                                 stride=5,
+                                                 nb_batch=None,
+                                                 batch_size=hyperparams['batch_size'])
+
+        # calculate nb_batch
+        hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
+
+        # get learning rate schedule
+        if args.lr_decay_type == 'exp':
+            hyperparams['learning_rate'] = exponential_decay(
+                hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
+                args.init_lr,
+                k=args.lr_decay_ratio
+            )  # float32 or np.array of programmed learning rate
+        elif args.lr_decay_type == 'ramp':
+            hyperparams['learning_rate'] = ramp_decay(
+                hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
+                hyperparams['nb_batch'],
+                args.init_lr,
+                k=args.lr_decay_ratio,
+                period=args.lr_period,
+            )  # float32 or np.array of programmed learning rate
+        elif args.lr_decay_type == 'constant':
+            hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
+        else:
+            raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))
+
+        # name the log directory
+        hyperparams['folder_name'] = \
+            './logs/{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+                hyperparams['date'],
+                hyperparams['model'],
+                hyperparams['batch_size'],
+                hyperparams['patch_size'],
+                hyperparams['conv_size'],
+                hyperparams['nb_conv'],
+                hyperparams['dropout'],
+                hyperparams['activation'],
+                str(hyperparams['augmentation']),
+                str(hyperparams['batch_normalization']),
+                hyperparams['mode'],
+                args.loss_fn,
+                args.lr_decay_type,
+                args.init_lr,
+                args.lr_decay_ratio,
+                args.lr_period,
+                args.comment.replace(' ', '_'),
+                hyperparams['hour'],
+                hyperparams['device']
+            )
+
+    except AssertionError as e:
+        logger.warning('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
+        hyperparams = {
+            ############### model ###################
+            'model': 'Unet4',
+            'mode': 'classification',
+            'dropout': '0.0',
+            'augmentation': True,
+            'batch_normalization': 'True',
+            'activation': 'leaky',
+            'loss_option': 'DSC',
+
+            ############### hyper-paras ##############
+            'patch_size': 512,
+            'batch_size': 8,
+            'conv_size': 3,
+            'nb_conv': 32,
+
+            ############### misc #####################
+            'nb_epoch': 5,
+            'device': 0,  #cpu: -1
+            'save_step': 500,
+            'save_summary_step': 50,
+            'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month,
+                                      datetime.datetime.now().day),
+            'hour': '{}'.format(datetime.datetime.now().hour),
+
+            'train_dir': './train/',
+            'val_dir': './valid/',
+            'test_dir': './test/',
         }
+        # coordinations gen
+        hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
+                                                 test_dir=hyperparams['test_dir'],
+                                                 window_size=hyperparams['patch_size'],
+                                                 train_test_ratio=0.9,
+                                                 stride=5,
+                                                 nb_batch=None,
+                                                 batch_size=hyperparams['batch_size'])
 
-    # coordinations gen
-    hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                             test_dir=hyperparams['test_dir'],
-                                             window_size=hyperparams['patch_size'],
-                                             train_test_ratio=0.9,
-                                             stride=5,
-                                             nb_batch=None,
-                                             batch_size=hyperparams['batch_size'])
-
-    # calculate nb_batch
-    hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
-
-    # get learning rate schedule
-    if args.lr_decay_type == 'exp':
-        hyperparams['learning_rate'] = exponential_decay(
-            hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
-            args.init_lr,
-            k=args.lr_decay_ratio
-        )  # float32 or np.array of programmed learning rate
-    elif args.lr_decay_type == 'ramp':
+        # calculate nb_batch
+        hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
+        ############### generated #################
         hyperparams['learning_rate'] = ramp_decay(
             hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
             hyperparams['nb_batch'],
-            args.init_lr,
-            k=args.lr_decay_ratio,
-            period=args.lr_period,
-        )  # float32 or np.array of programmed learning rate
-    elif args.lr_decay_type == 'constant':
-        hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
-    else:
-        raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))
-
-    # name the log directory
-    hyperparams['folder_name'] = \
-        './logs/{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
-            hyperparams['date'],
-            hyperparams['model'],
-            hyperparams['batch_size'],
-            hyperparams['patch_size'],
-            hyperparams['conv_size'],
-            hyperparams['nb_conv'],
-            hyperparams['dropout'],
-            hyperparams['activation'],
-            str(hyperparams['augmentation']),
-            str(hyperparams['batch_normalization']),
-            hyperparams['mode'],
-            args.loss_fn,
-            args.lr_decay_type,
-            args.init_lr,
-            args.lr_decay_ratio,
-            args.lr_period,
-            args.comment.replace(' ', '_'),
-            hyperparams['hour'],
-            hyperparams['device']
+            1e-5,
+            k=0.3,
+            period=1,
         )
+        hyperparams['folder_name'] = \
+            './logs/DEBUG{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+                hyperparams['date'],
+                hyperparams['model'],
+                hyperparams['batch_size'],
+                hyperparams['patch_size'],
+                hyperparams['conv_size'],
+                hyperparams['nb_conv'],
+                hyperparams['dropout'],
+                hyperparams['activation'],
+                str(hyperparams['augmentation']),
+                str(hyperparams['batch_normalization']),
+                hyperparams['mode'],
+                hyperparams['loss_option'],
+                'ramp',
+                1e-4,
+                0.3,
+                1,
+                'DEBUG',
+                hyperparams['hour'],
+                hyperparams['device']
+            )
 
-    main_train(hyperparams)
+    # backup dataset
+    check_N_mkdir(hyperparams['folder_name'] + 'copy/')
+    shutil.copytree(hyperparams['train_dir'], hyperparams['folder_name'] + 'copy/train/')
+    shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
+    shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
+
+    main_train(hyperparams, grad_view=True)
 

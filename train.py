@@ -18,7 +18,9 @@ logger.setLevel(logging.DEBUG)
 
 def main_train(
         hyperparams: dict,  # can be a class
-        resume=False):
+        resume=False,
+        grad_view=False
+    ):
 
     # clean graph exists in memory
     tf.reset_default_graph()
@@ -26,14 +28,16 @@ def main_train(
     # init input pipeline
     if hyperparams['model'] in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3']:
         print('**********************************Use weka-like input')
-        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train',
+        train_inputs = inputpipeline_V2(hyperparams['batch_size'], hyperparams['patch_size'], suffix='train',
                                         augmentation=hyperparams['augmentation'], mode='weka')
-        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='weka')
+        test_inputs = inputpipeline_V2(hyperparams['batch_size'], hyperparams['patch_size'],
+                                       suffix='test', mode='weka')
 
     else:
-        train_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='train',
+        train_inputs = inputpipeline_V2(hyperparams['batch_size'], hyperparams['patch_size'], suffix='train',
                                         augmentation=hyperparams['augmentation'], mode='classification')
-        test_inputs = inputpipeline_V2(hyperparams['batch_size'], suffix='test', mode='classification')
+        test_inputs = inputpipeline_V2(hyperparams['batch_size'], hyperparams['patch_size'],
+                                       suffix='test', mode='classification')
 
     # define other placeholder
     if hyperparams['dropout'] is not None:
@@ -60,7 +64,8 @@ def main_train(
                                        batch_norm=hyperparams['batch_normalization'],
                                        loss_option=hyperparams['loss_option'],
                                        is_training=True,
-                                       device=hyperparams['device']
+                                       # device=hyperparams['device']
+                                       grad_view=grad_view,
                                        )
     # fixme: the following load 2 modes in one gpu
     test_nodes = classification_nodes(pipeline=test_inputs,
@@ -74,7 +79,8 @@ def main_train(
                                       batch_norm=hyperparams['batch_normalization'],
                                       loss_option=hyperparams['loss_option'],
                                       is_training=False,
-                                      device=hyperparams['device']
+                                      # device=hyperparams['device'],
+                                      grad_view=False,
                                       )
 
     # print number of params

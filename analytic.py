@@ -316,7 +316,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                 l.append(input_dir + f)
 
         img_path = l[0]
-        img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet'] else 3)
+        img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)
         img_size = img.shape
         logger.info('input shape: {}'.format(img_size))
 
@@ -338,7 +338,8 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             for func in l_func:
                 imgs.append(func(imgs[0]))
             imgs = np.stack(imgs, axis=2).astype(np.float32)
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet'] else 3)]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')),
+                                          maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)]
             logger.info('label shape: {}'.format(labels[0].shape))
 
 
@@ -346,7 +347,8 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             imgs = [
                 img
             ]
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet'] else 3)]
+            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')),
+                                          maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)]
             logger.info('label shape: {}'.format(labels[0].shape))
 
         # save imgs
@@ -415,6 +417,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
         # one-hot the label
         labels = np.expand_dims(np.asarray(labels), axis=3)  # list --> array --> (B, H, W, 1)
         logits = customized_softmax_np(np.asarray(res[-1], dtype=np.int))  # (B, H, W, 3)
+
         res_diff = np.equal(_inverse_one_hot(clean(logits)), labels)  #(B, H, W)
         plt_illd.add_diff(res_diff.astype(int))
         _resultWriter(res_diff.astype(int), 'diff', path=rlt_dir)  # for diff output shape: [batch, w, h, 3]

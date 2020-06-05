@@ -1,8 +1,12 @@
 import numpy as np
 from random import choice
-from scipy import ndimage
+from scipy import ndimage, interpolate
 
-def random_aug(X_img, y_img):
+
+def random_aug(X_img,
+               y_img,
+               normalization=1e3,  # 1e-4 if range of input  (0, 0.0001)
+               ):
     """
     input:
     -------
@@ -24,9 +28,14 @@ def random_aug(X_img, y_img):
         grayscale_var,
         # warping
     ]  #todo: can add probabilities
+
+    X_img = X_img.copy() * normalization
     X_img, y_img = choice(fns)(X_img, y_img)
     y_img.astype(np.int32)
-    # return _minmaxscalar(X_img).astype('float32'), y_img  #note: minmaxscal will alternate if not all classes are present
+
+    #note: minmaxscal will alternate if not all classes are present
+    # return _minmaxscalar(X_img).astype('float32'), y_img
+
     return X_img.astype('float32'), y_img
 
 
@@ -115,6 +124,7 @@ def speckle_noise(X_img, y_img):
 
 def non_noise(X_img, y_img):
     '''Do nothing'''
+
     return X_img, y_img
 
 
@@ -157,4 +167,5 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     """
     scaled = np.array((ndarray - np.min(ndarray)) / (np.max(ndarray) - np.min(ndarray)), dtype=dtype)
     return scaled
+
 

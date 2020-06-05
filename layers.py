@@ -77,6 +77,8 @@ def up_2by2(input_layer, name=''):
         upped = tf.image.resize_nearest_neighbor(input_layer, size=new_shape, name=name)
         upped.set_shape((None, inshape[1] * 2 if inshape[1] is not None else None,
                          inshape[2] * 2 if inshape[2] is not None else None, None))
+
+        # upped = tf.keras.layers.UpSampling2D((2, 2))(input_layer)
         return upped
 
         # return tf.keras.layers.UpSampling2D(size=(2, 2))(input_layer)
@@ -167,11 +169,15 @@ def up_2by2_ind(input_layer, ind, shape=None, name=''):
 
         try:
             set_in_shape = input_layer.get_shape().as_list()
-            set_out_shape = [set_in_shape[0], set_in_shape[1] * 2, set_in_shape[2] * 2, set_in_shape[3]]
-            unpool.set_shape(set_out_shape)
+            unpool.set_shape(tf.TensorShape([set_in_shape[0], set_in_shape[1] * 2, set_in_shape[2] * 2, set_in_shape[3]]))
+
+            # fixme: set_out_shape = [set_in_shape[0], set_in_shape[1] * 2, set_in_shape[2] * 2, set_in_shape[3]]
+            # fixme: unpool.set_shape(set_out_shape)
         except TypeError as e:
             logger.error(e)  # fixme: (Segnet2)
-            pass
+            # unpool.set_shape(
+            #     tf.convert_to_tensor([in_shape[0], in_shape[1] * 2, in_shape[2] * 2, in_shape[3]])
+            # )
         return unpool
 
 
@@ -222,22 +228,70 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
     with tf.name_scope(name):
         W = init_weights(shape, name, reuse=reuse)  # [conv_height, conv_width, in_channels, output_channels]
         output = tf.nn.conv2d(input_layer, W, strides=[1, stride, stride, 1], padding='SAME', name='conv')
+        # output = tf.layers.conv2d(input_layer,
+        #                           kernel_size=(shape[0], shape[1]),
+        #                           filters=shape[3],
+        #                           use_bias=False,
+        #                           strides=(stride, stride),
+        #                           padding='same',
+        #                           name=name,
+        #                           reuse=reuse
+        #                           )
+
         if 'logit' in name:
+            # note tf.layers.conv2d take explicit build time dimensions
+            #  while upsampling with index deal with runtime shaping
+            # output = tf.layers.conv2d(input_layer,
+            #                           kernel_size=(shape[0], shape[1]),
+            #                           filters=shape[3],
+            #                           use_bias=False,
+            #                           strides=(stride, stride),
+            #                           padding='same',
+            #                           name=name,
+            #                           reuse=reuse
+            #                           )
+
             b = init_bias([shape[3]], name, reuse=reuse)
-            output_activation = tf.identity(output + b, name='identity')
-            return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+            # output_activation = tf.identity(output + b, name='identity')
+
+            # #note: get nan in gradients after some interactions
+            output_activation = tf.identity(tf.nn.bias_add(output, b), name='identity')
+
+            # output_activation = tf.identity(output, name='identity')
+            return output_activation, {name + '_activation': output_activation}
         else:
             # Batch normalization
             if if_BN:
+                # output = tf.layers.conv2d(input_layer,
+                #                           kernel_size=(shape[0], shape[1]),
+                #                           filters=shape[3],
+                #                           use_bias=False,
+                #                           strides=(stride, stride),
+                #                           padding='same',
+                #                           name=name,
+                #                           reuse=reuse
+                #                           )
+
                 output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
                 output_activation = _activatioin(output, type=activation)
-                return output_activation, {name + '_W': W, name + '_activation': output_activation}
+                return output_activation, {name + '_activation': output_activation}
 
             else:
+                # output = tf.layers.conv2d(input_layer,
+                #                           kernel_size=(shape[0], shape[1]),
+                #                           filters=shape[3],
+                #                           use_bias=True,
+                #                           strides=(stride, stride),
+                #                           padding='same',
+                #                           name=name,
+                #                           reuse=reuse
+                #                           )
                 b = init_bias([shape[3]], name, reuse=reuse)
-                output = output + b
+                output = tf.nn.bias_add(output, b)
+
+                # output = output + b
                 output_activation = _activatioin(output, type=activation)
-                return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
+                return output_activation, {name + '_activation': output_activation}
 
 
 def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=None, activation='relu', name='', reuse=False):
@@ -256,26 +310,38 @@ def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=No
     """
     with tf.name_scope(name):
         # make transpose layer
-        transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
-                                               strides=tuple((stride, stride)), padding='SAME',
-                                               name=name, reuse=reuse)
+        # transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
+        #                                        strides=tuple((stride, stride)), padding='SAME',
+        #                                        use_bias=False, name=name, reuse=reuse)
 
         # add activation function
         if 'logit' in name:
-            b = init_bias([shape[3]], name, reuse=reuse)
-            output_activation = tf.identity(transpose + b, name='identity')
-            return output_activation, {name + '_b': b, name + '_activation': output_activation}
+            transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
+                                                   strides=(stride, stride), padding='same',
+                                                   use_bias=True, name=name, reuse=reuse)
+            # output_activation = tf.identity(tf.nn.bias_add(transpose, b), name='identity')
+            # b = init_bias([shape[3]], name, reuse=reuse)
+            # transpose = transpose + b
+            output_activation = tf.identity(transpose, name='identity')
+            return output_activation, {name + '_activation': output_activation}
         else:
             # Batch Normalization
             if if_BN:
+                transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
+                                                       strides=(stride, stride), padding='same',
+                                                       use_bias=False, name=name, reuse=reuse)
                 output = batch_norm(transpose, is_train=is_train, name=name + '_BN', reuse=reuse)
                 output_activation = _activatioin(output, type=activation)
                 return output_activation, {name + '_activation': output_activation}
             else:
-                b = init_bias([shape[3]], name, reuse=reuse)
-                output = transpose + b
-                output_activation = _activatioin(output, type=activation)
-                return output_activation, {name + '_b': b, name + '_activation': output_activation}
+                transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
+                                                       strides=(stride, stride), padding='same',
+                                                       use_bias=True, name=name, reuse=reuse)
+                # b = init_bias([shape[3]], name, reuse=reuse)
+                # output = tf.nn.bias_add(transpose, b)
+                # output = transpose + b
+                output_activation = _activatioin(transpose, type=activation)
+                return output_activation, {name + '_activation': output_activation}
 
 
 def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='relu', name='', reuse=False):

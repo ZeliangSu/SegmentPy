@@ -25,6 +25,7 @@ if __name__ == '__main__':
     for ckpt_path in args.checkpoint_path:
         print(ckpt_path)
         model = re.search('mdl_([A-Za-z]*\d*)', ckpt_path).group(1)
+        print('model: ', model)
         hyperparams = {
             'model': model,
             'window_size': re.search('ps(\d+)', ckpt_path).group(1),

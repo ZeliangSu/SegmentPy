@@ -152,7 +152,6 @@ def classification_nodes(pipeline,
                                                            is_training)
 
         with tf.name_scope('summary'):
-            grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
             tmp = []
             for layer_param in list_params:
                 for k, v in layer_param.items():
@@ -162,7 +161,9 @@ def classification_nodes(pipeline,
                 merged = tf.summary.merge([m_param, m_loss, m_acc])
             else:
                 merged = tf.summary.merge([m_loss, m_acc])
+
             if grad_view:
+                grad_sum = tf.summary.merge([tf.summary.histogram('{}/grad'.format(g[1].name), g[0]) for g in grads])
                 merged = tf.summary.merge([merged, grad_sum])
 
     else:
@@ -2222,7 +2223,7 @@ def model_Unet_upsample(pipeline,
     """
     with tf.name_scope('Unet4'):
         with tf.name_scope('contractor'):
-            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 10, nb_conv], #[height, width, in_channels, output_channels]
+            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], #[height, width, in_channels, output_channels]
                                      if_BN=if_BN, is_train=BN_phase, activation=activation,
                                     name='conv1', reuse=reuse)
             conv1_pooling = max_pool_2by2(conv1, name='maxp1')
@@ -2451,7 +2452,7 @@ def model_Unet_without_BN(pipeline,
     """
     with tf.name_scope('Unet6'):
         with tf.name_scope('contractor'):
-            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], #[height, width, in_channels, output_channels]
+            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],  #[height, width, in_channels, output_channels]
                                      if_BN=False, activation=activation,
                                     name='conv1', reuse=reuse)
             conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv],
@@ -2701,7 +2702,7 @@ model_dict = {
     'Unet': model_Unet,
     'Unet2': model_Unet_shallow,
     'Unet3': model_Unet_weka,
-    'Unet4': model_Unet_upsample,
+    # 'Unet4': model_Unet_upsample,  # upsampling2d not working
     'Unet5': model_Unet_encoder_no_BN,
     'Unet6': model_Unet_without_BN,
     'Segnet': model_Segnet_like,
