@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
 from tensorboard_extractor import lr_curve_extractor
-# from util import duplicate_event
+
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QT5Agg')
@@ -101,7 +101,6 @@ class MPL(QWidget):
 
     def load_event(self, key):
         if key not in self.curves.keys():
-            # duplicate_event(self.paths[key])
             try:
                 ac_tn, _, ls_tn, _ = lr_curve_extractor(self.paths[key] + 'train/')
                 _, ac_val, _, ls_val = lr_curve_extractor(self.paths[key] + 'test/')

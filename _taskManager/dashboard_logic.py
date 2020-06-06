@@ -3,8 +3,6 @@ from _taskManager.file_dialog import file_dialog
 from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit
 from PyQt5.QtCore import QThread, QObject, pyqtSlot, pyqtSignal
 
-# from tensorboard_extractor import lr_curve_extractor
-
 import matplotlib
 matplotlib.use('QT5Agg')
 import sys
@@ -43,11 +41,12 @@ class sideloop(QThread):
         self.toggle = True
         while self.toggle:
             self.signal.launch.emit(1)
-            sleep(20)
+            sleep(300)
 
     @pyqtSlot()
     def stop(self):
         self.toggle = False
+
 
 class simpleSignal(QObject):
     launch = pyqtSignal(object)
@@ -71,12 +70,12 @@ class dashboard_logic(QDialog, Ui_dashboard):
 
         self.sideLoop = sideloop()
 
-        self.refresh_button.clicked.connect(self.refresh)
+        self.refresh_button.clicked.connect(self.clean)
         self.save_button.clicked.connect(self.save_csv)
         self.folder_button.clicked.connect(self.choose_save_path)
         self.live_button.clicked.connect(self.check_live_button)
         self.signal = simpleSignal()
-        self.signal.launch.connect(self.mplwidget.plot)
+        self.signal.launch.connect(self.refresh)
 
     def check_live_button(self):
         if self.live_button.isChecked():
@@ -85,6 +84,11 @@ class dashboard_logic(QDialog, Ui_dashboard):
             self.sideLoop.terminate()
 
     def refresh(self):
+        self.clean()
+        self.mplwidget.curves = {}  # note: clean curves but not paths to let it reloads curves
+        self.mplwidget.plot()
+
+    def clean(self):
         fig_acc_tn = self.mplwidget.canvas_acc_train.figure
         fig_acc_val = self.mplwidget.canvas_acc_val.figure
         fig_lss_tn = self.mplwidget.canvas_lss_train.figure
