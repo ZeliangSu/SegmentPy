@@ -5,13 +5,12 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
 from tensorboard_extractor import lr_curve_extractor
-from util import duplicate_event
+# from util import duplicate_event
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QT5Agg')
 
 import re
-
 
 # logging
 import logging
@@ -58,18 +57,24 @@ class MPL(QWidget):
         QVBL1 = QtWidgets.QVBoxLayout()
         QVBL1.addWidget(self.canvas_acc_train)
         QVBL1.addWidget(Toolbar1)
+        QVBL1.addWidget(self.canvas_lss_train)
+        QVBL1.addWidget(Toolbar3)
+        # self.setLayout(QVBL1)
 
         QVBL2 = QtWidgets.QVBoxLayout()
         QVBL2.addWidget(self.canvas_acc_val)
         QVBL2.addWidget(Toolbar2)
+        QVBL2.addWidget(self.canvas_lss_val)
+        QVBL2.addWidget(Toolbar4)
+        # self.setLayout(QVBL2)
 
-        QVBL3 = QtWidgets.QVBoxLayout()
-        QVBL3.addWidget(self.canvas_lss_val)
-        QVBL3.addWidget(Toolbar3)
+        # QVBL3 = QtWidgets.QVBoxLayout()
+        # QVBL3.addWidget(self.canvas_lss_val)
+        # QVBL3.addWidget(Toolbar3)
 
-        QVBL4 = QtWidgets.QVBoxLayout()
-        QVBL4.addWidget(self.canvas_lss_val)
-        QVBL4.addWidget(Toolbar4)
+        # QVBL4 = QtWidgets.QVBoxLayout()
+        # QVBL4.addWidget(self.canvas_lss_val)
+        # QVBL4.addWidget(Toolbar4)
 
         # set layout
         self.QHBL = QtWidgets.QHBoxLayout()
@@ -77,16 +82,16 @@ class MPL(QWidget):
         self.QHBL.addLayout(QVBL2)
         self.setLayout(self.QHBL)
 
-        self.QHBL2 = QtWidgets.QHBoxLayout()
-        self.QHBL2.addLayout(QVBL3)
-        self.QHBL2.addLayout(QVBL4)
-        self.setLayout(self.QHBL2)
+        # QHBL2 = QtWidgets.QHBoxLayout()
+        # QHBL2.addLayout(QVBL3)
+        # QHBL2.addLayout(QVBL4)
+        # self.setLayout(QHBL2)
 
         # together
-        self.QVBL_all = QtWidgets.QVBoxLayout()
-        self.QVBL_all.addLayout(self.QHBL)
-        self.QVBL_all.addLayout(self.QHBL2)
-        self.setLayout(self.QVBL_all)
+        # self.QVBL_all = QtWidgets.QVBoxLayout()
+        # self.QVBL_all.addLayout(QHBL)
+        # self.QVBL_all.addLayout(QHBL2)
+        # self.setLayout(self.QVBL_all)
 
         # finally draw the canvas
         self.canvas_acc_train.draw()
@@ -96,9 +101,10 @@ class MPL(QWidget):
 
     def load_event(self, key):
         if key not in self.curves.keys():
-            duplicate_event(self.paths[key])
+            # duplicate_event(self.paths[key])
             try:
-                ac_tn, ac_val, ls_tn, ls_val = lr_curve_extractor(self.paths[key] + 'event/')
+                ac_tn, _, ls_tn, _ = lr_curve_extractor(self.paths[key] + 'train/')
+                _, ac_val, _, ls_val = lr_curve_extractor(self.paths[key] + 'test/')
                 self.curves[key] = [ac_tn, ac_val, ls_tn, ls_val]
             except Exception as e:
                 logger.error(e)

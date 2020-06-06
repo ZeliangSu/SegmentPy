@@ -459,15 +459,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def loop_state(self):
         if self.loop_button.isChecked():
-            self.loop()
+            self.qManager.start()
         else:
-            self.stop_loop()
-
-    def loop(self):
-        self.qManager.start()
-
-    def stop_loop(self):
-        self.qManager.terminate()
+            self.qManager.terminate()
 
     def stop(self):
         # refers to: https://stackoverflow.com/questions/37601672/how-can-i-get-the-indices-of-qlistwidgetselecteditems
