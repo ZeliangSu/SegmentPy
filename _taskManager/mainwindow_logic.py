@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QErrorMessage, QMessageBox, QLabel
+from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
 from PyQt5 import QtCore, QtGui
 
 from _taskManager.mainwindow_design import Ui_LRCSNet

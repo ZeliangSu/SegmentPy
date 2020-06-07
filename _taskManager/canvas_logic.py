@@ -11,6 +11,9 @@ import matplotlib
 matplotlib.use('QT5Agg')
 
 import re
+import pandas as pd
+import numpy as np
+import string
 
 # logging
 import logging
@@ -187,3 +190,48 @@ class MPL(QWidget):
             return
 
         self.plot()
+
+
+class volFracPlotter(QWidget):
+    '''on disk volFracPlotter'''
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        # back end attributes
+        self.total_vs = 0  # {'total_vs': int, 'index': [1, 2, 4, 5...]}
+        self.accum_nb_vx = None  # pd.DataFrame{A: [1234, 2345, ], B: [123, 234],...}
+        self.plan_vs = None  # pd.DataFrame{A: [1234, 2345, ], B: [123, 234],...}
+
+        # init curve
+        volfracplot = plt.figure(dpi=50)
+        self.canvas_volfrac = canvas(volfracplot)
+        self.canvas_volfrac.setParent(parent)
+
+        # init toolbar
+        # Toolbar = toolbar(self.canvas_volfrac, self)
+
+        # set layout
+        self.QHBL = QtWidgets.QHBoxLayout()
+        # self.QHBL.addWidget(Toolbar)
+        self.QHBL.addWidget(self.canvas_volfrac)
+        self.setLayout(self.QHBL)
+
+        # draw
+        self.canvas_volfrac.draw()
+
+    def plot(self):
+        plot_volfrac = self.canvas_volfrac.figure
+        plot_volfrac.clear()
+        vf_ax = plot_volfrac.add_subplot(111)
+        self.plan_vs = self.accum_nb_vx.iloc[0, 1:].sum()
+
+        for col in self.accum_nb_vx.columns[1:]:
+            vf_ax.plot(self.accum_nb_vx.index,
+                       self.accum_nb_vx[col] / self.plan_vs,
+                       label=col,
+                       linewidth=0.5)
+        vf_ax.set_ylim([0., 1.])
+
+        vf_ax.legend(loc='best')
+        self.canvas_volfrac.draw()
+

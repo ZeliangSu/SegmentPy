@@ -1,13 +1,16 @@
-from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QLabel, QWidget
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
 
 from _taskManager.volumes_viewer_design import Ui_volViewer
+from _taskManager.progressBar_logic import procBar_logic
 
 import sys
 import os
 import numpy as np
 from PIL import Image
+import pandas as pd
+import string
 
 # logging
 import logging
@@ -16,16 +19,45 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
-def get_img(path):
+def get_img(path, norm=True):
     img = np.asarray(Image.open(path))
-    img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
-    img = np.asarray(Image.fromarray(img).convert('RGB'))  # work with RGB888 in QImage
+    if norm:
+        img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
+        img = np.asarray(Image.fromarray(img).convert('RGB'))  # work with RGB888 in QImage
     return img
+
+
+class standalone(QRunnable):
+    def __init__(self, *args, **kwargs):
+        super(standalone, self).__init__()
+        self.signal = progressSignals()
+        self.pbar = procBar_logic('progressing')
+        self.pbar.exec_()
+        self.onoff = False
+        self.signal.progress.connect(self.pbar.update_progress)
+        self.signal.total.connect(self.pbar.set_total)
+
+    @pyqtSlot()
+    def run(self):
+        self.onoff = True
+
+    @pyqtSlot()
+    def stop(self):
+        self.onoff = False
+
+
+class progressSignals(QObject):
+    progress = pyqtSignal(object)
+    total = pyqtSignal(object)
 
 
 class volViewer_logic(QDialog, Ui_volViewer):
     def __init__(self, *args, **kwargs):
         QDialog.__init__(self, *args, **kwargs)
+        self.threadpool = QThreadPool()
+        self.signals = progressSignals()
+
+        # backend variables
         self.vol1_fns = None
         self.vol2_fns = None
         self.area = None
@@ -99,10 +131,12 @@ class volViewer_logic(QDialog, Ui_volViewer):
         if self.vol1.geometry().contains(event.pos()):
             self.vol1_fns = fns
             self.Vol1show(1)  # start with 1 not 0
+            self.refresh_plot_and_label(self.vol1_fns, self.accumulated_value1, self.accum_plot1)
 
         elif self.vol2.geometry().contains(event.pos()):
             self.vol2_fns = fns
             self.Vol2show(1)  # start with 1 not 0
+            self.refresh_plot_and_label(self.vol2_fns, self.accumulated_value2, self.accum_plot2)
 
         else:
             # ignore if been dropped at elsewhere
@@ -180,6 +214,65 @@ class volViewer_logic(QDialog, Ui_volViewer):
         self.area = None
         self.Vol1show(self.Slider.value())
         self.Vol2show(self.Slider.value())
+
+    def get_volFracs(self, fns: list):
+        '''on disk get volFracs of each slides'''
+
+        # todo: pop up the progressbar
+        # pbar = standalone()
+        # self.threadpool.start(pbar)
+        # self.signals.total.emit(len(fns))
+
+        # compute
+        accum_nb_vx = pd.DataFrame({'index': np.arange(len(fns))})
+        total_vox = 0
+        total_volFrac = {}
+
+        # on dist get volume fractions
+        for z, fn in enumerate(fns):
+            # update pbar
+            self.signals.progress.emit(z)
+
+            # compute
+            img = get_img(fn, norm=False)
+            img = img.astype(np.int)
+
+            for cls in np.unique(img):
+                if string.ascii_lowercase[cls] not in accum_nb_vx.columns:
+                    col_name = string.ascii_lowercase[cls]  # fixme: only supported maxi 26 cls, but its enough though
+                    accum_nb_vx[col_name] = 0
+                nb_vx = np.where(img == cls)[0].size
+                accum_nb_vx.iloc[z, cls + 1] = nb_vx
+                total_vox += nb_vx
+
+        # compute total volume fractions
+        for col in accum_nb_vx.columns[1:]:
+            total_volFrac[col] = accum_nb_vx[col].sum() / total_vox
+
+        # todo: stop the thread
+        # self.threadpool.Event().set()
+
+        return total_vox, accum_nb_vx, total_volFrac
+
+    def refresh_plot_and_label(self, which_vol: list, which_label: QLabel, which_plot: QWidget):
+        tt_vs1, acc_vf1, tvf1 = self.get_volFracs(which_vol)
+        # tt_vs2, acc_vf2, tvf2 = self.get_volFracs(self.vol2_fns)
+
+        self.set_titles(which_label, tt_vs1, tvf1)
+        # self.set_titles(self.accumulated_value2, tt_vs2, tvf2)
+
+        which_plot.accum_nb_vx = acc_vf1
+        # self.accum_plot2.accum_nb_vx = acc_vf2
+
+        which_plot.plot()
+
+    def set_titles(self, title: QLabel, total_vs: int, total_vol_frac: dict):
+        content = ''
+        for cls, v in total_vol_frac.items():
+            content += '{}: {:.4f}\n'.format(cls, v)
+
+        title.setText(
+            'Total voxels:\n{}\nAcc. Vol. Frac.:\n{}'.format(total_vs, content))
 
 
 def test():
