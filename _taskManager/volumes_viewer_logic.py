@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QLabel, QWidget
+from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QLabel, QWidget, QProgressDialog
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
 from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
 
@@ -11,6 +11,8 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 import string
+from tqdm import tqdm
+from time import sleep
 
 # logging
 import logging
@@ -25,30 +27,6 @@ def get_img(path, norm=True):
         img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
         img = np.asarray(Image.fromarray(img).convert('RGB'))  # work with RGB888 in QImage
     return img
-
-
-class standalone(QRunnable):
-    def __init__(self, *args, **kwargs):
-        super(standalone, self).__init__()
-        self.signal = progressSignals()
-        self.pbar = procBar_logic('progressing')
-        self.pbar.exec_()
-        self.onoff = False
-        self.signal.progress.connect(self.pbar.update_progress)
-        self.signal.total.connect(self.pbar.set_total)
-
-    @pyqtSlot()
-    def run(self):
-        self.onoff = True
-
-    @pyqtSlot()
-    def stop(self):
-        self.onoff = False
-
-
-class progressSignals(QObject):
-    progress = pyqtSignal(object)
-    total = pyqtSignal(object)
 
 
 class volViewer_logic(QDialog, Ui_volViewer):
@@ -218,20 +196,23 @@ class volViewer_logic(QDialog, Ui_volViewer):
     def get_volFracs(self, fns: list):
         '''on disk get volFracs of each slides'''
 
-        # todo: pop up the progressbar
-        # pbar = standalone()
-        # self.threadpool.start(pbar)
-        # self.signals.total.emit(len(fns))
+        length = len(fns)
+        pbar = QProgressDialog('Scanning slides...', None, 0, length, self)
+        pbar.setAutoClose(True)
+        pbar.setFixedSize(300, 100)
+        pbar.setWindowModality(Qt.WindowModal)  # or it won't show up
 
         # compute
         accum_nb_vx = pd.DataFrame({'index': np.arange(len(fns))})
         total_vox = 0
         total_volFrac = {}
 
-        # on dist get volume fractions
-        for z, fn in enumerate(fns):
+        pbar.show()
+        for z, fn in tqdm(enumerate(fns)):
             # update pbar
-            self.signals.progress.emit(z)
+            if z % 20 == 0:
+                pbar.setValue(z)
+                pbar.setLabelText('Scanning slides...[%d/%d]' % (z, length))
 
             # compute
             img = get_img(fn, norm=False)
@@ -245,12 +226,12 @@ class volViewer_logic(QDialog, Ui_volViewer):
                 accum_nb_vx.iloc[z, cls + 1] = nb_vx
                 total_vox += nb_vx
 
+        # quit
+        pbar.setValue(length)
+
         # compute total volume fractions
         for col in accum_nb_vx.columns[1:]:
             total_volFrac[col] = accum_nb_vx[col].sum() / total_vox
-
-        # todo: stop the thread
-        # self.threadpool.Event().set()
 
         return total_vox, accum_nb_vx, total_volFrac
 
