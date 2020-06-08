@@ -33,7 +33,6 @@ class volViewer_logic(QDialog, Ui_volViewer):
     def __init__(self, *args, **kwargs):
         QDialog.__init__(self, *args, **kwargs)
         self.threadpool = QThreadPool()
-        self.signals = progressSignals()
 
         # backend variables
         self.vol1_fns = None
