@@ -42,7 +42,7 @@ class queueManager(QThread):
         self.signals = WorkerSignals()
         self.toggle = False
 
-    @pyqtSlot()
+    @pyqtSlot(name='queue1')
     def run(self):
         self.toggle = True
         while self.toggle:
@@ -53,7 +53,6 @@ class queueManager(QThread):
                 self.signals.available_gpu.emit(_gpu)
             sleep(20)  # note: at least wait 2 min for thread security, unknown GPU/inputpipeline bug
 
-    @pyqtSlot()
     def stop(self):
         self.toggle = False
 
@@ -75,7 +74,7 @@ class predict_Worker(QRunnable):
         self.device = 'cpu'
         self.signals = WorkerSignals()
 
-    @pyqtSlot()
+    @pyqtSlot(name='predict')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())
@@ -114,7 +113,7 @@ class training_Worker(QRunnable):
         self.params = args[1]
         self.signals = WorkerSignals()
 
-    @pyqtSlot()
+    @pyqtSlot(name='train')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())

@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 import os
 import shutil
+import platform
 
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
@@ -14,6 +15,9 @@ import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.WARNING)
 
+if platform.system() == 'Darwin':
+    # mpi problem: https://stackoverflow.com/questions/55714135/how-to-properly-fix-the-following-openmp-error
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # force to run this on main
 if __name__ == '__main__':
