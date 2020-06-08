@@ -3,7 +3,6 @@ from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
 from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
 
 from _taskManager.volumes_viewer_design import Ui_volViewer
-from _taskManager.progressBar_logic import procBar_logic
 
 import sys
 import os
