@@ -57,7 +57,8 @@ if __name__ == '__main__':
     try:
         args = parser.parse_args()
         print(args)
-        print(bool(args.augmentation))
+        print('aug:', boolean_string(args.augmentation))
+        print('BN:', boolean_string(args.batch_norm))
         # note: copy this in terminal for debugging
         #  'python main_train.py -mdl LRCS -nc 32 -bs 8 -ws 512 -ep 5 -cs 3 -lr ramp -ilr 1e-4 -klr 0.3 -plr 1 -bn True -do 0.1 -ag True -fn leaky -af DSC -mode classification -dv 0 -st 500 -tb 50 -cmt None
 
@@ -227,6 +228,10 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['train_dir'], hyperparams['folder_name'] + 'copy/train/')
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
+    try:
+        main_train(hyperparams, grad_view=True)
 
-    main_train(hyperparams, grad_view=True)
-
+    except Exception as e:
+        logger.debug(e)
+        with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
+            f.write(e)

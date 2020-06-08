@@ -279,7 +279,7 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
     return g_main, ops_dict
 
 
-def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, feature_map=False):
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, feature_map=False, norm=1e3):
     """
 
     Parameters
@@ -317,6 +317,11 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         img_path = l[0]
         img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)
+
+        # note: the following try to normalize the input img e.g. 32IDC FBP-CUDA --> ~range(0, 0.0012) *1000 ~ (0 ~ 1)
+        if norm:
+            img = img * norm
+
         img_size = img.shape
         logger.info('input shape: {}'.format(img_size))
 
@@ -353,7 +358,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # save imgs
         plt_illd.add_input(np.asarray(imgs))
-        _resultWriter(imgs, 'input', path=rlt_dir)
+        _resultWriter(imgs, 'input', path=rlt_dir, contrast=False)
 
         plt_illd.add_label(np.asarray(labels))
         _resultWriter(labels, 'label', path=rlt_dir)

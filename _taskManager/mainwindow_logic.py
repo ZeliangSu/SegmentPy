@@ -321,7 +321,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             # retrive nodes of activations
             options = []
             for node in nodes:
-                tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4)$', node)
+                tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4|concat)$', node)
                 if tmp is not None:
                     tmp = tmp.string
                     if 'identity' in tmp:

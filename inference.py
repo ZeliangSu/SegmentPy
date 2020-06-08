@@ -230,7 +230,7 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
         f.write(optimize_graph_def.SerializeToString())
 
 
-def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None):
+def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, normalization=1e-3):
     assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
     assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
     assert isinstance(paths, dict), 'paths should be a dict'
@@ -259,7 +259,7 @@ def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, h
     for i, path in enumerate(l_input_path):
         # ************************************************************************************************ I'm a Barrier
         communicator.Barrier()
-        img = np.asarray(Image.open(path))
+        img = np.asarray(Image.open(path)) / normalization
         n_h = (img.shape[0] - hyper['patch_size']) // hyper['stride'] + 1
         n_w = (img.shape[1] - hyper['patch_size']) // hyper['stride'] + 1
         remaining = n_h * n_w
@@ -305,7 +305,7 @@ def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, h
                 pb_path=paths['optimized_pb_path'],
                 conserve_nodes=conserve_nodes,
                 hyper=hyper,
-                comm=communicator
+                comm=communicator,
             )
 
         # save recon

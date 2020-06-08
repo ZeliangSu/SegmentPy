@@ -2529,6 +2529,239 @@ def model_Unet_without_BN(pipeline,
     return logits, []
 
 
+def model_Unet_with_droupout(pipeline,
+               patch_size,
+               batch_size,
+               conv_size,
+               nb_conv,
+               drop_prob,
+               if_BN=True,
+               BN_phase=None,
+               activation='relu',
+               reuse=False,
+               mode='regression',
+               nb_classes=3,
+               device=0,
+               ):
+    """
+    xlearn segmentation convolutional neural net model with summary
+
+    input:
+    -------
+        train_inputs: (tf.iterator?)
+        test_inputs: (tf.iterator?)
+        patch_size: (int) height and width (here we assume the same length for both)
+        batch_size: (int) number of images per batch (average the gradient within a batch,
+        the weights and bias upgrade after one batch)
+        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
+        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
+        learning_rate: (float) learning rate for the optimizer
+    return:
+    -------
+    (dictionary) dictionary of nodes in the conv net
+        'y_pred': output of the neural net,
+        'train_op': node of the trainning operation, once called, it will update weights and bias,
+        'drop': dropout layers' probability parameters,
+        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
+        'train_or_test': switch button for a training/testing input pipeline,
+        'loss_update_op': node of updating loss function summary,
+        'acc_update_op': node of updating accuracy summary
+    """
+    with tf.name_scope('Unet7'):
+        with tf.name_scope('contractor'):
+            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],  #[height, width, in_channels, output_channels]
+                                     if_BN=False, activation=activation,
+                                     name='conv1', reuse=reuse)
+            conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv],
+                                         if_BN=False, activation=activation, name='conv1bis', reuse=reuse)
+            conv1bis = dropout(conv1bis, drop_prob, 'do1')
+            conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
+
+            conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2],
+                                     if_BN=False, activation=activation, name='conv2', reuse=reuse)
+            conv2bis, m2b = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                                         if_BN=False, activation=activation, name='conv2bis', reuse=reuse)
+            conv2bis = dropout(conv2bis, drop_prob, 'do2')
+            conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
+
+            conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
+                                     if_BN=False, activation=activation, name='conv3', reuse=reuse)
+            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                         if_BN=False, activation=activation, name='conv3bis', reuse=reuse)
+            conv3bis = dropout(conv3bis, drop_prob, 'do3')
+            conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
+
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
+                                     if_BN=False, activation=activation, name='conv4', reuse=reuse)
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
+                                         activation=activation,
+                                         name='conv4bisbis', reuse=reuse)
+            conv4bis = dropout(conv4bis, drop_prob, 'do4')
+            conv4_pooling = max_pool_2by2(conv4bis, name='maxp4')
+
+
+        with tf.name_scope('bottom'):
+            conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16],
+                                     if_BN=False, activation=activation, name='bot5', reuse=reuse)
+            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16],
+                                         if_BN=False, activation=activation, name='bot5bis', reuse=reuse)
+            conv5bis = dropout(conv5bis, drop_prob, 'do5')
+
+            deconv1, m5u = conv2d_transpose_layer(conv5bis, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 8],
+                                                  stride=2, if_BN=False,
+                                                  activation=activation, name='deconv1', reuse=reuse)
+
+        with tf.name_scope('decontractor'):
+            concat1 = concat([deconv1, conv4bis], name='concat1')
+            conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8],
+                                      if_BN=False,
+                                      activation=activation, name='conv6', reuse=reuse)
+            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8],
+                                          if_BN=False,
+                                          activation=activation, name='conv6bis', reuse=reuse)
+            conv6bis = dropout(conv_6bis, drop_prob, 'do6')
+            deconv2, m6u = conv2d_transpose_layer(conv_6bis, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 4],
+                                                  stride=2, if_BN=False,
+                                                  activation=activation,
+                                                  name='deconv2', reuse=reuse)
+
+            concat2 = concat([deconv2, conv3bis], name='concat2')
+            conv_7, m7 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4],
+                                      if_BN=False, activation=activation, name='conv7', reuse=reuse)
+            conv_7bis, m7b = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                          if_BN=False, activation=activation, name='conv7bis', reuse=reuse)
+            conv7bis = dropout(conv_7bis, drop_prob, 'do7')
+            deconv3, m7u = conv2d_transpose_layer(conv_7bis, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+                                                  stride=2, if_BN=if_BN, is_train=BN_phase,
+                                                  activation=activation, name='deconv3', reuse=reuse)
+
+            concat3 = concat([deconv3, conv2bis], name='concat3')
+            conv_8, m8 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+                                      if_BN=False, activation=activation, name='conv8', reuse=reuse)
+            conv_8bis, m8b = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                                          if_BN=False, activation=activation,  name='conv8bis', reuse=reuse)
+            conv8bis = dropout(conv_8bis, drop_prob, 'do8')
+            deconv4, m8u = conv2d_transpose_layer(conv_8bis, shape=[conv_size, conv_size, nb_conv * 2, nb_conv],
+                                                  stride=2, if_BN=False, activation=activation, name='deconv4', reuse=reuse)
+
+            concat4 = concat([deconv4, conv1bis], name='concat4')
+            deconv_9, m9 = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv],
+                                        if_BN=False, activation=activation, name='conv9', reuse=reuse)
+            deconv_9bis, m9b = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv],
+                                            if_BN=False, activation=activation, name='conv9bis', reuse=reuse)
+            logits, m9bb = conv2d_layer(deconv_9bis,
+                                        [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
+                                        if_BN=False, name='logits', reuse=reuse)
+    print_nodes_name_shape(tf.get_default_graph())
+    return logits, []
+
+
+def model_Unet_with_droupout_shallow(pipeline,
+               patch_size,
+               batch_size,
+               conv_size,
+               nb_conv,
+               drop_prob,
+               if_BN=True,
+               BN_phase=None,
+               activation='relu',
+               reuse=False,
+               mode='regression',
+               nb_classes=3,
+               device=0,
+               ):
+    """
+    xlearn segmentation convolutional neural net model with summary
+
+    input:
+    -------
+        train_inputs: (tf.iterator?)
+        test_inputs: (tf.iterator?)
+        patch_size: (int) height and width (here we assume the same length for both)
+        batch_size: (int) number of images per batch (average the gradient within a batch,
+        the weights and bias upgrade after one batch)
+        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
+        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
+        learning_rate: (float) learning rate for the optimizer
+    return:
+    -------
+    (dictionary) dictionary of nodes in the conv net
+        'y_pred': output of the neural net,
+        'train_op': node of the trainning operation, once called, it will update weights and bias,
+        'drop': dropout layers' probability parameters,
+        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
+        'train_or_test': switch button for a training/testing input pipeline,
+        'loss_update_op': node of updating loss function summary,
+        'acc_update_op': node of updating accuracy summary
+    """
+    with tf.name_scope('Unet8'):
+        with tf.name_scope('contractor'):
+            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],  #[height, width, in_channels, output_channels]
+                                     if_BN=False, activation=activation,
+                                     name='conv1', reuse=reuse)
+            conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv],
+                                         if_BN=False, activation=activation, name='conv1bis', reuse=reuse)
+            conv1bis = dropout(conv1bis, drop_prob, 'do1')
+            conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
+
+            conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2],
+                                     if_BN=False, activation=activation, name='conv2', reuse=reuse)
+            conv2bis, m2b = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                                         if_BN=False, activation=activation, name='conv2bis', reuse=reuse)
+            conv2bis = dropout(conv2bis, drop_prob, 'do2')
+            conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
+
+            conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
+                                     if_BN=False, activation=activation, name='conv3', reuse=reuse)
+            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                         if_BN=False, activation=activation, name='conv3bis', reuse=reuse)
+            conv3bis = dropout(conv3bis, drop_prob, 'do3')
+            conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
+
+
+        with tf.name_scope('bottom'):
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16],
+                                     if_BN=False, activation=activation, name='bot4', reuse=reuse)
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16],
+                                         if_BN=False, activation=activation, name='bot4bis', reuse=reuse)
+            conv4bis = dropout(conv4bis, drop_prob, 'do4')
+
+            deconv1, m4u = conv2d_transpose_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 8],
+                                                  stride=2, if_BN=False,
+                                                  activation=activation, name='deconv1', reuse=reuse)
+
+        with tf.name_scope('decontractor'):
+            concat1 = concat([deconv1, conv3bis], name='concat1')
+            conv_5, m5 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 8, nb_conv * 4],
+                                      if_BN=False, activation=activation, name='conv5', reuse=reuse)
+            conv_5bis, m5b = conv2d_layer(conv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                          if_BN=False, activation=activation, name='conv5bis', reuse=reuse)
+            conv5bis = dropout(conv_5bis, drop_prob, 'do5')
+            deconv2, m5u = conv2d_transpose_layer(conv_5bis, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+                                                  stride=2, if_BN=if_BN, is_train=BN_phase,
+                                                  activation=activation, name='deconv2', reuse=reuse)
+
+            concat2 = concat([deconv2, conv2bis], name='concat2')
+            conv_6, m6 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+                                      if_BN=False, activation=activation, name='conv6', reuse=reuse)
+            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                                          if_BN=False, activation=activation,  name='conv6bis', reuse=reuse)
+            conv6bis = dropout(conv_6bis, drop_prob, 'do6')
+            deconv3, m6u = conv2d_transpose_layer(conv6bis, shape=[conv_size, conv_size, nb_conv * 2, nb_conv],
+                                                  stride=2, if_BN=False, activation=activation, name='deconv3', reuse=reuse)
+
+            concat3 = concat([deconv3, conv1bis], name='concat3')
+            deconv_7, m7 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 2, nb_conv],
+                                        if_BN=False, activation=activation, name='conv7', reuse=reuse)
+            deconv_7bis, m7b = conv2d_layer(deconv_7, [conv_size, conv_size, nb_conv, nb_conv],
+                                            if_BN=False, activation=activation, name='conv7bis', reuse=reuse)
+            logits, m7bb = conv2d_layer(deconv_7bis,
+                                        [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
+                                        if_BN=False, name='logits', reuse=reuse)
+    print_nodes_name_shape(tf.get_default_graph())
+    return logits, []
+
+
 def model_xlearn_like(pipeline,
                  patch_size,
                  batch_size,
@@ -2705,6 +2938,8 @@ model_dict = {
     # 'Unet4': model_Unet_upsample,  # upsampling2d not working
     'Unet5': model_Unet_encoder_no_BN,
     'Unet6': model_Unet_without_BN,
+    'Unet7': model_Unet_with_droupout,
+    'Unet8': model_Unet_with_droupout_shallow,
     'Segnet': model_Segnet_like,
     'Segnet2': model_Segnet_improved,
     'Segnet3': model_Segnet_constant,

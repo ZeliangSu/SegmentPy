@@ -8,7 +8,7 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def init_weights(shape, name='weights', reuse=False, uniform=False):
+def init_weights(shape, name='weights', reuse=False, uniform=True):
     """
     input:
     -------
@@ -22,7 +22,7 @@ def init_weights(shape, name='weights', reuse=False, uniform=False):
         return tf.get_variable('w', shape=shape, initializer=tf.initializers.glorot_uniform() if uniform else tf.initializers.glorot_normal())
 
 
-def init_bias(shape, name='bias', reuse=False, uniform=False):
+def init_bias(shape, name='bias', reuse=False, uniform=True):
     """
     input:
     -------
@@ -255,7 +255,8 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
             # output_activation = tf.identity(output + b, name='identity')
 
             # #note: get nan in gradients after some interactions
-            output_activation = tf.identity(tf.nn.bias_add(output, b), name='identity')
+            output = tf.nn.bias_add(output, b, name='add_bias')
+            output_activation = tf.identity(output, name='identity')
 
             # output_activation = tf.identity(output, name='identity')
             return output_activation, {name + '_activation': output_activation}

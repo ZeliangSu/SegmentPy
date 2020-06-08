@@ -4,8 +4,7 @@ from scipy import ndimage, interpolate
 
 
 def random_aug(X_img,
-               y_img,
-               normalization=1e3,  # 1e-4 if range of input  (0, 0.0001)
+               y_img,  # 1e-4 if range of input  (0, 0.0001)
                ):
     """
     input:
@@ -29,7 +28,7 @@ def random_aug(X_img,
         # warping
     ]  #todo: can add probabilities
 
-    X_img = X_img.copy() * normalization
+    # X_img = X_img.copy() * normalization
     X_img, y_img = choice(fns)(X_img, y_img)
     y_img.astype(np.int32)
 

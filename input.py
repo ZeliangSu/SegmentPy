@@ -161,7 +161,7 @@ def _pyfn_aug_wrapper(X_img, y_img):
                       )
 
 
-def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
+def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
@@ -172,9 +172,11 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord):
     y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
     y = _one_hot(y)
     # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C
-    return X, y.astype(np.int32)
+    # return X, y.astype(np.int32)
     # return _minmaxscalar(X), y.astype(np.int32)
 
+    # note: multiplication train more flexible network than minmaxscalar since their might be variation of grayscale
+    return X * correction, y.astype(np.int32)
 
 def parse_h5_one_hot_V3(fname, window_size, x_coord, y_coord):
     img = np.asarray(Image.open(fname))
