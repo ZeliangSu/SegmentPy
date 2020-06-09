@@ -66,13 +66,14 @@ class metric_logic(QDialog, Ui_metricViewer):
         self.previous_button.clicked.connect(self.previous_page)
 
     def dragEnterEvent(self, ev):
-        path = ev.mimeData().text()
+        path = ev.mimeData().text().replace('\r', '').replace('\n', '')
         format = path.split('.')[-1]
+        logger.debug('detected: ', path)
         if format in self.accept_img_format:
             ev.accept()
 
     def dropEvent(self, ev):
-        dir_or_path = ev.mimeData().text().replace('file://', '')
+        dir_or_path = ev.mimeData().text().replace('file://', '').replace('\r', '').replace('\n', '')
         img = load_img(dir_or_path)
 
         if self.raw_frame.geometry().contains(ev.pos()):
