@@ -1,14 +1,16 @@
 from _taskManager.dashboard_design import Ui_dashboard
 from _taskManager.file_dialog import file_dialog
-from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit
-from PyQt5.QtCore import QThread, QObject, pyqtSlot, pyqtSignal
+from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QMessageBox
+from PyQt5.QtCore import QThread, QObject, pyqtSlot, pyqtSignal, Qt
 
 import matplotlib
 matplotlib.use('QT5Agg')
 import sys
+import os
 import pandas as pd
 import numpy as np
 from time import sleep
+import re
 
 # logging
 import logging
@@ -30,26 +32,27 @@ class save_path_box(QLineEdit):
         self.setText(QDropEvent.mimeData().text().replace('file://', ''))
 
 
+class simpleSignal(QObject):
+    launch = pyqtSignal(object)
+
+
 class sideloop(QThread):
-    def __init__(self):
+    def __init__(self, signal: simpleSignal):
         super().__init__()
         self.toggle = True
-        self.signal =simpleSignal()
+        self.signal = signal
 
-    @pyqtSlot()
+    @pyqtSlot(name='loop')
     def run(self):
         self.toggle = True
         while self.toggle:
-            self.signal.launch.emit(1)
             sleep(300)
+            self.signal.launch.emit(1)
 
-    @pyqtSlot()
+
+    @pyqtSlot(name='terminate')
     def stop(self):
         self.toggle = False
-
-
-class simpleSignal(QObject):
-    launch = pyqtSignal(object)
 
 
 class dashboard_logic(QDialog, Ui_dashboard):
@@ -59,22 +62,16 @@ class dashboard_logic(QDialog, Ui_dashboard):
         # front end config
         self.setupUi(self)
         # self.save_path_box = save_path_box(self.save_path_box)  # todo: enable the drag&drop
+        self.setAcceptDrops(True)
 
-        # complete the total layout with the partial MPL widget layout
-        # self.verticalLayout.addChildLayout(self.mplwidget.QHBL)
-        # self.setLayout(self.mplwidget.QHBL)
-        # self.setLayout(self.verticalLayout)
-
-        # note: dashboard dialog as parent to FigureCanvasQTAgg to give drawing permission to dashboard
-        # self.mplwidget.canvas1.setParent(self)  #note: this line will align the canvas upon the top-left corner
-
-        self.sideLoop = sideloop()
+        self.signal = simpleSignal()
+        self.sideLoop = sideloop(signal=self.signal)
 
         self.refresh_button.clicked.connect(self.clean)
         self.save_button.clicked.connect(self.save_csv)
         self.folder_button.clicked.connect(self.choose_save_path)
         self.live_button.clicked.connect(self.check_live_button)
-        self.signal = simpleSignal()
+
         self.signal.launch.connect(self.refresh)
 
     def check_live_button(self):
@@ -84,7 +81,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
             self.sideLoop.terminate()
 
     def refresh(self):
-        self.clean()
+        print('refresh')
         self.mplwidget.curves = {}  # note: clean curves but not paths to let it reloads curves
         self.mplwidget.plot()
 
@@ -106,7 +103,63 @@ class dashboard_logic(QDialog, Ui_dashboard):
 
         self.mplwidget.paths = {}
         self.mplwidget.curves = {}
-        print('refresh')
+        self.mplwidget.repaint()
+
+    def dragEnterEvent(self, event):
+        print('detected: ', event.mimeData().text())
+        event.accept()  # jump to dropEvent
+
+    def dropEvent(self, event):
+        path = event.mimeData().text()
+        if self.mplwidget.geometry().contains(event.pos()):
+            # note: $ ends of the input
+            tmp = re.search(
+            '(.*hour\d+_gpu-?\d+)',
+            path
+            )
+            if tmp is not None:
+                # protect
+                self.setAcceptDrops(False)
+                self.setCursor(Qt.WaitCursor)
+
+                tmp = tmp.group(1)
+                if not tmp.endswith('/'):
+                    tmp += '/'
+
+                max_id = 0
+                if self.mplwidget.paths.__len__() != 0:
+                    for i in self.paths.keys():
+                        max_id = max(max_id, int(i))
+
+                # add event folder path
+                path = tmp.replace('file://', '')
+                logger.debug(path)
+                self.mplwidget.paths[max_id + 1] = path
+
+                # add curve name in the list
+                self.curves_list.clear()
+                for k, v in self.mplwidget.paths.items():
+                    self.curves_list.addItem(str(k))
+                    self.curves_list.item(k - 1).setToolTip(v)
+
+                self.setCursor(Qt.ArrowCursor)
+                self.setAcceptDrops(True)
+
+            else:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("Oooppssss")
+                msg.setInformativeText('Drag a folder which ends with format: (hour?_gpu?/) \nand which contains train/test of tf events folder!')
+                msg.setWindowTitle("Error")
+                msg.exec_()
+
+            self.mplwidget.plot()
+
+        elif self.save_path_box.geometry().contains(event.pos()):
+            if os.path.isdir(path.replace('file://', '').replace('\r','').replace('\n','')):
+                if not path.endswith('/'):
+                    path += '/'
+                self.save_path_box.setText(path)
 
     def choose_save_path(self):
         folder_path = file_dialog(title='select folder to save curves .csv', type='/').openFolderDialog()
