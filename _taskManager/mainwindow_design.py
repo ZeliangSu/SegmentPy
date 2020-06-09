@@ -225,6 +225,8 @@ class Ui_LRCSNet(object):
         self.Volumes_Viewer.setObjectName("Volumes_Viewer")
         self.Metrics = QtWidgets.QAction(LRCSNet)
         self.Metrics.setObjectName("Metrics")
+        self.AugViewer = QtWidgets.QAction(LRCSNet)
+        self.AugViewer.setObjectName("AugViewer")
         self.menuMenu.addAction(self.About_us)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.Exit)
@@ -233,6 +235,7 @@ class Ui_LRCSNet(object):
         self.menuPlugin.addAction(self.Random_Forest)
         self.menuPlugin.addAction(self.Volumes_Viewer)
         self.menuPlugin.addAction(self.Metrics)
+        self.menuPlugin.addAction(self.AugViewer)
         self.menubar.addAction(self.menuMenu.menuAction())
         self.menubar.addAction(self.menuPlugin.menuAction())
 
@@ -313,3 +316,4 @@ class Ui_LRCSNet(object):
         self.Random_Forest.setText(_translate("LRCSNet", "Random-Forest"))
         self.Volumes_Viewer.setText(_translate("LRCSNet", "Volumes-Viewer"))
         self.Metrics.setText(_translate("LRCSNet", "Metrics"))
+        self.AugViewer.setText(_translate("LRCSNet", "AugViewer"))

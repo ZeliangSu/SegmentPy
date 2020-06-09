@@ -9,6 +9,7 @@ from _taskManager.dashboard_logic import dashboard_logic
 from _taskManager.nodes_list_logic import node_list_logic
 from _taskManager.volumes_viewer_logic import volViewer_logic
 from _taskManager.metric_logic import metric_logic
+from _taskManager.augmentationViewer_logic import augViewer_logic
 from util import print_nodes_name
 
 import traceback, sys, os
@@ -289,6 +290,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Loss_Landscape.triggered.connect(self.loss_landscape)
         self.Random_Forest.triggered.connect(self.random_forest)
         self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
+        self.AugViewer.triggered.connect(self.augViewer_plugin)
+
+    def augViewer_plugin(self):
+        self.augV = augViewer_logic()
+        self.augV.exec_()
 
     def metric_plugin(self):
         self.metric = metric_logic()
