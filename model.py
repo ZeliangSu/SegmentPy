@@ -838,12 +838,12 @@ def model_LRCS_LeCun(pipeline,
             conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                              is_train=BN_phase, activation=activation, if_BN=False,
                                              name='conv4', reuse=reuse)
-            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_classes],
+            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                              is_train=BN_phase, activation='leaky', if_BN=False,
                                              name='conv4bis', reuse=reuse)
 
         with tf.name_scope('decoder'):
-            deconv_5bis, m5b = conv2d_layer(conv4bis, [conv_size, conv_size, nb_classes, nb_conv * 4], if_BN=if_BN,
+            deconv_5bis, m5b = conv2d_layer(conv4bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
                                           is_train=BN_phase, activation=activation, name='deconv5bis', reuse=reuse)
 
             up1 = up_2by2_ind(deconv_5bis, ind3, name='up1')

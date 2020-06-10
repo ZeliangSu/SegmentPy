@@ -417,7 +417,7 @@ def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, cons
                 raise NotImplementedError('!')
 
 
-def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None):
+def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, norm=1e-3):
     assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
     assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
     assert isinstance(paths, dict), 'paths should be a dict'
@@ -500,7 +500,13 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
             Image.fromarray(recon[i]).save(paths['inference_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
 
 
-def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: str, conserve_nodes: list, hyper: dict, comm=None):
+def _inference_recursive_V3(l_input_path: list,
+                            id_list: np.ndarray,
+                            pb_path: str,
+                            conserve_nodes: list,
+                            hyper: dict,
+                            comm=None,
+                            normalization=1e-3):
     # load graph
     tf.reset_default_graph()
     with tf.gfile.GFile(pb_path, 'rb') as f:
@@ -526,7 +532,7 @@ def _inference_recursive_V3(l_input_path: list, id_list: np.ndarray, pb_path: st
             for id in np.nditer(id_list):
                 # note: the following dimensions should be multiple of 8 if 3x Maxpooling
                 logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
-                img = load_img(l_input_path[id])
+                img = load_img(l_input_path[id]) / normalization
                 img = dimension_regulator(img, maxp_times=3)
 
                 batch = img.reshape((1, *img.shape, 1))
@@ -570,7 +576,7 @@ if __name__ == '__main__':
     # graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
     ckpt_path = args.ckpt_path.replace('.meta', '')
     save_pb_dir = '/'.join(ckpt_path.split('/')[:-2]) + '/pb/'
-    mdl_name = re.search('mdl_(.*)_mode', ckpt_path).group(1)
+    mdl_name = re.search('mdl_([A-Za-z]+\d+)', ckpt_path).group(1)
 
     c_nodes = [
             '{}/decoder/logits/identity'.format(mdl_name),
