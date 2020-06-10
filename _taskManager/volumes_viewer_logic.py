@@ -95,7 +95,7 @@ class volViewer_logic(QDialog, Ui_volViewer):
         event.accept()
 
     def dropEvent(self, event: QDropEvent):
-        dir_or_path = event.mimeData().text().replace('file://', '')
+        dir_or_path = event.mimeData().text().replace('file://', '').replace('\r','').replace('\n','')
 
         fns = []
         if dir_or_path.endswith('/'):

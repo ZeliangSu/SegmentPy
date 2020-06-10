@@ -187,7 +187,7 @@ if __name__ == '__main__':
         }
         # coordinations gen
         hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                                 test_dir=hyperparams['test_dir'],
+                                                 test_dir=hyperparams['val_dir'],
                                                  window_size=hyperparams['patch_size'],
                                                  train_test_ratio=0.9,
                                                  stride=5,
@@ -238,4 +238,4 @@ if __name__ == '__main__':
     except Exception as e:
         logger.debug(e)
         with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
-            f.write(e)
+            f.write(str(e))

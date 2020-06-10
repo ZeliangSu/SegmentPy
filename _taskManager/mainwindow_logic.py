@@ -290,6 +290,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Loss_Landscape.triggered.connect(self.loss_landscape)
         self.Random_Forest.triggered.connect(self.random_forest)
         self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
+        self.Metrics.triggered.connect(self.metric_plugin)
         self.AugViewer.triggered.connect(self.augViewer_plugin)
 
     def augViewer_plugin(self):
