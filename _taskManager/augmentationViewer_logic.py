@@ -47,7 +47,7 @@ class augViewer_logic(QDialog, Ui_augViewer):
         tomogram = load_img(self.img_paths[random]) / self.normalization
         tomogram = tomogram[self.xs[random]:self.xs[random] + self.window_sizes[random],
                    self.ys[random]:self.ys[random] + self.window_sizes[random]]
-        aug, _ = random_aug(tomogram, tomogram)
+        aug, _ = random_aug(tomogram, tomogram.reshape(*tomogram.shape, 1))
 
         # 2 RGB
         tomogram = (tomogram - np.min(tomogram)) / (np.max(tomogram) - np.min(tomogram)) * 255

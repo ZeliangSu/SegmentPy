@@ -5,6 +5,7 @@ from scipy import ndimage, interpolate
 
 def random_aug(X_img,
                y_img,  # 1e-4 if range of input  (0, 0.0001)
+               warp=True,
                ):
     """
     input:
@@ -25,8 +26,9 @@ def random_aug(X_img,
         non_noise,
         # contrast,
         grayscale_var,
-        # warping
     ]  #todo: can add probabilities
+    if warp:
+        fns.append(warping)
 
     # X_img = X_img.copy() * normalization
     X_img, y_img = choice(fns)(X_img, y_img)
@@ -141,13 +143,17 @@ def contrast(X_img, y_img):
 
 
 def warping(X_img, y_img):
-    assert X_img.shape == y_img.shape
-    rows, cols = np.meshgrid(range(X_img.shape[1]),range(X_img.shape[0]))
+    # y_img.shape == [H, W, nb_cls]
+    assert X_img.shape[:2] == y_img.shape[:2]
+    rows, cols = np.meshgrid(range(X_img.shape[1]), range(X_img.shape[0]))
     rows = rows ** (1 / 2) * (X_img.shape[1] - 1) ** (1 / 2)  #todo: make this random?
     cols = cols ** (2) / (X_img.shape[0] - 1)  #todo: make this random?
 
-    X_img = ndimage.map_coordinates(X_img, [cols, rows], order=3)
-    y_img = ndimage.map_coordinates(y_img, [cols, rows], order=3)
+    for i in range(X_img.shape[2]):
+        X_img[:, :, i] = ndimage.map_coordinates(X_img[:, :, i], [cols, rows], order=3)
+    # y_img = y_img.copy()
+    for i in range(y_img.shape[2]):
+        y_img[:, :, i] = ndimage.map_coordinates(y_img[:, :, i], [cols, rows], order=3)
     return X_img, y_img
 
 
