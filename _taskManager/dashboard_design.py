@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_dashboard(object):
     def setupUi(self, dashboard):
         dashboard.setObjectName("dashboard")
-        dashboard.resize(1226, 1091)
+        dashboard.resize(1310, 761)
         dashboard.setLayoutDirection(QtCore.Qt.LeftToRight)
         dashboard.setSizeGripEnabled(False)
         dashboard.setModal(False)
@@ -135,6 +135,10 @@ class Ui_dashboard(object):
         self.horizontalLayout_3.addWidget(self.folder_button)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
+        self.curves_list = QtWidgets.QListWidget(dashboard)
+        self.curves_list.setMaximumSize(QtCore.QSize(74, 16777215))
+        self.curves_list.setObjectName("curves_list")
+        self.gridLayout.addWidget(self.curves_list, 0, 1, 1, 1)
 
         self.retranslateUi(dashboard)
         QtCore.QMetaObject.connectSlotsByName(dashboard)

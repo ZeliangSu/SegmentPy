@@ -178,6 +178,7 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3):
     # note: multiplication train more flexible network than minmaxscalar since their might be variation of grayscale
     return X * correction, y.astype(np.int32)
 
+
 def parse_h5_one_hot_V3(fname, window_size, x_coord, y_coord):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))

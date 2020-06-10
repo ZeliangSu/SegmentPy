@@ -512,6 +512,7 @@
     <addaction name="Random_Forest"/>
     <addaction name="Volumes_Viewer"/>
     <addaction name="Metrics"/>
+    <addaction name="AugViewer"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuPlugin"/>
@@ -550,6 +551,11 @@
   <action name="Metrics">
    <property name="text">
     <string>Metrics</string>
+   </property>
+  </action>
+  <action name="AugViewer">
+   <property name="text">
+    <string>AugViewer</string>
    </property>
   </action>
  </widget>

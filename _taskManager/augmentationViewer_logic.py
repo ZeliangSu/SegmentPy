@@ -1,0 +1,92 @@
+from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtCore import Qt
+
+from _taskManager.augmentationViewer_design import Ui_augViewer
+from input import coords_gen
+from augmentation import random_aug
+from util import load_img
+
+from PIL import Image
+import sys
+import numpy as np
+
+# logging
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.DEBUG)  #changeHere: debug level
+
+
+class augViewer_logic(QDialog, Ui_augViewer):
+    def __init__(self, tn_dir='./train/', batch_size=1, window_size=512, stride=5, norm=1e-3, *args, **kwargs):
+        QDialog.__init__(self, *args, **kwargs)
+
+        self.setupUi(self)
+
+        # backend variables
+        self.bs = batch_size
+        self.ws = window_size
+        self.stride = stride
+        self.normalization = norm
+
+        self.coords_gen = coords_gen(
+            train_dir=tn_dir,
+            window_size=self.ws,
+            train_test_ratio=0.9,
+            stride=self.stride,
+            batch_size=self.bs
+        )
+
+        self.img_paths, self.window_sizes, self.xs, self.ys = self.coords_gen.get_train_args()
+        self.next.clicked.connect(self.show_imgs)
+
+    def show_imgs(self):
+        # load img
+        random = np.random.randint(len(self.img_paths))
+        tomogram = load_img(self.img_paths[random]) / self.normalization
+        tomogram = tomogram[self.xs[random]:self.xs[random] + self.window_sizes[random],
+                   self.ys[random]:self.ys[random] + self.window_sizes[random]]
+        aug, _ = random_aug(tomogram, tomogram.reshape(*tomogram.shape, 1))
+
+        # 2 RGB
+        tomogram = (tomogram - np.min(tomogram)) / (np.max(tomogram) - np.min(tomogram)) * 255
+        tomogram = np.asarray(Image.fromarray(tomogram).convert('RGB'))
+        aug = (aug - np.min(aug)) / (np.max(aug) - np.min(aug)) * 255
+        aug = np.asarray(Image.fromarray(aug).convert('RGB'))
+
+        tomogram = tomogram.copy()
+        aug = aug.copy()
+
+        # convert to qt objects
+        self.q1 = QImage(tomogram, tomogram.shape[1], tomogram.shape[0], tomogram.shape[1] * 3, QImage.Format_RGB888)
+        self.q2 = QImage(aug, aug.shape[1], aug.shape[0], aug.shape[1] * 3, QImage.Format_RGB888)
+
+        self.p1 = QPixmap(self.q1)
+        self.p2 = QPixmap(self.q2)
+
+        # Fit the window
+        self.p1.scaled(self.width(), self.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.p2.scaled(self.width(), self.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.raw.setScaledContents(True)
+        self.aug.setScaledContents(True)
+        self.raw.setPixmap(self.p1)
+        self.aug.setPixmap(self.p2)
+
+        self.raw.update()
+        self.raw.repaint()
+        self.aug.update()
+        self.aug.repaint()
+
+
+def test():
+    app = QApplication(sys.argv)
+
+    # set ui
+    ui = augViewer_logic(tn_dir='../train/')
+    ui.show()
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    test()

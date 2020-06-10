@@ -300,6 +300,8 @@ class metric_logic(QDialog, Ui_metricViewer):
         self.list_surf()
         self.list_interf()
 
+        self.change_Header()
+
     def get_diff(self):
         diff = get_diff_map(self.gt1[self.current_page], self.gt2[self.current_page])
         return diff

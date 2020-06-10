@@ -20,7 +20,7 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
-def get_img(path, norm=True):
+def get_img(path, norm=None):
     img = np.asarray(Image.open(path))
     if norm:
         img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
