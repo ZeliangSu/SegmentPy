@@ -316,7 +316,7 @@ def IoU(seg, ground_truth):
     hotted_gt = one_hot_2D(ground_truth)  # (h, w, cls)
 
     tmp = hotted_gt * hotted_seg
-    tmp2 = hotted_gt * hotted_seg
+    tmp2 = hotted_gt + hotted_seg
 
     for cls in np.unique(seg):
         _IoU[cls] = len(np.where(tmp[:, :, cls] != 0)[0]) / len(np.where(tmp2[:, :, cls] != 0)[0])
