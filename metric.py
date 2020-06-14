@@ -309,16 +309,17 @@ def IoU(seg, ground_truth):
     # get the series
     assert isinstance(seg, np.ndarray)
     assert isinstance(ground_truth, np.ndarray)
-    assert seg.shape == ground_truth.shape
+    assert seg.shape == ground_truth.shape  # one channel with 0, 1, 2
 
     _IoU = {}
     hotted_seg = one_hot_2D(seg)  # (h, w, cls)
     hotted_gt = one_hot_2D(ground_truth)  # (h, w, cls)
 
     tmp = hotted_gt * hotted_seg
+    tmp2 = hotted_gt + hotted_seg
 
     for cls in np.unique(seg):
-        _IoU[cls] = len(np.where(tmp[:, :, cls] != 0)[0]) / hotted_seg[:, :, cls].size
+        _IoU[cls] = len(np.where(tmp[:, :, cls] != 0)[0]) / len(np.where(tmp2[:, :, cls] != 0)[0])
     return _IoU
 
 
