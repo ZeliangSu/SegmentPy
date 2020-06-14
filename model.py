@@ -839,7 +839,7 @@ def model_LRCS_LeCun(pipeline,
                                              is_train=BN_phase, activation=activation, if_BN=False,
                                              name='conv4', reuse=reuse)
             conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
-                                             is_train=BN_phase, activation='leaky', if_BN=False,
+                                             is_train=BN_phase, activation='sigmoid', if_BN=False,
                                              name='conv4bis', reuse=reuse)
 
         with tf.name_scope('decoder'):
