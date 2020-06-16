@@ -1,4 +1,6 @@
 from _taskManager.dialog_design import Ui_Dialog
+from _taskManager.file_dialog import file_dialog
+
 from PyQt5.QtWidgets import QDialog
 import json
 import os
@@ -28,6 +30,8 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.svsteps.setText(params['sv_step'])
             self.tbstep.setText(params['tb_step'])
             self.comment.setText(params['comment'])
+            self.trn_dir_line.setText(params['train_dir'])
+            self.val_dir_line.setText(params['val_dir'])
 
             # set QComboBox
             self.batnorm.setCurrentIndex(self.batnorm.findText(params['batch_norm']))
@@ -40,6 +44,8 @@ class dialog_logic(QDialog, Ui_Dialog):
         # buttons
         self.buttonBox.accepted.connect(self.accept)  # ok button
         self.buttonBox.rejected.connect(self.reject)  # cancel button
+        self.trn_dir_button.clicked.connect(self.set_train_dir)
+        self.val_dir_button.clicked.connect(self.set_val_dir)
 
     def return_params(self):
         output = {
@@ -64,8 +70,28 @@ class dialog_logic(QDialog, Ui_Dialog):
             'comment': self.comment.text()
         }
 
+        if hasattr(self, 'train_dir'):
+            output['train_dir'] = self.train_dir
+        else:
+            output['train_dir'] = './train/'
+
+        if hasattr(self, 'val_dir'):
+            output['val_dir'] = self.val_dir
+        else:
+            output['val_dir'] = './valid/'
+
         with open('./_taskManager/latest.json', 'w') as file:
             json.dump(output, file)
 
         return output
+
+    def set_train_dir(self):
+        train_dir_dial = file_dialog(title='select a folder where includes the training dataset', type='/')
+        self.train_dir = train_dir_dial.openFolderDialog()
+        self.trn_dir_line.setText(self.train_dir)
+
+    def set_val_dir(self):
+        val_dir_dial = file_dialog(title='select a folder where includes the validation dataset', type='/')
+        self.val_dir = val_dir_dial.openFolderDialog()
+        self.val_dir_line.setText(self.val_dir)
 

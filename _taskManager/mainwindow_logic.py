@@ -28,9 +28,9 @@ logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 def get_available_gpus_wrapper():
     """this threading wrapper can get rid of residus tensorflow in gpus"""
-    if not os.path.exists('./device.txt'):
-        proc = subprocess.Popen(['python', 'device.py'])
-        proc.wait()
+
+    proc = subprocess.Popen(['python', 'device.py'])
+    proc.wait()
     with open('./device.txt', 'r') as f:
         gpu_list = [line.rstrip() for line in f.readlines()]
     return gpu_list
@@ -142,7 +142,9 @@ class training_Worker(QRunnable):
             '-dv', self.using_gpu,
             '-st', self.params['sv step'],
             '-tb', self.params['tb step'],
-            '-cmt', self.params['comment']
+            '-cmt', self.params['comment'],
+            '-trnd', self.params['trn repo. path'],
+            '-vald', self.params['val repo. path']
         ]
 
         print(self.params)
@@ -195,6 +197,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.qManager.signals.available_gpu.connect(self.start)
 
         _translate = QtCore.QCoreApplication.translate
+
         # init the hyper-params tablewidget
         item = self.tableWidget.item(0, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)  #note: make it read only
@@ -271,6 +274,14 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item = self.tableWidget.item(18, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "comment"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(19, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "trn repo. path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(20, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "val repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
 
         self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
@@ -480,10 +491,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def clean(self):
         column = self.tableWidget.currentColumn()
-        self.tableWidget.removeColumn(column)
-        if column == 1:
-            self.setHeader()
-            self.bold(column=1)
+        if column >= 1:
+            self.tableWidget.removeColumn(column)
+            if column == 1:
+                self.setHeader()
+                self.bold(column=1)
 
     def forward(self):
         column = self.tableWidget.currentColumn()

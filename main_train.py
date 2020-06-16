@@ -57,6 +57,9 @@ if __name__ == '__main__':
     parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
                         help='save the histograms of gradients and weights for the training every X step')
     parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
+    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', required=False, help='where to find the training dataset')
+    parser.add_argument('-vald', '--val_dir', type=str, metavar='', required=False, help='where to find the valid dataset')
+    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
 
     try:
         args = parser.parse_args()
@@ -93,9 +96,9 @@ if __name__ == '__main__':
             'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
             'hour': '{}'.format(datetime.datetime.now().hour),
 
-            'train_dir': './train/',
-            'val_dir': './valid/',
-            'test_dir': './test/',
+            'train_dir': args.train_dir,
+            'val_dir': args.val_dir,
+            'test_dir': args.test_dir,
             }
 
         # coordinations gen
@@ -185,6 +188,7 @@ if __name__ == '__main__':
             'val_dir': './valid/',
             'test_dir': './test/',
         }
+
         # coordinations gen
         hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
                                                  test_dir=hyperparams['val_dir'],
@@ -232,6 +236,7 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['train_dir'], hyperparams['folder_name'] + 'copy/train/')
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
+
     try:
         main_train(hyperparams, grad_view=True)
 

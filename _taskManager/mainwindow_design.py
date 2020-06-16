@@ -6,14 +6,12 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_LRCSNet(object):
     def setupUi(self, LRCSNet):
         LRCSNet.setObjectName("LRCSNet")
-        LRCSNet.resize(1157, 754)
+        LRCSNet.resize(1178, 783)
         self.centralwidget = QtWidgets.QWidget(LRCSNet)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -107,7 +105,7 @@ class Ui_LRCSNet(object):
         self.tableWidget.setMinimumSize(QtCore.QSize(801, 601))
         self.tableWidget.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.tableWidget.setDragEnabled(False)
-        self.tableWidget.setRowCount(19)
+        self.tableWidget.setRowCount(21)
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setObjectName("tableWidget")
         item = QtWidgets.QTableWidgetItem()
@@ -154,6 +152,10 @@ class Ui_LRCSNet(object):
         self.tableWidget.setItem(17, 0, item)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setItem(18, 0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setItem(19, 0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setItem(20, 0, item)
         self.tableWidget.horizontalHeader().setDefaultSectionSize(100)
         self.tableWidget.horizontalHeader().setMinimumSectionSize(18)
         self.horizontalLayout.addWidget(self.tableWidget)
@@ -200,7 +202,7 @@ class Ui_LRCSNet(object):
         self.gridLayout.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
         LRCSNet.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(LRCSNet)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1157, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1178, 22))
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
         self.menuMenu.setEnabled(True)
@@ -304,6 +306,10 @@ class Ui_LRCSNet(object):
         item.setText(_translate("LRCSNet", "mode"))
         item = self.tableWidget.item(18, 0)
         item.setText(_translate("LRCSNet", "comment"))
+        item = self.tableWidget.item(19, 0)
+        item.setText(_translate("LRCSNet", "trn repo path"))
+        item = self.tableWidget.item(20, 0)
+        item.setText(_translate("LRCSNet", "val repo path"))
         self.tableWidget.setSortingEnabled(__sortingEnabled)
         self.label.setText(_translate("LRCSNet", "Available GPUs:"))
         self.label_2.setText(_translate("LRCSNet", "Ongoing Process:"))
@@ -317,3 +323,4 @@ class Ui_LRCSNet(object):
         self.Volumes_Viewer.setText(_translate("LRCSNet", "Volumes-Viewer"))
         self.Metrics.setText(_translate("LRCSNet", "Metrics"))
         self.AugViewer.setText(_translate("LRCSNet", "AugViewer"))
+

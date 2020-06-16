@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1157</width>
-    <height>754</height>
+    <width>1178</width>
+    <height>783</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -256,7 +256,7 @@
            <bool>false</bool>
           </property>
           <property name="rowCount">
-           <number>19</number>
+           <number>21</number>
           </property>
           <property name="columnCount">
            <number>2</number>
@@ -267,6 +267,8 @@
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>100</number>
           </attribute>
+          <row/>
+          <row/>
           <row/>
           <row/>
           <row/>
@@ -401,6 +403,16 @@
             <string>comment</string>
            </property>
           </item>
+          <item row="19" column="0">
+           <property name="text">
+            <string>trn repo path</string>
+           </property>
+          </item>
+          <item row="20" column="0">
+           <property name="text">
+            <string>val repo path</string>
+           </property>
+          </item>
          </widget>
         </item>
         <item>
@@ -488,7 +500,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1157</width>
+     <width>1178</width>
      <height>22</height>
     </rect>
    </property>

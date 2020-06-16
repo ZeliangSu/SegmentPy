@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'dialog.ui'
+# Form implementation generated from reading ui file '_taskManager/dialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.14.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(560, 582)
+        Dialog.resize(566, 684)
         self.layoutWidget = QtWidgets.QWidget(Dialog)
-        self.layoutWidget.setGeometry(QtCore.QRect(11, 11, 536, 577))
+        self.layoutWidget.setGeometry(QtCore.QRect(11, 11, 539, 660))
         self.layoutWidget.setObjectName("layoutWidget")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.layoutWidget)
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
@@ -169,6 +167,30 @@ class Ui_Dialog(object):
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout_3.addWidget(self.buttonBox)
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.label_20 = QtWidgets.QLabel(self.layoutWidget)
+        self.label_20.setObjectName("label_20")
+        self.horizontalLayout_3.addWidget(self.label_20)
+        self.trn_dir_line = QtWidgets.QLineEdit(self.layoutWidget)
+        self.trn_dir_line.setObjectName("trn_dir_line")
+        self.horizontalLayout_3.addWidget(self.trn_dir_line)
+        self.trn_dir_button = QtWidgets.QPushButton(self.layoutWidget)
+        self.trn_dir_button.setObjectName("trn_dir_button")
+        self.horizontalLayout_3.addWidget(self.trn_dir_button)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.label_19 = QtWidgets.QLabel(self.layoutWidget)
+        self.label_19.setObjectName("label_19")
+        self.horizontalLayout_2.addWidget(self.label_19)
+        self.val_dir_line = QtWidgets.QLineEdit(self.layoutWidget)
+        self.val_dir_line.setObjectName("val_dir_line")
+        self.horizontalLayout_2.addWidget(self.val_dir_line)
+        self.val_dir_button = QtWidgets.QPushButton(self.layoutWidget)
+        self.val_dir_button.setObjectName("val_dir_button")
+        self.horizontalLayout_2.addWidget(self.val_dir_button)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_2)
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept)
@@ -226,3 +248,8 @@ class Ui_Dialog(object):
         self.label_18.setText(_translate("Dialog", "tb: gradients and weights every n steps"))
         self.tbstep.setPlaceholderText(_translate("Dialog", "(e.g. 50...) integer"))
         self.comment.setPlaceholderText(_translate("Dialog", "enter extra comment here"))
+        self.label_20.setText(_translate("Dialog", "Trn. ds. repo.:"))
+        self.trn_dir_button.setText(_translate("Dialog", "..."))
+        self.label_19.setText(_translate("Dialog", "Val. ds. repo.:"))
+        self.val_dir_button.setText(_translate("Dialog", "..."))
+
