@@ -31,7 +31,9 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.tbstep.setText(params['tb_step'])
             self.comment.setText(params['comment'])
             self.trn_dir_line.setText(params['train_dir'])
+            self.train_dir = params['train_dir']
             self.val_dir_line.setText(params['val_dir'])
+            self.val_dir = params['val_dir']
 
             # set QComboBox
             self.batnorm.setCurrentIndex(self.batnorm.findText(params['batch_norm']))

@@ -80,7 +80,7 @@ class hyperparameter:
         return do
 
     def get_act_fn(self):
-        af = re.search('act\_(True|False)', self.folder_name)
+        af = re.search('act\_(relu|leaky|sigmoid|tanh)', self.folder_name)
         if af is not None:
             af = af.group(1)
         return af
