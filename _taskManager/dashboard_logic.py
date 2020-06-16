@@ -128,7 +128,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
 
                 max_id = 0
                 if self.mplwidget.paths.__len__() != 0:
-                    for i in self.paths.keys():
+                    for i in self.mplwidget.paths.keys():
                         max_id = max(max_id, int(i))
 
                 # add event folder path

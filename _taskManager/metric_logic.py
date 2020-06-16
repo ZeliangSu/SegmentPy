@@ -68,7 +68,7 @@ class metric_logic(QDialog, Ui_metricViewer):
     def dragEnterEvent(self, ev):
         path = ev.mimeData().text().replace('\r', '').replace('\n', '')
         format = path.split('.')[-1]
-        logger.debug('detected: ', path)
+        logger.debug('detected: {}'.format(path))
         if format in self.accept_img_format:
             ev.accept()
 
