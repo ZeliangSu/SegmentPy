@@ -73,12 +73,12 @@ class dialog_logic(QDialog, Ui_Dialog):
         }
 
         if hasattr(self, 'train_dir'):
-            output['train_dir'] = self.train_dir
+            output['train_dir'] = self.trn_dir_line.text()
         else:
             output['train_dir'] = './train/'
 
         if hasattr(self, 'val_dir'):
-            output['val_dir'] = self.val_dir
+            output['val_dir'] = self.val_dir_line.text()
         else:
             output['val_dir'] = './valid/'
 
