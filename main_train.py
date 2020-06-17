@@ -57,8 +57,8 @@ if __name__ == '__main__':
     parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
                         help='save the histograms of gradients and weights for the training every X step')
     parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
-    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', required=False, help='where to find the training dataset')
-    parser.add_argument('-vald', '--val_dir', type=str, metavar='', required=False, help='where to find the valid dataset')
+    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False, help='where to find the training dataset')
+    parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False, help='where to find the valid dataset')
     parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
 
     try:
@@ -157,8 +157,9 @@ if __name__ == '__main__':
                 hyperparams['device']
             )
 
-    except AssertionError as e:
-        logger.warning('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
+    except Exception as e:
+        logger.warning('\n\n(main_train.py)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
+        logger.error(e)
         hyperparams = {
             ############### model ###################
             'model': 'Unet4',
