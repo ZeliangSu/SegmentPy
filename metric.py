@@ -273,9 +273,22 @@ def get_surface(seg, phase: int):
     return surf
 
 
+def get_surface_3D(seg, phase:int):
+    assert isinstance(seg, np.ndarray)
+    assert len(seg.shape) == 3
+    surf = compneib26(seg, phase)
+    return surf
+
+
 def get_interface(seg, phase1: int, phase2: int):
     assert isinstance(seg, np.ndarray)
     interface = compneib8(seg, phase1, phase2)
+    return interface
+
+
+def get_interface_3D(seg, phase1: int, phase2: int):
+    assert isinstance(seg, np.ndarray)
+    interface = compneib26(seg, phase1, phase2)
     return interface
 
 

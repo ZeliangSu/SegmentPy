@@ -3,15 +3,18 @@ from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
 from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
 
 from _taskManager.volumes_viewer_design import Ui_volViewer
+from metric import get_interface_3D, get_surface_3D
 
 import sys
 import os
+import re
 import numpy as np
 from PIL import Image
 import pandas as pd
 import string
 from tqdm import tqdm
 from time import sleep
+from itertools import combinations
 
 # logging
 import logging
@@ -20,12 +23,16 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
-def get_img(path, norm=None):
-    img = np.asarray(Image.open(path))
-    if norm:
-        img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
-        img = np.asarray(Image.fromarray(img).convert('RGB'))  # work with RGB888 in QImage
-    return img
+def get_imgs(paths: list, norm=None):
+    imgs = []
+    for path in paths:
+        img = np.asarray(Image.open(path))
+        if norm:
+            img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
+            img = np.asarray(Image.fromarray(img).convert('RGB'))  # work with RGB888 in QImage
+        imgs.append(img)
+    imgs = np.squeeze(np.stack(imgs, axis=0))  # squeeze when computing vol frac uses only 2D image, and interface 3D
+    return imgs
 
 
 class volViewer_logic(QDialog, Ui_volViewer):
@@ -98,19 +105,24 @@ class volViewer_logic(QDialog, Ui_volViewer):
         dir_or_path = event.mimeData().text().replace('file://', '').replace('\r','').replace('\n','')
 
         fns = []
-        if dir_or_path.endswith('/'):
+        if os.path.isdir(dir_or_path):
+            if not dir_or_path.endswith('/'):
+                dir_or_path += '/'
             for f in os.listdir(dir_or_path):
                 fns.append(dir_or_path + f)
         else:
             fns.append(dir_or_path)
 
+        # sorted by the last interger preceding the .tif
+        fns = sorted(fns, key=lambda x: int(re.search('(\d+)\.tif', x).group(1)))
+
         if self.vol1.geometry().contains(event.pos()):
-            self.vol1_fns = fns
+            self.vol1_fns = fns.copy()
             self.Vol1show(1)  # start with 1 not 0
             self.refresh_plot_and_label(self.vol1_fns, self.accumulated_value1, self.accum_plot1)
 
         elif self.vol2.geometry().contains(event.pos()):
-            self.vol2_fns = fns
+            self.vol2_fns = fns.copy()
             self.Vol2show(1)  # start with 1 not 0
             self.refresh_plot_and_label(self.vol2_fns, self.accumulated_value2, self.accum_plot2)
 
@@ -145,7 +157,7 @@ class volViewer_logic(QDialog, Ui_volViewer):
     def Vol1show(self, fns_idx):
         # note: fns_idx start with 1 not 0 like pythonic indexing
         if self.vol1_fns is not None:
-            img = get_img(self.vol1_fns[fns_idx - 1])
+            img = get_imgs([self.vol1_fns[fns_idx - 1]], norm=True)
 
             # crop if zoom
             img = img.copy()
@@ -167,7 +179,7 @@ class volViewer_logic(QDialog, Ui_volViewer):
     def Vol2show(self, fns_idx):
         # note: fns_idx start with 1 not 0 like pythonic indexing
         if self.vol2_fns is not None:
-            img = get_img(self.vol2_fns[fns_idx - 1])
+            img = get_imgs([self.vol2_fns[fns_idx - 1]], norm=True)
 
             # crop if zoom
             img = img.copy()
@@ -202,27 +214,54 @@ class volViewer_logic(QDialog, Ui_volViewer):
 
         # compute
         accum_nb_vx = pd.DataFrame({'index': np.arange(len(fns))})
+        accum_interf = pd.DataFrame({'index': np.arange(len(fns))})
         total_vox = 0
         total_volFrac = {}
 
         pbar.show()
-        for z, fn in tqdm(enumerate(fns)):
+        len_fns = len(fns)
+
+        # todo: the following loop can be parallelized
+        for z in tqdm(range(len(fns))):
+            # convention: vol.shape (Z, H, W)
             # update pbar
             if z % 20 == 0:
                 pbar.setValue(z)
                 pbar.setLabelText('Scanning slides...[%d/%d]' % (z, length))
 
             # compute
-            img = get_img(fn, norm=False)
-            img = img.astype(np.int)
+            if (z > 0) and (z < len_fns):
+                imgs = get_imgs(fns[z - 1: z + 2], norm=False)
+            elif z == 0:
+                imgs = get_imgs(fns[z: z + 2], norm=False)
+                imgs = np.concatenate([-np.ones((1, *imgs.shape[1:])), imgs], axis=0)
+            elif z == len_fns:
+                imgs = get_imgs(fns[z - 1: z + 1], norm=False)
+                imgs = np.concatenate([imgs, -np.ones((1, *imgs.shape[1:]))], axis=0)
+            else:
+                raise ValueError()
 
-            for cls in np.unique(img):
+            imgs = imgs.astype(np.int)
+
+            # vol fracs
+            for cls in np.unique(imgs[1]):
                 if string.ascii_lowercase[cls] not in accum_nb_vx.columns:
                     col_name = string.ascii_lowercase[cls]  # fixme: only supported maxi 26 cls, but its enough though
                     accum_nb_vx[col_name] = 0
-                nb_vx = np.where(img == cls)[0].size
+                nb_vx = np.where(imgs[1] == cls)[0].size
                 accum_nb_vx.iloc[z, cls + 1] = nb_vx
                 total_vox += nb_vx
+
+            # note: this is a on-disk interface extractor
+            # interfaces (expensive)
+            for ph1, ph2 in combinations(np.unique(imgs[1]), 2):
+                interf_name = '{}-{}'.format(ph1, ph2)
+                if interf_name not in accum_interf.columns:
+                    accum_interf[interf_name] = 0
+                # give % per slides
+                interf = get_interface_3D(imgs, ph1, ph2)
+                per = len(np.where(interf == 1)[0]) / interf.size
+                accum_interf[interf_name].iloc[z] = per
 
         # quit
         pbar.setValue(length)
@@ -231,17 +270,16 @@ class volViewer_logic(QDialog, Ui_volViewer):
         for col in accum_nb_vx.columns[1:]:
             total_volFrac[col] = accum_nb_vx[col].sum() / total_vox
 
-        return total_vox, accum_nb_vx, total_volFrac
+        return total_vox, accum_nb_vx, total_volFrac, accum_interf
 
     def refresh_plot_and_label(self, which_vol: list, which_label: QLabel, which_plot: QWidget):
-        tt_vs1, acc_vf1, tvf1 = self.get_volFracs(which_vol)
-        # tt_vs2, acc_vf2, tvf2 = self.get_volFracs(self.vol2_fns)
+        tt_vs1, acc_vf1, tvf1, acc_interf = self.get_volFracs(which_vol)
 
         self.set_titles(which_label, tt_vs1, tvf1)
-        # self.set_titles(self.accumulated_value2, tt_vs2, tvf2)
 
         which_plot.accum_nb_vx = acc_vf1
-        # self.accum_plot2.accum_nb_vx = acc_vf2
+
+        which_plot.accum_interf = acc_interf
 
         which_plot.plot()
 

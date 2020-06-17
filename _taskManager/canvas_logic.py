@@ -137,10 +137,11 @@ class volFracPlotter(QWidget):
         # back end attributes
         self.total_vs = 0  # {'total_vs': int, 'index': [1, 2, 4, 5...]}
         self.accum_nb_vx = None  # pd.DataFrame{A: [1234, 2345, ], B: [123, 234],...}
+        self.accum_interf = None  # pd.DataFrame{'0-1': [0.1, 0.5, 0.3 ...], '0-2': [0.6, 0.02, ...] ...}
         self.plan_vs = None  # pd.DataFrame{A: [1234, 2345, ], B: [123, 234],...}
 
         # init curve
-        volfracplot = plt.figure(dpi=50)
+        volfracplot = plt.figure(dpi=40)
         self.canvas_volfrac = canvas(volfracplot)
         self.canvas_volfrac.setParent(parent)
 
@@ -157,9 +158,12 @@ class volFracPlotter(QWidget):
         self.canvas_volfrac.draw()
 
     def plot(self):
-        plot_volfrac = self.canvas_volfrac.figure
-        plot_volfrac.clear()
-        vf_ax = plot_volfrac.add_subplot(111)
+        plot = self.canvas_volfrac.figure
+        plot.clear()
+
+        # plot vol frac
+        vf_ax = plot.add_subplot(211)
+        vf_ax.set_title('Volume Fractions')
         self.plan_vs = self.accum_nb_vx.iloc[0, 1:].sum()
 
         for col in self.accum_nb_vx.columns[1:]:
@@ -168,7 +172,18 @@ class volFracPlotter(QWidget):
                        label=col,
                        linewidth=0.5)
         vf_ax.set_ylim([0., 1.])
-
         vf_ax.legend(loc='best')
+
+        # plot interface
+        interf_ax = plot.add_subplot(212)
+        interf_ax.set_title('Interfaces')
+        for col in self.accum_interf.columns[1:]:
+            interf_ax.plot(self.accum_interf.index,
+                       self.accum_interf[col],
+                       label=col,
+                       linewidth=0.5)
+        interf_ax.legend(loc='best')
+
+        plot.tight_layout()
         self.canvas_volfrac.draw()
 
