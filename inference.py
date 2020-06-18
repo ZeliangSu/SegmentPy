@@ -17,12 +17,19 @@ import re
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 tag_compute = 1002
 
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+logger.info(''' \n##########[note]##########\n
+V2: only compatible with models that couldn't change input dimension in the inference (slow due to the reconstruction)\n
+V3: only compatible with models that can change input in the inference\n
+V4: added Vote functionality based on V3 (slow due to on-disk reading input from .tif stack in 1, 2 direction)\n
+V5(future): a more general form for V2-4???\n
+''')
 
 
 class reconstructor_V2_reg():
@@ -647,7 +654,6 @@ def inference_recursive_V4(l_input_path=None, conserve_nodes=None, paths=None, h
         print(nb_img_per_rank2, rest_img2, nb_process)
 
         remaining = remaining0 + remaining1 + remaining2
-        rest_img = rest_img0 + rest_img1 + rest_img2
 
     if rank == 0:
         if vote:
@@ -678,29 +684,85 @@ def inference_recursive_V4(l_input_path=None, conserve_nodes=None, paths=None, h
                 pbar1.update(1)
 
     else:
-        if (rank - 1) < rest_img:
-            start_id = (rank - 1) * (nb_img_per_rank + 1)
-            id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
-        else:
-            start_id = (rank - 1) * nb_img_per_rank + rest_img
-            id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
-        axis = 0
-
-        logger.debug('{}: {}'.format(rank, id_list))
-        _inference_recursive_V4(
-            l_input_path=l_input_path,
-            id_list=id_list,
-            pb_path=paths['optimized_pb_path'],
-            conserve_nodes=conserve_nodes,
-            hyper=hyper,
-            comm=communicator,
-            normalization=normalization,
-            axis=axis,
-        )
-
         # todo: the following might be optimized
         if vote:
-            pass
+            ########## Z direction
+            if (rank - 1) < rest_img0:
+                start_id = (rank - 1) * (nb_img_per_rank0 + 1)
+                id_list = np.arange(start_id, start_id + nb_img_per_rank0 + 1, 1)
+            else:
+                start_id = (rank - 1) * nb_img_per_rank0 + rest_img0
+                id_list = np.arange(start_id, start_id + nb_img_per_rank0, 1)
+            axis = 0
+
+            logger.debug('{}: {}'.format(rank, id_list))
+            _inference_recursive_V4(
+                l_input_path=l_input_path,
+                id_list=id_list,
+                pb_path=paths['optimized_pb_path'],
+                conserve_nodes=conserve_nodes,
+                hyper=hyper,
+                comm=communicator,
+                normalization=normalization,
+                axis=0)
+
+            ########## H direction
+            if (rank - 1) < rest_img1:
+                start_id = (rank - 1) * (nb_img_per_rank1 + 1)
+                id_list = np.arange(start_id, start_id + nb_img_per_rank1 + 1, 1)
+            else:
+                start_id = (rank - 1) * nb_img_per_rank1 + rest_img0
+                id_list = np.arange(start_id, start_id + nb_img_per_rank1, 1)
+
+            logger.debug('{}: {}'.format(rank, id_list))
+            _inference_recursive_V4(
+                l_input_path=l_input_path,
+                id_list=id_list,
+                pb_path=paths['optimized_pb_path'],
+                conserve_nodes=conserve_nodes,
+                hyper=hyper,
+                comm=communicator,
+                normalization=normalization,
+                axis=1)
+
+            ########## W direction
+            if (rank - 1) < rest_img2:
+                start_id = (rank - 1) * (nb_img_per_rank2 + 1)
+                id_list = np.arange(start_id, start_id + nb_img_per_rank2 + 1, 1)
+            else:
+                start_id = (rank - 1) * nb_img_per_rank2 + rest_img0
+                id_list = np.arange(start_id, start_id + nb_img_per_rank2, 1)
+
+            logger.debug('{}: {}'.format(rank, id_list))
+            _inference_recursive_V4(
+                l_input_path=l_input_path,
+                id_list=id_list,
+                pb_path=paths['optimized_pb_path'],
+                conserve_nodes=conserve_nodes,
+                hyper=hyper,
+                comm=communicator,
+                normalization=normalization,
+                axis=2)
+
+        else:
+            if (rank - 1) < rest_img:
+                start_id = (rank - 1) * (nb_img_per_rank + 1)
+                id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
+            else:
+                start_id = (rank - 1) * nb_img_per_rank + rest_img
+                id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
+
+            logger.debug('{}: {}'.format(rank, id_list))
+            _inference_recursive_V4(
+                l_input_path=l_input_path,
+                id_list=id_list,
+                pb_path=paths['optimized_pb_path'],
+                conserve_nodes=conserve_nodes,
+                hyper=hyper,
+                comm=communicator,
+                normalization=normalization,
+                axis=0,
+            )
 
     # ************************************************************************************************ I'm a Barrier
     communicator.Barrier()
