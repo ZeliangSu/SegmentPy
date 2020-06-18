@@ -217,6 +217,7 @@ class volViewer_logic(QDialog, Ui_volViewer):
         accum_interf = pd.DataFrame({'index': np.arange(len(fns))})
         total_vox = 0
         total_volFrac = {}
+        total_interf = {}
 
         pbar.show()
         len_fns = len(fns)
@@ -270,12 +271,15 @@ class volViewer_logic(QDialog, Ui_volViewer):
         for col in accum_nb_vx.columns[1:]:
             total_volFrac[col] = accum_nb_vx[col].sum() / total_vox
 
-        return total_vox, accum_nb_vx, total_volFrac, accum_interf
+        for col in accum_interf.columns[1:]:
+            total_interf[col] = accum_interf[col].sum() / total_vox
+
+        return total_vox, accum_nb_vx, total_volFrac, accum_interf, total_interf
 
     def refresh_plot_and_label(self, which_vol: list, which_label: QLabel, which_plot: QWidget):
-        tt_vs1, acc_vf1, tvf1, acc_interf = self.get_volFracs(which_vol)
+        tt_vs1, acc_vf1, tvf1, acc_interf, tinterf = self.get_volFracs(which_vol)
 
-        self.set_titles(which_label, tt_vs1, tvf1)
+        self.set_titles(which_label, tt_vs1, tvf1, tinterf)
 
         which_plot.accum_nb_vx = acc_vf1
 
@@ -283,13 +287,16 @@ class volViewer_logic(QDialog, Ui_volViewer):
 
         which_plot.plot()
 
-    def set_titles(self, title: QLabel, total_vs: int, total_vol_frac: dict):
+    def set_titles(self, title: QLabel, total_vs: int, total_vol_frac: dict, total_interf: dict):
         content = ''
         for cls, v in total_vol_frac.items():
-            content += '{}: {:.4f}\n'.format(cls, v)
+            content += '\ntotal vol.frac.:\n{}: {:.4f}\n'.format(cls, v)
+
+        for cls, v in total_interf.items():
+            content += '\ntotal interf.: \n{}: {:.4f}\n'.format(cls, v)
 
         title.setText(
-            'Total voxels:\n{}\nAcc. Vol. Frac.:\n{}'.format(total_vs, content))
+            'Total voxels:\n{}\nVol. Frac.:\n{}'.format(total_vs, content))
 
 
 def test():
