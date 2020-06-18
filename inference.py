@@ -6,7 +6,7 @@ from itertools import product
 from PIL import Image
 from tqdm import tqdm
 from input import _minmaxscalar
-from util import print_nodes_name, get_list_fnames, load_img, dimension_regulator
+from util import print_nodes_name, get_list_fnames, load_img, dimension_regulator, load_img_V2
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from tensorflow.python.framework import dtypes
 from layers import customized_softmax_np
@@ -109,17 +109,43 @@ class reconstructor_V3_cls():
         self.img_size = image_size
         self.z_len = z_len
         self.nb_cls = nb_class
-        a, b = self.img_size[0] // 8, self.img_size[1] // 8
-        self.result = np.zeros((self.z_len, a * 8, b * 8), dtype=np.int8)
+        self.H, self.W = self.img_size[0], self.img_size[1]
+        self.result = np.zeros((self.z_len, self.H, self.W), dtype=np.int8)
 
     def write_slice(self,
                     nn_output,
-                    slice_id
+                    slice_id,
                     ):
         seg = np.argmax(np.squeeze(nn_output), axis=2).astype(np.int8)
         self.result[slice_id, :, :] = seg
 
     def get_volume(self):
+        return self.result.astype(np.float32)  # convert to float for saving in .tif
+
+
+class reconstructor_V4_cls(reconstructor_V3_cls):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result = np.zeros((*self.result.shape, self.nb_cls))
+
+    def write_slice_3D(self,
+                    nn_output,
+                    slice_id,
+                    axis=0,
+                    ):
+        # note: override the signature of the V3 2D version class method is not a good practics, so create another mthd
+        # note: convention (Z, H, W, cls)
+        if axis == 0:
+            self.result[slice_id, :, :, :] += nn_output
+        elif axis == 1:
+            self.result[:, slice_id, :, :] += nn_output
+        elif axis == 2:
+            self.result[:, :, slice_id] += nn_output
+        else:
+            raise ValueError('axis expectes 0, 1 or 2')
+
+    def get_volume(self):
+        self.result = np.argmax(self.result, axis=3)
         return self.result.astype(np.float32)  # convert to float for saving in .tif
 
 
@@ -216,6 +242,7 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
                                    dtypes.float32.as_datatype_enum,
                                    ]
         )
+
     except:
         optimize_graph_def = optimize_for_inference(
             input_graph_def=graph_def,
@@ -230,7 +257,7 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
         f.write(optimize_graph_def.SerializeToString())
 
 
-def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, normalization=1e-3):
+def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, normalization=1e-3, vote=False):
     assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
     assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
     assert isinstance(paths, dict), 'paths should be a dict'
@@ -417,7 +444,8 @@ def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, cons
                 raise NotImplementedError('!')
 
 
-def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, norm=1e-3):
+def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, normalization=1e-3):
+    # todo: the intern organization of infer_recur_V3 and _infer_recur_V3 can be improved
     assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
     assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
     assert isinstance(paths, dict), 'paths should be a dict'
@@ -433,8 +461,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
     # optimize ckpt to pb for inference
     if rank == 0:
 
-        for img in l_img_path:
-            logger.debug(img)
+        for path in l_img_path:
+            logger.debug(path)
 
         check_N_mkdir(paths['inference_dir'])
         freeze_ckpt_for_inference(paths=paths, hyper=hyper,
@@ -453,6 +481,7 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
 
     # reconstruct volumn
     remaining = len(l_input_path)
+
     nb_img_per_rank = remaining // (nb_process - 1)
     rest_img = remaining % (nb_process - 1)
     print(nb_img_per_rank, rest_img, nb_process)
@@ -487,7 +516,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
             pb_path=paths['optimized_pb_path'],
             conserve_nodes=conserve_nodes,
             hyper=hyper,
-            comm=communicator
+            comm=communicator,
+            normalization=normalization,
         )
 
     # ************************************************************************************************ I'm a Barrier
@@ -506,7 +536,8 @@ def _inference_recursive_V3(l_input_path: list,
                             conserve_nodes: list,
                             hyper: dict,
                             comm=None,
-                            normalization=1e-3):
+                            normalization=1e-3,
+                            ):
     # load graph
     tf.reset_default_graph()
     with tf.gfile.GFile(pb_path, 'rb') as f:
@@ -555,6 +586,220 @@ def _inference_recursive_V3(l_input_path: list,
                     comm.send([id, output], dest=0, tag=tag_compute)
                 else:
                     raise NotImplementedError('!')
+
+
+def inference_recursive_V4(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, normalization=1e-3, vote=False):
+    # todo: the intern organization of infer_recur_V3 and _infer_recur_V3 can be improved
+    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
+    assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
+    assert isinstance(paths, dict), 'paths should be a dict'
+    assert isinstance(hyper, dict), 'hyper should be a dict'
+
+    from mpi4py import MPI
+    # prevent GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    communicator = MPI.COMM_WORLD
+    rank = communicator.Get_rank()
+    nb_process = communicator.Get_size()
+
+    # optimize ckpt to pb for inference
+    if rank == 0:
+
+        for path in l_img_path:
+            logger.debug(path)
+
+        check_N_mkdir(paths['inference_dir'])
+        freeze_ckpt_for_inference(paths=paths, hyper=hyper,
+                                  conserve_nodes=conserve_nodes)
+        optimize_pb_for_inference(paths=paths,
+                                  conserve_nodes=conserve_nodes)
+
+    # ************************************************************************************************ I'm a Barrier
+    communicator.Barrier()
+
+    # reconstruct volumn
+
+    parent_dir = os.path.dirname(l_input_path[0])
+
+    remaining = len(l_input_path)
+    nb_img_per_rank = remaining // (nb_process - 1)
+    rest_img = remaining % (nb_process - 1)
+    print(nb_img_per_rank, rest_img, nb_process)
+
+    if vote:
+        # if vote for 3 directions each direction the 2D slide will be regulated according to the model
+        tmp, stt = dimension_regulator(load_img_V2(parent_dir, 0, axis=1), return_start=True)
+        (Z_prime, H_prime) = tmp.shape
+        tmp, _ = dimension_regulator(load_img_V2(parent_dir, 0, axis=0), return_start=True)
+        (H_prime, W_prime) = tmp.shape
+
+        remaining0 = Z_prime
+        rest_img0 = rest_img
+        nb_img_per_rank0 = nb_img_per_rank
+
+        remaining1 = H_prime
+        remaining2 = W_prime
+        nb_img_per_rank1 = remaining1 // (nb_process - 1)
+        rest_img1 = remaining1 % (nb_process - 1)
+        nb_img_per_rank2 = remaining2 // (nb_process - 1)
+        rest_img2 = remaining2 % (nb_process - 1)
+        print(nb_img_per_rank1, rest_img1, nb_process)
+        print(nb_img_per_rank2, rest_img2, nb_process)
+
+        remaining = remaining0 + remaining1 + remaining2
+        rest_img = rest_img0 + rest_img1 + rest_img2
+
+    if rank == 0:
+        if vote:
+            z_len = Z_prime
+        else:
+            z_len = len(l_input_path)
+
+        reconstructor = reconstructor_V4_cls(
+            image_size=load_img(l_input_path[0]).shape,
+            z_len=z_len,
+            nb_class=hyper['nb_classes']
+        )
+        # start gathering batches from other rank
+        s = MPI.Status()
+        communicator.Probe(status=s)
+        pbar1 = tqdm(total=len(l_input_path))
+
+        while remaining > 0:
+            if s.tag == tag_compute:
+                # receive outputs
+                slice_id, out_batch, axis = communicator.recv(tag=tag_compute)
+                logger.debug('id:{}, ax:{}'.format(slice_id, axis))
+
+                reconstructor.write_slice_3D(out_batch, slice_id, axis=axis)
+
+                # progress
+                remaining -= 1
+                pbar1.update(1)
+
+    else:
+        if (rank - 1) < rest_img:
+            start_id = (rank - 1) * (nb_img_per_rank + 1)
+            id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
+        else:
+            start_id = (rank - 1) * nb_img_per_rank + rest_img
+            id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
+        axis = 0
+
+        logger.debug('{}: {}'.format(rank, id_list))
+        _inference_recursive_V4(
+            l_input_path=l_input_path,
+            id_list=id_list,
+            pb_path=paths['optimized_pb_path'],
+            conserve_nodes=conserve_nodes,
+            hyper=hyper,
+            comm=communicator,
+            normalization=normalization,
+            axis=axis,
+        )
+
+        # todo: the following might be optimized
+        if vote:
+            pass
+
+    # ************************************************************************************************ I'm a Barrier
+    communicator.Barrier()
+
+    # save recon
+    if rank == 0:
+        recon = reconstructor.get_volume()
+        for i in tqdm(range(len(l_input_path)), desc='writing data'):
+            Image.fromarray(recon[i]).save(paths['inference_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
+
+
+def _inference_recursive_V4(l_input_path: list,
+                            id_list: np.ndarray,
+                            pb_path: str,
+                            conserve_nodes: list,
+                            hyper: dict,
+                            comm=None,
+                            normalization=1e-3,
+                            axis=0,
+                            ):
+
+    # load graph
+    tf.reset_default_graph()
+    with tf.gfile.GFile(pb_path, 'rb') as f:
+        graph_def_optimized = tf.GraphDef()
+        graph_def_optimized.ParseFromString(f.read())
+
+    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
+        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
+        G = tf.get_default_graph()
+        X = G.get_tensor_by_name('import/' + 'new_input:0')
+        y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
+        bn = G.get_tensor_by_name('import/' + 'new_BN:0')
+        try:
+            do = G.get_tensor_by_name('import/' + 'new_dropout:0')
+        except Exception as e:
+            print(e)
+            print('drop out not exists in graph')
+            do = None
+            pass
+
+        print(comm.Get_rank(), ': nb of inference:{}'.format(len(id_list)))
+        if id_list.size != 0:
+            if axis == 0:
+                for id in np.nditer(id_list):
+                    # note: the following dimensions should be multiple of 8 if 3x Maxpooling
+                    logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
+                    img = load_img(l_input_path[id]) / normalization
+                    img = dimension_regulator(img, maxp_times=3)
+
+                    batch = img.reshape((1, *img.shape, 1))
+                    # inference
+                    if do is not None:
+                        feed_dict = {
+                            X: batch,
+                            do: 1.0,
+                            bn: False,
+                        }
+                    else:
+                        feed_dict = {
+                            X: batch,
+                            bn: False,
+                        }
+
+                    if hyper['mode'] == 'classification':
+                        output = sess.run(y, feed_dict=feed_dict)
+                        output = customized_softmax_np(output)
+                        comm.send([id, output, axis], dest=0, tag=tag_compute)
+                    else:
+                        raise NotImplementedError('!')
+            else:
+                assert axis in [1, 2], 'cannot understand the axis arg'
+                (H, W) = load_img(l_input_path[0]).shape
+                for id in range(H if axis == 1 else W):
+                    # note: the following dimensions should be multiple of 8 if 3x Maxpooling
+                    logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
+                    img = load_img_V2(os.path.dirname(l_input_path[0]), position=id, axis=axis) / normalization
+                    img = dimension_regulator(img, maxp_times=3)
+
+                    batch = img.reshape((1, *img.shape, 1))
+                    # inference
+                    if do is not None:
+                        feed_dict = {
+                            X: batch,
+                            do: 1.0,
+                            bn: False,
+                        }
+                    else:
+                        feed_dict = {
+                            X: batch,
+                            bn: False,
+                        }
+
+                    if hyper['mode'] == 'classification':
+                        output = sess.run(y, feed_dict=feed_dict)
+                        output = customized_softmax_np(output)
+                        comm.send([id, output, axis], dest=0, tag=tag_compute)
+                    else:
+                        raise NotImplementedError('!')
 
 
 if __name__ == '__main__':

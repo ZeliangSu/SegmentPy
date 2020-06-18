@@ -216,20 +216,59 @@ def list_ckpts(directory):
     return ckpts, fns
 
 
-def dimension_regulator(img, maxp_times=3):
+def dimension_regulator(img, maxp_times=3, return_start=False):
     ''' some models constraint the i/o dimensions should be multiple of 8 (for 3 times maxpooling)'''
     # note: the following dimensions should be multiple of 8 if 3x Maxpooling
     multiple = 2 ** maxp_times
     # note: fiji (w:1572, h:1548) --> PIL --> np.shape(row: 1548, col: 1572)
     w, h = img.shape[1] % multiple, img.shape[0] % multiple
     a, b = img.shape[1] // multiple, img.shape[0] // multiple
-    img = img[h // 2: h // 2 + b * multiple, w // 2: w // 2 + a * multiple]
-    return img
+    start = (h // 2, w // 2)
+    img = img[start[0]: start[0] + b * multiple, start[1]: start[1] + a * multiple]
+    if return_start:
+        return img, start
+    else:
+        return img
 
 
 def load_img(path):
     img = np.asarray(Image.open(path))
     return img
+
+
+def load_img_V2(parent_dir: str, position: int, axis=0):
+    '''convention: axis (Z, H, W)
+    usage: for i in range(H):
+                img = load_img_V2(parent_dir, position=i, axis=1)
+    '''
+    assert os.path.isdir(parent_dir)
+    if not parent_dir.endswith('/'):
+        parent_dir += '/'
+    l_fns = os.listdir(parent_dir)
+    l_fns = sorted(l_fns, key=lambda x: int(re.search('(\d+)\.tif', x).group(1)))
+    shape = np.asarray(Image.open(parent_dir + l_fns[0])).shape
+    Z, H, W = len(l_fns), shape[0], shape[1]
+
+    if axis == 0:
+        img = np.asarray(Image.open(parent_dir + l_fns[position]))
+        return img
+
+    elif axis == 1:
+        # fixme: can other format like .h5 can be faster? the following thake 20seconds
+        img = np.zeros((Z, H))
+        for i, f in enumerate(l_fns):
+            img[i, :] = np.asarray(Image.open(parent_dir + f))[:, position]
+        return img
+
+    elif axis == 2:
+        # fixme: can other format like .h5 can be faster? the following thake 20seconds
+        img = np.zeros((Z, W))
+        for i, f in enumerate(l_fns):
+            img[i, :] = np.asarray(Image.open(parent_dir + f))[position, ]
+        return img
+
+    else:
+        raise ValueError('expected 0, 1 or 2 for axis')
 
 
 def auto_contrast(img):
@@ -317,3 +356,23 @@ def boolean_string(s):
     else:
         return True
 
+
+def clean_fileName_list(l_fnames):
+    pass
+
+
+if __name__ == '__main__':
+    from time import time
+    parent = '/Users/zeliangsu/Desktop/dummy/data/predict/result/'
+
+    start = time()
+    a = load_img_V2(parent, 20, axis=0)
+    print(time() - start)
+
+    start = time()
+    a = load_img_V2(parent, 20, axis=1)
+    print(time() - start)
+
+    start = time()
+    a = load_img_V2(parent, 20, axis=2)
+    print(time() - start)
