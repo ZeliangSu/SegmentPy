@@ -17,3 +17,4 @@ test/*
 predict/*
 device.txt
 _taskManager/latest.json
+docs/_build/

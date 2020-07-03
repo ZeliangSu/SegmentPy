@@ -1,0 +1,30 @@
+SegmentPy
+=====================================
+
+LEFT NAV
+---------
+Installation
+    Linux
+    MacOS
+    Windows (in test)
+
+Quick Tutorial
+    Train neural network models
+    Rapid prediction with MPI
+    Track activations of each layer
+    Get(Live)/save/compare learning curves in Dashboard
+
+Plug-ins:
+    Compare raw tomograms and segmentation in VolViewer
+    Retrieve IoU/accuracy/aolume aractions... in MetricViewer
+    Visualize local minimum with Loss-Landscape extractor (upcoming)
+
+For Developpers
+    Organigram
+    Where to put your customized model
+    Where to put your customized augmentation
+
+Credits & Contributors
+    License
+    References
+    Github

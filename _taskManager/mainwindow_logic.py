@@ -292,6 +292,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.add_button.clicked.connect(self.openDialog)
         self.clean_button.clicked.connect(self.clean)
         self.loop_button.clicked.connect(self.loop_state)
+        self.pushButton.clicked.connect(self.resumeTraining)
         self.forward_button.clicked.connect(self.forward)
         self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
@@ -404,6 +405,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.bold(column=1)
         else:
             pass
+
+    def resumeTraining(self):
+        pass
 
     def predict(self):
 
