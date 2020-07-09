@@ -4,6 +4,7 @@ import argparse
 from train import main_train
 from util import exponential_decay, ramp_decay
 from input import coords_gen
+from parser import hyperparameter
 
 import numpy as np
 import re
@@ -113,7 +114,8 @@ if __name__ == '__main__':
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_RESUME_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+        './logs/{}_RESUME_from_step_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+            hyperparameter(hyperparams['from_ckpt']).get_step(),
             hyperparams['date'],
             hyperparams['model'],
             hyperparams['batch_size'],

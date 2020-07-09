@@ -43,6 +43,10 @@ class hyperparameter:
         _param_list['comment'] = self.get_comment()
         return _param_list
 
+    def get_step(self):
+        step = re.search('step(\d+)', self.folder_name)
+        return step
+
     def get_model(self):
         mdl = re.search('mdl\_([A-Za-z]+\d*)', self.folder_name)
         if mdl is not None:

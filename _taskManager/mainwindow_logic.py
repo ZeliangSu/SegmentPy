@@ -10,6 +10,7 @@ from _taskManager.nodes_list_logic import node_list_logic
 from _taskManager.volumes_viewer_logic import volViewer_logic
 from _taskManager.metric_logic import metric_logic
 from _taskManager.augmentationViewer_logic import augViewer_logic
+
 from util import print_nodes_name
 
 import traceback, sys, os
@@ -407,28 +408,37 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             pass
 
     def resumeTraining(self):
-        pass
+        ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
+        ckpt_path = ckpt_dialog.openFileNameDialog()
+        print(ckpt_path)
+
+        if ckpt_path:
+            # get step
+
+            # get device
+
+            # get comment
+            pass
 
     def predict(self):
-
         # define data folder path
         ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
         ckpt_path = ckpt_dialog.openFileNameDialog()
         print(ckpt_path)
 
-        if ckpt_path is not None:
+        if ckpt_path:
             # get to predict .tif
             predict_dialog = file_dialog(title='select folder of raw tomograms (*.tif) to predict', type='/')
             predict_dir = predict_dialog.openFolderDialog()
             print(predict_dir)
 
             # define predict folder path (can create new folder)
-            if predict_dir is not None:
+            if predict_dir:
                 save_dialog = file_dialog(title='select folder to put prediction', type='/')
                 save_dir = save_dialog.openFolderDialog()
                 print(save_dir)
 
-                if save_dir is not None:
+                if save_dir:
                     # spawn sub process
                     _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
                     self.threadpool.start(_Worker)
