@@ -81,7 +81,7 @@ def testing(paths: dict, hyper: dict, numpy: bool):
 
     # misc
     l_ckpt_p = list_ckpts(paths['ckpt_dir'])[1]
-    mdl_name = re.search('mdl_(.*)_mode', l_ckpt_p[0]).group(1)
+    mdl_name = re.search('mdl\_([A-Za-z]+\d*)', l_ckpt_p[0]).group(1)
     out_node = ['{}/decoder/logits/identity'.format(mdl_name)]
 
     # note: here could not restore directly from the ckpt because of the pipeline, need to be frozon and optimized

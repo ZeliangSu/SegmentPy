@@ -3,6 +3,8 @@ import os
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import tensorflow as tf
+# from tensorflow.core.framework import graph_pb2
 
 from tensorboard_extractor import lr_curve_extractor, gradient_extractor
 
@@ -15,7 +17,7 @@ logger.setLevel(logging.DEBUG)
 ultimate_numeric_pattern = '[-+]?(?:(?:\\d*\\.\\d+)|(?:\\d+\\.?))(?:[Ee][+-]?\\d+)?'
 
 
-class hyperparameter:
+class string_to_hypers:
     def __init__(self, folder_name: str):
         self.folder_name = folder_name
         if not self.folder_name.endswith('/'):
@@ -213,11 +215,47 @@ class hyperparameter:
         return df
 
 
+class graph_to_tensor_name:
+    def __int__(self, graph):
+        assert isinstance(graph, tf.GraphDef) or isinstance(graph, tf.Graph)
+        self.graph = graph
+
+    def get_weight(self):
+        self.weight_names = []
+
+        if isinstance(self.graph, tf.GraphDef):
+            for n in self.graph.node:
+                if re.search('\/w$', n) is not None:
+                    self.weight_names.append(n)
+        elif isinstance(self.graph, tf.Graph):
+            for n in self.graph.as_graph_def().node:
+                if re.search('\/w$', n) is not None:
+                    self.weight_names.append(n)
+
+        else:
+            raise ValueError('expecting a tf.graph, tf.graphdef but get other things')
+
+        return self.weight_names
+
+    def get_activations(self):
+        self.activation_name = []
+
+        if isinstance(self.graph, tf.GraphDef):
+            for n in self.graph.node:
+                if re.search('\/(relu|leaky|sigmoid|tanh)', n) is not None:
+                    self.activation_name.append(n)
+
+        elif isinstance(self.graph, tf.Graph):
+            for n in self.graph.as_graph_def().node:
+                if re.search('\/(relu|leaky|sigmoid|tanh)', n) is not None:
+                    self.activation_name.append(n)
+
+
 if __name__ == '__main__':
     pd_df = pd.DataFrame()
     for folder in os.listdir('./logs/'):
         if not folder.startswith('.'):  # MacOS: avoid './.DS_Store/'
-            hypers = hyperparameter('./logs/' + folder)
+            hypers = string_to_hypers('./logs/' + folder)
             tmp = hypers.hyper_to_DataFrame()
             # pd_df.columns = tmp.columns
             pd_df = pd_df.append(tmp, ignore_index=True)
