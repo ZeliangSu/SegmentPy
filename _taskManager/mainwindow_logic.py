@@ -10,6 +10,7 @@ from _taskManager.nodes_list_logic import node_list_logic
 from _taskManager.volumes_viewer_logic import volViewer_logic
 from _taskManager.metric_logic import metric_logic
 from _taskManager.augmentationViewer_logic import augViewer_logic
+from _taskManager.resumeDialog_logic import resumeDialog_logic
 
 from util import print_nodes_name
 
@@ -151,14 +152,57 @@ class training_Worker(QRunnable):
         print(self.params)
         print('\n', terminal)
 
-        # terminal = ['python', 'dummy.py']  # todo: uncomment here for similation
-        # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
+        terminal = ['python', 'test.py']  # todo: uncomment here for similation
 
         process = subprocess.Popen(
             terminal,
         )
         # set signal
         signal = ('train on {}: pid:{}'.format(self.using_gpu, process.pid), self.using_gpu, process, self.params)
+
+        # put proc queue pid and proc
+        self.signals.start_proc.emit(signal)
+        o, error = process.communicate()
+
+        if error:
+            self.signals.error.emit((error, traceback.format_exc()))
+
+        self.signals.released_gpu.emit(self.using_gpu)
+        self.signals.released_proc.emit(signal)
+
+
+class retraining_Worker(QRunnable):
+    def __init__(self, *args, **kwargs):
+        super(retraining_Worker, self).__init__()
+        self.using_gpu = str(args[0])
+        self.params = args[1]
+        self.signals = WorkerSignals()
+
+    @pyqtSlot(name='retrain')
+    def run(self):
+        thread_name = QThread.currentThread().objectName()
+        thread_id = int(QThread.currentThreadId())
+        print('On GPU: {}'.format(self.using_gpu))
+        print('running name:{} on id:{}'.format(thread_name, thread_id))
+
+        terminal = [
+            'python', 'main_retrain.py',
+            '-ckpt', self.params['ckpt'],
+            '-ep', self.params['ep'],
+            '-dv', self.using_gpu,
+            '-cmt', self.params['cmt']
+        ]
+
+        print(self.params)
+        print('\n', terminal)
+
+        # terminal = ['python', 'test.py']  # todo: uncomment here for similation
+
+        process = subprocess.Popen(
+            terminal,
+        )
+        # set signal
+        signal = ('retrain on {}: pid:{}'.format(self.using_gpu, process.pid), self.using_gpu, process, self.params)
 
         # put proc queue pid and proc
         self.signals.start_proc.emit(signal)
@@ -285,15 +329,16 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setText(_translate("LRCSNet", "val repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
 
-        self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
+        self.header = ['Parameters', 'nextTrain']
+        self.setHeader()
 
         # set the the buttons
         self.start_button.clicked.connect(self.start)
         self.stop_button.clicked.connect(self.stop)
-        self.add_button.clicked.connect(self.openDialog)
+        self.add_button.clicked.connect(self.addTrain)
         self.clean_button.clicked.connect(self.clean)
         self.loop_button.clicked.connect(self.loop_state)
-        self.pushButton.clicked.connect(self.resumeTraining)
+        self.pushButton.clicked.connect(self.addResume)
         self.forward_button.clicked.connect(self.forward)
         self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
@@ -393,7 +438,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             Msg="Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py"
         )
 
-    def openDialog(self):
+    def addTrain(self):
         self.dialog = dialog_logic(None)
         self.dialog.exec()  #.show() won't return
         if self.dialog.result() == 1:  #cancel: 0, ok: 1
@@ -402,23 +447,34 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.tableWidget.setColumnCount(nb_col + 1)
             for i, (k, v) in enumerate(output.items()):
                 self.tableWidget.setItem(i, nb_col - 1, QTableWidgetItem(v))
+
+            if nb_col > 2:
+                self.header.append('train')
+            else:
+                self.header[1] = 'nextTrain'
             # bold first column
             self.bold(column=1)
-        else:
-            pass
+            self.setHeader()
 
-    def resumeTraining(self):
-        ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
-        ckpt_path = ckpt_dialog.openFileNameDialog()
-        print(ckpt_path)
+    def addResume(self):
+        self.Rdialog = resumeDialog_logic(None)
+        self.Rdialog.exec()
+        if self.Rdialog.result() == 1:
+            output = self.Rdialog.return_params()
 
-        if ckpt_path:
-            # get step
+            nb_col = self.tableWidget.columnCount()
+            self.tableWidget.setColumnCount(nb_col + 1)
 
-            # get device
+            for i, (k, v) in enumerate(output.items()):
+                self.tableWidget.setItem(i, nb_col - 1, QTableWidgetItem(v))
 
-            # get comment
-            pass
+            if nb_col > 2:
+                self.header.append('resume')
+            else:
+                self.header[1] = 'nextResume'
+            # bold first column
+            self.bold(column=1)
+            self.setHeader()
 
     def predict(self):
         # define data folder path
@@ -446,7 +502,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
     def setHeader(self):
-        self.tableWidget.setHorizontalHeaderLabels(['Hyper-parameter', 'next training'])
+        self.tableWidget.setHorizontalHeaderLabels(self.header)
 
     def bold(self, column):
         font = QtGui.QFont()
@@ -465,12 +521,32 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 item.setFont(font)
 
     def start(self):
-        if not self.gpu_queue.empty() and self.verify_column_not_None():
+        if self.header[1] == 'nextTrain':
+            if not self.gpu_queue.empty() and self.verify_column_not_None():
+                gpu = self.gpu_queue.get()
+                self.refresh_gpu_list()
+
+                # start a thread
+                _Worker = training_Worker(gpu, self.grab_params())
+                self.threadpool.start(_Worker)
+                _Worker.signals.start_proc.connect(self.add_proc_surveillance)
+
+                # release gpu and process
+                _Worker.signals.error.connect(self.print_in_log)
+                _Worker.signals.released_gpu.connect(self.enqueue)
+                _Worker.signals.released_proc.connect(self.remove_process_from_list)
+
+            elif not self.verify_column_not_None():
+                print('Should fulfill the first column. \r')
+            else:
+                print('Waiting for available gpu \r')
+
+        elif self.header[1] == 'nextResume':
             gpu = self.gpu_queue.get()
             self.refresh_gpu_list()
 
             # start a thread
-            _Worker = training_Worker(gpu, self.grab_params())
+            _Worker = retraining_Worker(gpu, self.grab_params())
             self.threadpool.start(_Worker)
             _Worker.signals.start_proc.connect(self.add_proc_surveillance)
 
@@ -479,10 +555,6 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             _Worker.signals.released_gpu.connect(self.enqueue)
             _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
-        elif not self.verify_column_not_None():
-            print('Should fulfill the first column. \r')
-        else:
-            print('Waiting for available gpu \r')
 
     def print_in_log(self, content):
         # todo: in the log window
@@ -508,8 +580,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         if column >= 1:
             self.tableWidget.removeColumn(column)
             if column == 1:
-                self.setHeader()
                 self.bold(column=1)
+                self.popHeader(column)
 
     def forward(self):
         column = self.tableWidget.currentColumn()
@@ -525,6 +597,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 self.bold(column=1)
                 self.unbold(column=2)
 
+            # swap header
+            self.header[column - 1], self.header[column] = self.header[column], self.header[column - 1]
+
     def openDashboard(self):
         self.Dashboard = dashboard_logic(None)
         self.Dashboard.exec()
@@ -532,8 +607,22 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def grab_params(self, column=1):
             nb_row = self.tableWidget.rowCount()
             out = {}
-            for row in range(nb_row):
-                out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, column).text()
+
+            # get training params or resume params
+            if self.header[column] == 'nextTrain':
+                for row in range(nb_row):
+                    out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, column).text()
+                self.popHeader(1)
+
+            elif self.header[column] == 'nextResume':
+                for row, name in enumerate(['ckpt', 'ep', 'cmt']):
+                    out[name] = self.tableWidget.item(row, column).text()
+                self.popHeader(1)
+
+            else:
+                raise NotImplementedError
+
+            # refresh the table
             self.tableWidget.removeColumn(column)
             self.setHeader()
             self.bold(column=1)
@@ -576,6 +665,21 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 return False
         return True
 
+    def popHeader(self, column=1):
+        if column == 1:
+            try:
+                if self.header[column + 1] == 'train':
+                    self.header[column + 1] = 'nextTrain'
+                elif self.header[column + 1] == 'resume':
+                    self.header[column + 1] = 'nextResume'
+                else:
+                    raise ValueError('capture unknown header')
+                self.header.pop(column)
+            except IndexError as e:
+                self.header.pop(column)
+                self.header.append('nextTrain')
+
+        self.setHeader()
 
 def main():
     app = QApplication(sys.argv)

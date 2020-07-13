@@ -274,7 +274,7 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
                 #                           )
 
                 output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
-                output_activation = _activatioin(output, type=activation)
+                output_activation = _activation(output, type=activation)
                 return output_activation, {name + '_activation': output_activation}
 
             else:
@@ -291,7 +291,7 @@ def conv2d_layer(input_layer, shape, stride=1, if_BN=True, is_train=None, activa
                 output = tf.nn.bias_add(output, b)
 
                 # output = output + b
-                output_activation = _activatioin(output, type=activation)
+                output_activation = _activation(output, type=activation)
                 return output_activation, {name + '_activation': output_activation}
 
 
@@ -332,7 +332,7 @@ def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=No
                                                        strides=(stride, stride), padding='same',
                                                        use_bias=False, name=name, reuse=reuse)
                 output = batch_norm(transpose, is_train=is_train, name=name + '_BN', reuse=reuse)
-                output_activation = _activatioin(output, type=activation)
+                output_activation = _activation(output, type=activation)
                 return output_activation, {name + '_activation': output_activation}
             else:
                 transpose = tf.layers.conv2d_transpose(input_layer, filters=shape[3], kernel_size=shape[0],
@@ -341,7 +341,7 @@ def conv2d_transpose_layer(input_layer, shape, stride=2, if_BN=True, is_train=No
                 # b = init_bias([shape[3]], name, reuse=reuse)
                 # output = tf.nn.bias_add(transpose, b)
                 # output = transpose + b
-                output_activation = _activatioin(transpose, type=activation)
+                output_activation = _activation(transpose, type=activation)
                 return output_activation, {name + '_activation': output_activation}
 
 
@@ -372,12 +372,12 @@ def normal_full_layer(input_layer, size, if_BN=True, is_train=None, activation='
             # BN
             if if_BN:
                 output = batch_norm(output, is_train=is_train, name=name + '_BN', reuse=reuse)
-                output_activation = _activatioin(output, type=activation)
+                output_activation = _activation(output, type=activation)
                 return output_activation, {name + '_W': W, name + '_activation': output_activation}
             else:
                 b = init_bias([size], name, reuse=reuse)
                 output = output + b
-                output_activation = _activatioin(output, type=activation)
+                output_activation = _activation(output, type=activation)
                 return output_activation, {name + '_W': W, name + '_b': b, name + '_activation': output_activation}
 
 
@@ -604,7 +604,7 @@ def train_operation(adam, gradients, name='train_op'):
         return adam.apply_gradients(gradients, name='applyGrads')
 
 
-def _activatioin(output, type='relu'):
+def _activation(output, type='relu'):
     if type == 'relu':
         output_activation = tf.nn.relu(output, name='relu')
     elif type == 'sigmoid':
@@ -616,7 +616,7 @@ def _activatioin(output, type='relu'):
     elif '-leaky' in type:
         output_activation = tf.nn.leaky_relu(output, alpha=float(type.split('-')[0]), name='leaky')
     else:
-        raise NotImplementedError('Activation function not found!')
+        raise NotImplementedError('Activation function not found: {}'.format(type))
     return output_activation
 
 

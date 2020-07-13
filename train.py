@@ -135,7 +135,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
         saver = tf.train.Saver(max_to_keep=100000000)
         if resume:
             if 'from_ckpt' in hyperparams.keys():
-                saver.restore(sess, hyperparams['from_checkpoint'])
+                saver.restore(sess, hyperparams['from_ckpt'].replace('.meta', ''))
             else:
                 raise ValueError('missing checkpoint path for resume')
         try:

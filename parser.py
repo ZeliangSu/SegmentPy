@@ -47,6 +47,8 @@ class string_to_hypers:
 
     def get_step(self):
         step = re.search('step(\d+)', self.folder_name)
+        if step is not None:
+            step = step.group(1)
         return step
 
     def get_model(self):
@@ -249,6 +251,22 @@ class graph_to_tensor_name:
             for n in self.graph.as_graph_def().node:
                 if re.search('\/(relu|leaky|sigmoid|tanh)', n) is not None:
                     self.activation_name.append(n)
+
+        return self.activation_name
+
+    def get_output_node_name(self):
+        if isinstance(self.graph, tf.GraphDef):
+            for n in self.graph.node:
+                if re.search('\/identity', n) is not None:
+                    self.output_node_name = n
+        elif isinstance(self.graph, tf.Graph):
+            for n in self.graph.as_graph_def().node:
+                if re.search('\/identity', n) is not None:
+                    self.output_node_name = n
+        else:
+            raise ValueError('did not find the output node in the graph')
+
+        return self.output_node_name
 
 
 if __name__ == '__main__':
