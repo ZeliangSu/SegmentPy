@@ -61,7 +61,7 @@ if __name__ == '__main__':
         'mode': str(re.search('\_mode\_(classification|regression)\_', args.from_checkpoint).group(1)),
 
         ############### hyper-params ##############
-        'window_size': int(re.search('\_ps(\d+)', args.from_checkpoint).group(1)),
+        'patch_size': int(re.search('\_ps(\d+)', args.from_checkpoint).group(1)),
         'batch_size': int(re.search('\_bs(\d+)', args.from_checkpoint).group(1)),
         'conv_size': int(re.search('\_cs(\d+)', args.from_checkpoint).group(1)),
         'nb_conv': int(re.search('\_nc(\d+)', args.from_checkpoint).group(1)),

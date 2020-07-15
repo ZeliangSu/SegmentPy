@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot, Qt
 from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
 from PyQt5 import QtCore, QtGui
 
@@ -189,11 +189,17 @@ class retraining_Worker(QRunnable):
 
         terminal = [
             'python', 'main_retrain.py',
-            '-ckpt', self.params['ckpt'],
-            '-ep', self.params['ep'],
+            '-ckpt', self.params['ckpt path'],
+            '-ep', self.params['nb epoch'],
+            '-lr', self.params['lr type'],
+            '-ilr', self.params['lr init'],
+            '-klr', self.params['k param'],
+            '-plr', self.params['period'],
             '-dv', self.using_gpu,
-            '-cmt', self.params['cmt']
+            '-cmt', self.params['comment'],
         ]
+
+
 
         print(self.params)
         print('\n', terminal)
@@ -330,6 +336,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "val repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(21, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
 
         self.header = ['Parameters', 'nextTrain']
         self.setHeader()
@@ -352,10 +362,13 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
         self.Metrics.triggered.connect(self.metric_plugin)
         self.AugViewer.triggered.connect(self.augViewer_plugin)
+        self.GradViewer.triggered.connect(self.gradViewer_plugin)
 
     def gradViewer_plugin(self):
         self.gradV = gradView_logic()
         self.gradV.exec_()
+        if self.gradV.result() == 1:
+            self.gradV.extract_gradient()
 
     def augViewer_plugin(self):
         self.augV = augViewer_logic()
@@ -445,24 +458,71 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         )
 
     def addTrain(self):
+        pivot_table = {
+            'mdl': 'model',
+            'bat_size': 'batch size',
+            'win_size': 'window size',
+            'conv_size': 'kernel size',
+            'nb_conv': 'conv nb',
+            'act_fn': 'act fn',
+            'lss_fn': 'loss fn',
+            'batch_norm': 'batch norm',
+            'aug': 'augmentation',
+            'dropout': 'dropout',
+            'lr_type': 'lr type',
+            'lr_init': 'lr init',
+            'lr_k': 'k param',
+            'lr_p': 'period',
+            'cls_reg': 'cls/reg',
+            'comment': 'comment',
+            'nb_epoch': 'nb epoch',
+            'sv_step': 'sv step',
+            'tb_step': 'tb step',
+            'train_dir': 'trn repo. path',
+            'val_dir': 'val repo. path',
+        }
         self.dialog = dialog_logic(None)
         self.dialog.exec()  #.show() won't return
         if self.dialog.result() == 1:  #cancel: 0, ok: 1
             output = self.dialog.return_params()
             nb_col = self.tableWidget.columnCount()
             self.tableWidget.setColumnCount(nb_col + 1)
-            for i, (k, v) in enumerate(output.items()):
-                self.tableWidget.setItem(i, nb_col - 1, QTableWidgetItem(v))
+
+            # write params
+            for k, v in output.items():
+                i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
+                self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(v))
 
             if nb_col > 2:
                 self.header.append('train')
             else:
                 self.header[1] = 'nextTrain'
             # bold first column
+            self.unlock_params()
             self.bold(column=1)
             self.setHeader()
 
     def addResume(self):
+        pivot_table = {
+            'model': 'model',
+            'batch_size': 'batch size',
+            'window_size': 'window size',
+            'kernel_size': 'kernel size',
+            'nb_conv': 'conv nb',
+            'act_fn': 'act fn',
+            'BatchNorm': 'batch norm',
+            'augmentation': 'augmentation',
+            'dropout': 'dropout',
+            'loss_fn': 'loss fn',
+            'lr_decay_type': 'lr type',
+            'lr_init': 'lr init',
+            'lr_decay': 'k param',
+            'lr_period': 'period',
+            'comment': 'comment',
+            'ckpt_path': 'ckpt path',
+            'nb_epoch': 'nb epoch',
+            'mode': 'cls/reg'
+        }
         self.Rdialog = resumeDialog_logic(None)
         self.Rdialog.exec()
         if self.Rdialog.result() == 1:
@@ -471,14 +531,23 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             nb_col = self.tableWidget.columnCount()
             self.tableWidget.setColumnCount(nb_col + 1)
 
-            for i, (k, v) in enumerate(output.items()):
-                self.tableWidget.setItem(i, nb_col - 1, QTableWidgetItem(v))
+            # retrieve old params
+            old_hypers = string_to_hypers(output['ckpt_path']).parse()
+            old_hypers['ckpt_path'] = output['ckpt_path']
+            old_hypers['nb_epoch'] = int(output['extra_ep'])
+            old_hypers['comment'] = output['new_cmt']
+
+            # write params
+            for k, v in old_hypers.items():
+                i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
+                self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(str(v)))
 
             if nb_col > 2:
                 self.header.append('resume')
             else:
                 self.header[1] = 'nextResume'
             # bold first column
+            self.lock_params()
             self.bold(column=1)
             self.setHeader()
 
@@ -506,6 +575,21 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     self.threadpool.start(_Worker)
                     _Worker.signals.start_proc.connect(self.add_proc_surveillance)
                     _Worker.signals.released_proc.connect(self.remove_process_from_list)
+
+    def lock_params(self):
+        for column, head in enumerate(self.header):
+            if 'train' in head.lower():
+                for row in range(self.tableWidget.rowCount()):
+                    if self.tableWidget.item(row, column) is not None:
+                        self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it editable
+
+            elif 'resume' in head.lower():
+                for row in range(self.tableWidget.rowCount()):
+                    if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
+                                                                    'ckpt path', 'comment', 'nb epoch']:
+                        if self.tableWidget.item(row, column) is not None:
+                            self.tableWidget.item(row, column).setBackground(QtGui.QColor(230,230,250))
+                            self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEnabled)  # note: make it read only
 
     def setHeader(self):
         self.tableWidget.setHorizontalHeaderLabels(self.header)
@@ -609,26 +693,27 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Dashboard = dashboard_logic(None)
         self.Dashboard.exec()
 
-    def grab_params(self, column=1):
+    def grab_params(self):
             nb_row = self.tableWidget.rowCount()
             out = {}
 
             # get training params or resume params
-            if self.header[column] == 'nextTrain':
+            if self.header[1] == 'nextTrain':
                 for row in range(nb_row):
-                    out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, column).text()
+                    out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, 1).text()
                 self.popHeader(1)
 
-            elif self.header[column] == 'nextResume':
-                for row, name in enumerate(['ckpt', 'ep', 'cmt']):
-                    out[name] = self.tableWidget.item(row, column).text()
+            elif self.header[1] == 'nextResume':
+                for row in range(nb_row):
+                    if self.tableWidget.item(row, 1) is not None:
+                        out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, 1).text()
                 self.popHeader(1)
 
             else:
                 raise NotImplementedError
 
             # refresh the table
-            self.tableWidget.removeColumn(column)
+            self.tableWidget.removeColumn(1)
             self.setHeader()
             self.bold(column=1)
             return out

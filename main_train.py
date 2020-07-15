@@ -185,9 +185,9 @@ if __name__ == '__main__':
                                       datetime.datetime.now().day),
             'hour': '{}'.format(datetime.datetime.now().hour),
 
-            'train_dir': './train/',
-            'val_dir': './valid/',
-            'test_dir': './test/',
+            'train_dir': args.train_dir if args.train_dir is not None else './train/',
+            'val_dir': args.val_dir if args.val_dir is not None else'./valid/',
+            'test_dir': args.test_dir if args.test_dir is not None else'./test/',
         }
 
         # coordinations gen

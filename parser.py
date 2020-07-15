@@ -43,6 +43,7 @@ class string_to_hypers:
         _param_list['lr_decay'] = self.get_lr_decay_ratio()
         _param_list['lr_period'] = self.get_lr_period()
         _param_list['comment'] = self.get_comment()
+        _param_list['mode'] = self.get_cls_or_reg()
         return _param_list
 
     def get_step(self):
@@ -112,7 +113,7 @@ class string_to_hypers:
         return lss
 
     def get_decay_type(self):
-        dt = re.search('lrtype\_?([a-zA-Z]+)', self.folder_name)
+        dt = re.search('lrtype\_*(exp|ramp|constant)', self.folder_name)
         if dt is not None:
             dt = dt.group(1)
         return dt
@@ -140,6 +141,12 @@ class string_to_hypers:
         if cmt is not None:
             cmt = cmt.group(1)
         return cmt
+
+    def get_cls_or_reg(self):
+        cls_reg = re.search('mode\_(classification|regression)', self.folder_name)
+        if cls_reg is not None:
+            cls_reg = cls_reg.group(1)
+        return cls_reg
 
     def folder_level(self):
         if re.search('hour\_gpu-?\d+\/?$', self.folder_name) is not None:

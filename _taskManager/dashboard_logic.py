@@ -78,7 +78,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
         if self.live_button.isChecked():
             self.sideLoop.start()
         else:
-            self.sideLoop.terminate()
+            self.sideLoop.stop()
 
     def refresh(self):
         print('refresh')
