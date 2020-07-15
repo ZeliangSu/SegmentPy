@@ -11,6 +11,7 @@ from _taskManager.volumes_viewer_logic import volViewer_logic
 from _taskManager.metric_logic import metric_logic
 from _taskManager.augmentationViewer_logic import augViewer_logic
 from _taskManager.resumeDialog_logic import resumeDialog_logic
+from _taskManager.gradViewer_logic import gradView_logic
 
 from util import print_nodes_name
 
@@ -350,6 +351,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
         self.Metrics.triggered.connect(self.metric_plugin)
         self.AugViewer.triggered.connect(self.augViewer_plugin)
+
+    def gradViewer_plugin(self):
+        self.gradV = gradView_logic()
+        self.gradV.exec_()
 
     def augViewer_plugin(self):
         self.augV = augViewer_logic()

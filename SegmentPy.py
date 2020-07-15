@@ -13,7 +13,7 @@ logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon('./_taskManager/logo.png'))
+    app.setWindowIcon(QtGui.QIcon('./img/logo.png'))
 
     # set ui
     ui = mainwindow_logic()

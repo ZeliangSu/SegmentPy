@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 import re
 
+from util import check_N_mkdir
+
 import logging
 import log
 logger = log.setup_custom_logger('root')
@@ -13,7 +15,11 @@ logger.setLevel(logging.DEBUG)
 
 
 def gradient_extractor(event_dir: str):
-    accumulator = event_accumulator.EventAccumulator(event_dir,
+    if not event_dir.endswith('train/'):
+        _dir = event_dir + 'train/'
+    else:
+        _dir = event_dir
+    accumulator = event_accumulator.EventAccumulator(_dir,
                                                      size_guidance={
                                                          event_accumulator.SCALARS: 0,
                                                          event_accumulator.HISTOGRAMS: 0,
@@ -32,7 +38,7 @@ def gradient_extractor(event_dir: str):
     beta = []
     w = []
     layer = {}
-    step = np.asarray(get_sum(accumulator, l_grad_tag[0])[1])
+    # step = np.asarray(get_sum(accumulator, l_grad_tag[0])[1])
     for grad in l_grad_tag:
         mapping.append(np.asarray(get_sum(accumulator, grad)[0]))
         if 'gamma' in grad:
@@ -57,7 +63,7 @@ def gradient_extractor(event_dir: str):
         # take absolute value
         layer_mapping.append(np.sum(np.abs(elt) for elt in v))
     layer_mapping = np.stack(layer_mapping).transpose()
-    mapping = np.stack(mapping, axis=1)
+    full_mapping = np.stack(mapping, axis=1)
     gamma = np.stack(gamma, axis=1)
     beta = np.stack(beta, axis=1)
     w = np.stack(w, axis=1)
@@ -68,17 +74,27 @@ def gradient_extractor(event_dir: str):
 
     # solution: repeat N times is easier
     layer_mapping = np.repeat(np.repeat(layer_mapping, N, axis=1), M, axis=0)
-    mapping = np.repeat(np.repeat(mapping, N, axis=1), M, axis=0)
+    full_mapping = np.repeat(np.repeat(full_mapping, N, axis=1), M, axis=0)
     gamma = np.repeat(np.repeat(gamma, N, axis=1), M, axis=0)
     beta = np.repeat(np.repeat(beta, N, axis=1), M, axis=0)
     w = np.repeat(np.repeat(w, N, axis=1), M, axis=0)
 
+    check_N_mkdir(event_dir + 'grad/')
+    
     # save gradient mappings
-    Image.fromarray(layer_mapping).save('./dummy/each_layer_mapping.tif')
-    Image.fromarray(mapping).save('./dummy/all_param_mapping.tif')
-    Image.fromarray(gamma).save('./dummy/gamma.tif')
-    Image.fromarray(beta).save('./dummy/beta.tif')
-    Image.fromarray(w).save('./dummy/w.tif')
+    Image.fromarray(layer_mapping).save(event_dir + 'grad/each_layer_mapping.tif')
+    Image.fromarray(full_mapping).save(event_dir + 'grad/all_param_mapping.tif')
+    Image.fromarray(gamma).save(event_dir + 'grad/gamma.tif')
+    Image.fromarray(beta).save(event_dir + 'grad/beta.tif')
+    Image.fromarray(w).save(event_dir + 'grad/w.tif')
+
+    # save gradient as .csv
+    np.savetxt(event_dir + "grad/each_layer_mapping.csv", layer_mapping, delimiter=",")
+    np.savetxt(event_dir + "grad/all_param_mapping.csv", full_mapping, delimiter=",")
+    np.savetxt(event_dir + "grad/gamma.csv", gamma, delimiter=",")
+    np.savetxt(event_dir + "grad/beta.csv", beta, delimiter=",")
+    np.savetxt(event_dir + "grad/w.csv", w, delimiter=",")
+    return layer_mapping, full_mapping, gamma, beta, w
 
 
 def get_sum(accumulator, param_name):
@@ -134,5 +150,5 @@ libc++abi.dylib: terminating with uncaught exception of type google::protobuf::F
     """solution: conda install protobuf=3.8 """
 
     # ac_tn, ac_tt, ls_tn, ls_tt = lr_curve_extractor('/Users/zeliangsu/Desktop/event')
-    gradient_extractor('/Users/zeliangsu/Desktop/event/data/LRCS7/train/')
+    gradient_extractor('/media/tomoserver/DATA3/zeliang/github/LRCS-Xlearn/logs/2020_7_13_RESUME_stp_7500_mdl_LRCS11_bs4_ps512_cs3_nc32_do0.0_act_leaky_aug_True_BN_True_mode_classification_lFn_DSC_lrtyperamp_decay0.0001_k0.3_p1.0_cmt_Na7b_pos3/hour23_gpu0/train/')
     print('ha')

@@ -204,7 +204,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
                         ########################
                         #
-                        # test session
+                        # valid session
                         #
                         ########################
                         # change feed dict
