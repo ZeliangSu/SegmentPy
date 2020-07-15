@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QProgressDialog
 
 from _taskManager.gradViewer_design import Ui_grad_extractor
 from _taskManager.file_dialog import file_dialog
@@ -26,9 +26,15 @@ class gradView_logic(QDialog, Ui_grad_extractor):
         self.path = grad_dial.openFolderDialog()
         self.pathLine.setText(self.path)
 
+    def accept(self):
+        self.extract_gradient()
+
     def extract_gradient(self):
         if hasattr(self, 'path'):
             self.set_grad_path()
+        pbar = QProgressDialog('Be patient... extracting gradient from saved logs', None, 0, 1, self)
+        pbar.setAutoClose(True)
         gradient_extractor(self.path)
+        pbar.setValue(1)
 
 

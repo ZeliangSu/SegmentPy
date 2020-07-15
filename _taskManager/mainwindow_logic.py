@@ -14,6 +14,7 @@ from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
 
 from util import print_nodes_name
+from parser import string_to_hypers
 
 import traceback, sys, os
 from queue import Queue
@@ -560,7 +561,6 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             _Worker.signals.released_gpu.connect(self.enqueue)
             _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
-
     def print_in_log(self, content):
         # todo: in the log window
         print(content)
@@ -685,6 +685,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 self.header.append('nextTrain')
 
         self.setHeader()
+
 
 def main():
     app = QApplication(sys.argv)

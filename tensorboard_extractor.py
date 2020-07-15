@@ -80,7 +80,7 @@ def gradient_extractor(event_dir: str):
     w = np.repeat(np.repeat(w, N, axis=1), M, axis=0)
 
     check_N_mkdir(event_dir + 'grad/')
-    
+
     # save gradient mappings
     Image.fromarray(layer_mapping).save(event_dir + 'grad/each_layer_mapping.tif')
     Image.fromarray(full_mapping).save(event_dir + 'grad/all_param_mapping.tif')

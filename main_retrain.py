@@ -10,6 +10,7 @@ import numpy as np
 import re
 import os
 import shutil
+import json
 
 import logging
 import log
@@ -29,6 +30,21 @@ if __name__ == '__main__':
                         help='save the model every X step')
     parser.add_argument('-tb', '--save_tb', type=int, default=50, required=False,
                         help='save the histograms of gradients and weights for the training every X step')
+
+    # misc
+    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False, help='where to find the training dataset')
+    parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False, help='where to find the valid dataset')
+    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
+
+    # other changeable params
+    parser.add_argument('-lr', '--lr_decay_type', type=str, metavar='', required=False,
+                        help='learning rate schedule e.g. ramp, exp, const')
+    parser.add_argument('-ilr', '--init_lr', type=float, metavar='', required=False,
+                        help='starting learning rate e.g. 0.001, 1e-4')
+    parser.add_argument('-klr', '--lr_decay_ratio', type=float, metavar='', required=False,
+                        help='the decay ratio e.g. 0.1')
+    parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=False, help='decay every X epoch')
+
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(-1 if args.device == 'cpu' else args.device)
@@ -44,14 +60,17 @@ if __name__ == '__main__':
         'loss_option': str(re.search('lossFn\_(DSC|cross\_entropy|MSE)', args.from_checkpoint).group(1)),
         'mode': str(re.search('\_mode\_(classification|regression)\_', args.from_checkpoint).group(1)),
 
-        ############### hyper-paras ##############
-        'patch_size': int(re.search('\_ps(\d+)', args.from_checkpoint).group(1)),
+        ############### hyper-params ##############
+        'window_size': int(re.search('\_ps(\d+)', args.from_checkpoint).group(1)),
         'batch_size': int(re.search('\_bs(\d+)', args.from_checkpoint).group(1)),
         'conv_size': int(re.search('\_cs(\d+)', args.from_checkpoint).group(1)),
         'nb_conv': int(re.search('\_nc(\d+)', args.from_checkpoint).group(1)),
-        'init_lr': float(re.search('decay({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
-        'lr_decay_ratio': float(re.search('k({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
-        'lr_period': float(re.search('p({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
+        'old_init_lr': float(re.search('decay({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
+        'init_lr': float(re.search('decay({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)) if args.init_lr is None else args.init_lr,
+        'old_lr_decay_ratio': float(re.search('k({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
+        'lr_decay_ratio': float(re.search('k({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)) if args.lr_decay_ratio is None else args.lr_decay_ratio,
+        'old_lr_period': float(re.search('p({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)),
+        'lr_period': float(re.search('p({})\\_'.format(ultimate_numeric_pattern), args.from_checkpoint).group(1)) if args.lr_period is None else args.lr_period,
 
         ############### misc #####################
         'device_option': args.device,
@@ -136,22 +155,44 @@ if __name__ == '__main__':
             hyperparams['mode'],
             hyperparams['loss_option'],
             hyperparams['lr_decay_type'],
-            hyperparams['init_lr'],
-            hyperparams['lr_decay_ratio'],
-            hyperparams['lr_period'],
+            hyperparams['old_init_lr'],
+            hyperparams['old_lr_decay_ratio'],
+            hyperparams['old_lr_period'],
             args.comment.replace(' ', '_'),
             hyperparams['hour'],
             args.device
         )
 
+    hyperparams['new_params'] = {
+        'mdl': hyperparams['model'],
+        'bs': hyperparams['batch_size'],
+        'ws': hyperparams['patch_size'],
+        'cs': hyperparams['conv_size'],
+        'nc': hyperparams['nb_conv'],
+        'do': hyperparams['dropout'],
+        'act': hyperparams['activation'],
+        'aug': hyperparams['augmentation'],
+        'bn': hyperparams['batch_normalization'],
+        'mode': hyperparams['mode'],
+        'lFn': hyperparams['loss_option'],
+        'ldtype': hyperparams['lr_decay_type'],
+        'ldinit': hyperparams['init_lr'],
+        'ldratio': hyperparams['lr_decay_ratio'],
+        'ldperiod': hyperparams['lr_period'],
+        'cmt': args.comment.replace(' ', '_'),
+    }
+
     check_N_mkdir(os.path.join(hyperparams['folder_name']))
     with open(os.path.join(hyperparams['folder_name'], 'from_ckpt.txt'), 'w') as f:
         f.write(hyperparams['from_ckpt'])
+    with open(os.path.join(hyperparams['folder_name'], 'new_params.json'), 'w') as f:
+        json.dump(hyperparams['new_params'], f)
+
 
     check_N_mkdir(hyperparams['folder_name'] + 'copy/')
     shutil.copytree(hyperparams['train_dir'], hyperparams['folder_name'] + 'copy/train/')
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
 
-    main_train(hyperparams, resume=True)
+    main_train(hyperparams, grad_view=True, resume=True)
 
