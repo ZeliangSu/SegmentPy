@@ -17,8 +17,13 @@ def main():
 
     # set ui
     ui = mainwindow_logic()
-    ui.show()
-    sys.exit(app.exec_())
+    try:
+        ui.show()
+        sys.exit(app.exec_())
+    except Exception as e:
+        print(e)
+        for p in ui.proc_list:
+            p[2].kill()
 
 
 if __name__ == '__main__':

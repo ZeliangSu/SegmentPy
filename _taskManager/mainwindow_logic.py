@@ -502,7 +502,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             else:
                 self.header[1] = 'nextTrain'
             # bold first column
-            self.unlock_params()
+            self.lock_params()
             self.bold(column=1)
             self.setHeader()
 
@@ -735,15 +735,15 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             if 'train' in head.lower():
                 for row in range(self.tableWidget.rowCount()):
                     if self.tableWidget.item(row, column) is not None:
-                        self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it editable
-
+                        # self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it editable
+                        pass
             elif 'resume' in head.lower():
                 for row in range(self.tableWidget.rowCount()):
                     if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
                                                                     'ckpt path', 'comment', 'nb epoch']:
                         if self.tableWidget.item(row, column) is not None:
                             self.tableWidget.item(row, column).setBackground(QtGui.QColor(230,230,250))
-                            self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEnabled)  # note: make it read only
+                            self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it read only
 
     def setHeader(self):
         self.tableWidget.setHorizontalHeaderLabels(self.header)
@@ -783,7 +783,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon('./_taskManager/logo.png'))
+    app.setWindowIcon(QtGui.QIcon('./img/logo.png'))
 
     # set ui
     ui = mainwindow_logic()
