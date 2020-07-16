@@ -364,6 +364,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.AugViewer.triggered.connect(self.augViewer_plugin)
         self.GradViewer.triggered.connect(self.gradViewer_plugin)
 
+    ################# menubar methods
+
     def gradViewer_plugin(self):
         self.gradV = gradView_logic()
         self.gradV.exec_()
@@ -456,6 +458,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             title='Ooppsss',
             Msg="Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py"
         )
+
+    ############ main button methods
 
     def addTrain(self):
         pivot_table = {
@@ -576,40 +580,6 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     _Worker.signals.start_proc.connect(self.add_proc_surveillance)
                     _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
-    def lock_params(self):
-        for column, head in enumerate(self.header):
-            if 'train' in head.lower():
-                for row in range(self.tableWidget.rowCount()):
-                    if self.tableWidget.item(row, column) is not None:
-                        self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it editable
-
-            elif 'resume' in head.lower():
-                for row in range(self.tableWidget.rowCount()):
-                    if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
-                                                                    'ckpt path', 'comment', 'nb epoch']:
-                        if self.tableWidget.item(row, column) is not None:
-                            self.tableWidget.item(row, column).setBackground(QtGui.QColor(230,230,250))
-                            self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEnabled)  # note: make it read only
-
-    def setHeader(self):
-        self.tableWidget.setHorizontalHeaderLabels(self.header)
-
-    def bold(self, column):
-        font = QtGui.QFont()
-        font.setBold(True)
-        for row_id in range(self.tableWidget.rowCount()):
-            item = self.tableWidget.item(row_id, column)
-            if item is not None:
-                item.setFont(font)
-
-    def unbold(self, column):
-        font = QtGui.QFont()
-        font.setBold(False)
-        for row_id in range(self.tableWidget.rowCount()):
-            item = self.tableWidget.item(row_id, column)
-            if item is not None:
-                item.setFont(font)
-
     def start(self):
         if self.header[1] == 'nextTrain':
             if not self.gpu_queue.empty() and self.verify_column_not_None():
@@ -693,30 +663,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Dashboard = dashboard_logic(None)
         self.Dashboard.exec()
 
-    def grab_params(self):
-            nb_row = self.tableWidget.rowCount()
-            out = {}
-
-            # get training params or resume params
-            if self.header[1] == 'nextTrain':
-                for row in range(nb_row):
-                    out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, 1).text()
-                self.popHeader(1)
-
-            elif self.header[1] == 'nextResume':
-                for row in range(nb_row):
-                    if self.tableWidget.item(row, 1) is not None:
-                        out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, 1).text()
-                self.popHeader(1)
-
-            else:
-                raise NotImplementedError
-
-            # refresh the table
-            self.tableWidget.removeColumn(1)
-            self.setHeader()
-            self.bold(column=1)
-            return out
+    ########### ongoing/available Qlist methods
 
     def enqueue(self, gpu):
         self.gpu_queue.put(gpu)
@@ -747,6 +694,34 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         for i, sig in zip(range(self.ongoing_process.count()), self.proc_list):
             self.ongoing_process.item(i).setToolTip(str(sig[3]).replace(',', '\n'))
 
+    ########### Qtable method
+
+    def grab_params(self):
+        nb_row = self.tableWidget.rowCount()
+        out = {}
+
+        # get training params or resume params
+        if self.header[1] == 'nextTrain':
+            for row in range(nb_row):
+                out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, 1).text()
+            self.popHeader(1)
+
+        elif self.header[1] == 'nextResume':
+            for row in range(nb_row):
+                if self.tableWidget.item(row, 1) is not None:
+                    # use index name as dict's key
+                    out[self.tableWidget.item(row, 0).text()] = self.tableWidget.item(row, 1).text()
+            self.popHeader(1)
+
+        else:
+            raise NotImplementedError
+
+        # refresh the table
+        self.tableWidget.removeColumn(1)
+        self.setHeader()
+        self.bold(column=1)
+        return out
+
     def verify_column_not_None(self, column=1):
         nb_row = self.tableWidget.rowCount()
         for row in range(nb_row):
@@ -754,6 +729,40 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             if item is None:
                 return False
         return True
+
+    def lock_params(self):
+        for column, head in enumerate(self.header):
+            if 'train' in head.lower():
+                for row in range(self.tableWidget.rowCount()):
+                    if self.tableWidget.item(row, column) is not None:
+                        self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it editable
+
+            elif 'resume' in head.lower():
+                for row in range(self.tableWidget.rowCount()):
+                    if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
+                                                                    'ckpt path', 'comment', 'nb epoch']:
+                        if self.tableWidget.item(row, column) is not None:
+                            self.tableWidget.item(row, column).setBackground(QtGui.QColor(230,230,250))
+                            self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEnabled)  # note: make it read only
+
+    def setHeader(self):
+        self.tableWidget.setHorizontalHeaderLabels(self.header)
+
+    def bold(self, column):
+        font = QtGui.QFont()
+        font.setBold(True)
+        for row_id in range(self.tableWidget.rowCount()):
+            item = self.tableWidget.item(row_id, column)
+            if item is not None:
+                item.setFont(font)
+
+    def unbold(self, column):
+        font = QtGui.QFont()
+        font.setBold(False)
+        for row_id in range(self.tableWidget.rowCount()):
+            item = self.tableWidget.item(row_id, column)
+            if item is not None:
+                item.setFont(font)
 
     def popHeader(self, column=1):
         if column == 1:

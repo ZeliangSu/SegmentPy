@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_RESUME_stp_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lFn_{}_lrtype{}_decay{}_k{}_p{}_cmt_{}/hour{}_gpu{}/'.format(
+        './logs/{}_RESUME_stp_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lFn_{}_lrtype{}_i{}_k{}_p{}_newi_{}_newk_{}_newp_{}_cmt_{}/hour{}_gpu{}/'.format(
             hyperparams['date'],
             string_to_hypers(hyperparams['from_ckpt']).get_step(),
             hyperparams['model'],
@@ -158,6 +158,9 @@ if __name__ == '__main__':
             hyperparams['old_init_lr'],
             hyperparams['old_lr_decay_ratio'],
             hyperparams['old_lr_period'],
+            hyperparams['init_lr'],
+            hyperparams['lr_decay_ratio'],
+            hyperparams['lr_period'],
             args.comment.replace(' ', '_'),
             hyperparams['hour'],
             args.device
@@ -181,6 +184,7 @@ if __name__ == '__main__':
         'ldperiod': hyperparams['lr_period'],
         'cmt': args.comment.replace(' ', '_'),
     }
+    print(hyperparams['new_params'])
 
     check_N_mkdir(os.path.join(hyperparams['folder_name']))
     with open(os.path.join(hyperparams['folder_name'], 'from_ckpt.txt'), 'w') as f:

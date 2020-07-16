@@ -17,4 +17,6 @@ test/*
 predict/*
 device.txt
 _taskManager/latest.json
+_taskManager/latest_resume.json
+_taskManager/latest_gradView.json
 docs/_build/
