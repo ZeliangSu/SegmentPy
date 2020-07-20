@@ -154,7 +154,7 @@ class training_Worker(QRunnable):
         print(self.params)
         print('\n', terminal)
 
-        terminal = ['python', 'test.py']  # todo: uncomment here for similation
+        # terminal = ['python', 'test.py']  # todo: uncomment here for similation
 
         process = subprocess.Popen(
             terminal,

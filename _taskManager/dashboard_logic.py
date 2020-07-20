@@ -84,6 +84,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
         print('refresh')
         self.mplwidget.curves = {}  # note: clean curves but not paths to let it reloads curves
         self.mplwidget.plot()
+        self.curves_list.clear()
 
     def clean(self):
         fig_acc_tn = self.mplwidget.canvas_acc_train.figure
