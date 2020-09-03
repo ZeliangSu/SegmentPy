@@ -170,17 +170,17 @@ class dashboard_logic(QDialog, Ui_dashboard):
         return self.save_path_box.text()
 
     def save_csv(self):
-        ac_tn, ac_val, ls_tn, ls_val = {}, {}, {}, {}
+        ac_tn, ac_val, ls_tn, ls_val = None, None, None, None
         for k, v in self.mplwidget.curves.items():
-            if 'step' not in ac_tn.keys():
-                ac_tn['step'] = np.asarray(v[0].step)
-                ac_val['step'] = np.asarray(v[1].step)
-                ls_tn['step'] = np.asarray(v[2].step)
-                ls_val['step'] = np.asarray(v[3].step)
-            ac_tn[k] = np.asarray(v[0].value)
-            ac_val[k] = np.asarray(v[1].value)
-            ls_tn[k] = np.asarray(v[2].value)
-            ls_val[k] = np.asarray(v[3].value)
+            if ac_tn is None:
+                ac_tn = pd.DataFrame({'step': v[0].step})
+                ac_val = pd.DataFrame({'step': v[1].step})
+                ls_tn = pd.DataFrame({'step': v[2].step})
+                ls_val = pd.DataFrame({'step': v[3].step})
+            ac_tn = pd.concat([ac_tn, v[0].value], axis=1)
+            ac_val = pd.concat([ac_val, v[1].value], axis=1)
+            ls_tn = pd.concat([ls_tn, v[2].value], axis=1)
+            ls_val = pd.concat([ls_val, v[3].value], axis=1)
         try:
             pd.DataFrame(ac_tn).to_csv(self.get_save_path() + 'acc_train.csv', header=True, index=False, sep=',')
             pd.DataFrame(ac_val).to_csv(self.get_save_path() + 'acc_val.csv', header=True, index=False, sep=',')
@@ -189,7 +189,10 @@ class dashboard_logic(QDialog, Ui_dashboard):
         except Exception as e:
             # fixme: length or number of steps different with throw pandas bug
             logger.debug(e)
-
+            pd.DataFrame(ac_tn).to_csv(self.get_save_path() + 'acc_train.csv', header=True, index=False, sep=',')
+            pd.DataFrame(ac_val).to_csv(self.get_save_path() + 'acc_val.csv', header=True, index=False, sep=',')
+            pd.DataFrame(ls_tn).to_csv(self.get_save_path() + 'loss_train.csv', header=True, index=False, sep=',')
+            pd.DataFrame(ls_val).to_csv(self.get_save_path() + 'loss_val.csv', header=True, index=False, sep=',')
 
 def test():
     app = QApplication(sys.argv)
