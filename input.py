@@ -42,9 +42,16 @@ def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(), suffix=
             x_coord_ph = tf.placeholder(tf.int32, shape=[None], name='x_coord_ph')
             y_coord_ph = tf.placeholder(tf.int32, shape=[None], name='y_coord_ph')
 
+            # max_nb_cls = tf.constant(nb_cls)
+
             # init and shuffle list of files
             batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph, x_coord_ph, y_coord_ph))
-            batch = batch.shuffle(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
+            # batch = batch.shuffle(buffer_size=tf.shape(fnames_ph)[0])
+            batch = batch.shuffle(buffer_size=tf.cast(tf.shape(fnames_ph)[0], tf.int64))
+            # tf.print(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
+            # batch = batch.shuffle(buffer_size=batch_size)
+            # note: above line is no more necessary if we shuffle pythonically the fnames at the beginning of epoch
+            # note: the above line raise 'buffer_size must be greater than zero.' due to the number of image greater than max of int64
 
             # read data
             if mode == 'regression':
@@ -124,7 +131,7 @@ def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
         function: (function) tensorflow's pythonic function with its arguements
     """
     return tf.py_func(parse_h5_one_hot_V2,  #wrapped pythonic function
-                      [fname, patch_size, x_coord, y_coord],
+                      [fname, patch_size, x_coord, y_coord, 1e3, 3],  #fixme: max number of class should be automatic
                       [tf.float32, tf.int32]  #[output, output] dtype
                       )
 
@@ -161,7 +168,7 @@ def _pyfn_aug_wrapper(X_img, y_img):
                       )
 
 
-def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3):
+def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
@@ -170,8 +177,8 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3):
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
     X = np.expand_dims(img[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
     y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
-    y = _one_hot(y)
-    # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C
+    y = _one_hot(y, impose_nb_cls=impose_nb_cls)
+    logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # H, W, C
     # return X, y.astype(np.int32)
     # return _minmaxscalar(X), y.astype(np.int32)
 
@@ -253,15 +260,21 @@ def _minmaxscalar(ndarray, dtype=np.float32):
     return scaled
 
 
-def _one_hot(tensor):
+def _one_hot(tensor, impose_nb_cls=None):
     ''' (batch, H, W) --> one hot to --> (batch, H, W, nb_class)'''
     assert isinstance(tensor, np.ndarray), 'Expect input as a np ndarray'
     # logger.debug('input tensor shape:{}, unique: {}'.format(tensor.shape, np.unique(tensor)))
+
+    # get how many classes
+    tensor = tensor.astype(np.int32)
+    if impose_nb_cls is not None:
+        nb_classes = impose_nb_cls
+    else:
+        nb_classes = len(np.unique(tensor))
+    logger.debug('impose: {}, nb_cls: {}'.format(impose_nb_cls, nb_classes))
+
     if tensor.ndim == 4:
         #note: (Batch, H, W, C)
-        tensor = tensor.astype(np.int32)
-        # get how many classes
-        nb_classes = len(np.unique(tensor))
         # one hot
         out = []
         for i in range(nb_classes):
@@ -272,9 +285,6 @@ def _one_hot(tensor):
 
     elif tensor.ndim == 3:
         #note: (H, W, C) no batch size
-        tensor = tensor.astype(np.int32)
-        # get how many classes
-        nb_classes = len(np.unique(tensor))
         # one hot
         out = []
         for i in range(nb_classes):
@@ -310,7 +320,7 @@ def _inverse_one_hot(tensor):
 
 
 class coords_gen:
-    def __init__(self, train_dir=None, test_dir=None, window_size=512, train_test_ratio=0.9, stride=1, batch_size=None, nb_batch=None):
+    def __init__(self, train_dir=None, test_dir=None, window_size=512, train_test_ratio=0.9, stride=5, batch_size=None, nb_batch=None):
         self.stride = stride
         self.train_test_ratio = train_test_ratio
         self.batch_size = batch_size
@@ -373,7 +383,9 @@ class coords_gen:
 
     def get_nb_batch(self):
         if self.nb_batch is None:
-            return int(len(self.train_id) * self.train_test_ratio // self.batch_size)
+            self.nb_batch = int(len(self.train_id) * self.train_test_ratio // self.batch_size)
+            logger.debug('nb_batch: {}'.format(self.nb_batch))
+            return self.nb_batch
         else:
             return self.nb_batch
 
@@ -406,6 +418,8 @@ class coords_gen:
         _list_ps = _list_ps[idx]
         _list_xcoord = _list_xcoord[idx]
         _list_ycoord = _list_ycoord[idx]
+        logger.debug('fns: {}, ps: {}, xc: {}, yc: {}'.format(_imgs, _list_ps, _list_xcoord, _list_ycoord))
+        logger.info('fns len: {}, ps len: {}, xc len: {}, yc len: {}'.format(len(_imgs), len(_list_ps), len(_list_xcoord), len(_list_ycoord)))
         return _imgs, _list_ps, _list_xcoord, _list_ycoord
 
     def shuffle(self):
@@ -447,10 +461,10 @@ class coords_gen:
                    self.train_ycoord[tmp:]
 
         else:
-            tmp = int(self.nb_batch) if self.nb_batch is not None else (int(self.get_nb_batch()))
+            # tmp = int(self.nb_batch) if self.nb_batch is not None else (int(self.get_nb_batch()))
 
-            return self.totest_img[tmp:], \
-                   self.test_list_ps[tmp:], \
-                   self.test_xcoord[tmp:], \
-                   self.test_ycoord[tmp:]
+            return self.totest_img, \
+                   self.test_list_ps, \
+                   self.test_xcoord, \
+                   self.test_ycoord
 

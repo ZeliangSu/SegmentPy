@@ -60,6 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False, help='where to find the training dataset')
     parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False, help='where to find the valid dataset')
     parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
+    parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False, help='indicate the step/stride with which we sample')
 
     try:
         args = parser.parse_args()
