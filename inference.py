@@ -576,10 +576,10 @@ if __name__ == '__main__':
     # graph_def_dir = './logs/2020_2_11_bs8_ps512_lrprogrammed_cs3_nc32_do0.1_act_leaky_aug_True_BN_True_mdl_LRCS_mode_classification_comment_DSC_rampdecay0.0001_k0.3_p1_wrapperWithoutMinmaxscaler_augWith_test_aug_GreyVar/hour10/'
     ckpt_path = args.ckpt_path.replace('.meta', '')
     save_pb_dir = '/'.join(ckpt_path.split('/')[:-2]) + '/pb/'
-    mdl_name = re.search('mdl_([A-Za-z]+\d+)', ckpt_path).group(1)
+    mdl_name = re.search('mdl_([A-Za-z]+\d?)', ckpt_path).group(1)
 
     c_nodes = [
-            '{}/decoder/logits/identity'.format(mdl_name),
+        '{}/decontractor/logits/identity'.format(mdl_name) if 'Unet' in mdl_name else '{}/decoder/logits/identity'.format(mdl_name),
         ]
 
     # segment raw img per raw img
