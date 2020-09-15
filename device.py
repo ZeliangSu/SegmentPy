@@ -19,9 +19,9 @@ def get_available_gpus():
     #
     local_devices = device_lib.list_local_devices()
     for dv in local_devices:
-        if dv.device_type == 'CPU' or dv.device_type == "XLA_GPU":
+        if dv.device_type == 'CPU':
             ui.log.setText('Cannot find available GPUs, use CPU instead...')
-        elif dv.device_type == 'GPU':
+        elif dv.device_type == 'GPU' or dv.device_type == "XLA_GPU":
             ui.log.setText('Found GPU: {}'.format(dv.name))
 
     # write devices
