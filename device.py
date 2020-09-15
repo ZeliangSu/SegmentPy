@@ -19,14 +19,14 @@ def get_available_gpus():
     #
     local_devices = device_lib.list_local_devices()
     for dv in local_devices:
-        if dv.device_type == 'CPU':
+        if dv.device_type == 'CPU' or dv.device_type == "XLA_GPU":
             ui.log.setText('Cannot find available GPUs, use CPU instead...')
         elif dv.device_type == 'GPU':
             ui.log.setText('Found GPU: {}'.format(dv.name))
 
     # write devices
     for x in tqdm(local_devices):
-        if x.device_type == 'GPU':
+        if x.device_type == 'GPU' or x.device_type == "XLA_GPU":
             l.append(int(x.name.split(':')[-1]))
 
     with open('./device.txt', 'w') as f:
