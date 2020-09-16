@@ -27,7 +27,9 @@ def get_available_gpus():
     # write devices
     for x in tqdm(local_devices):
         if x.device_type == 'GPU' or x.device_type == "XLA_GPU":
-            l.append(int(x.name.split(':')[-1]))
+            _gpu = int(x.name.split(':')[-1])
+            if _gpu not in l:
+                l.append(int(x.name.split(':')[-1]))
 
     with open('./device.txt', 'w') as f:
         for dv in l:
