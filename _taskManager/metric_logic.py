@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 
 from _taskManager.metric_design import Ui_metricViewer
 from metric import *
+from util import dimension_regulator
 from PIL import Image
 
 import sys
@@ -88,6 +89,11 @@ class metric_logic(QDialog, Ui_metricViewer):
 
             if self.current_page in self.gt2.keys():
                 if self.gt2[self.current_page] is not None:
+                    # regularize the dimensions of gt1 and gt2
+                    if self.gt1[self.current_page].shape != self.gt2[self.current_page].shape:
+                        self.gt1[self.current_page] = dimension_regulator(self.gt1[self.current_page])
+                        self.gt2[self.current_page] = dimension_regulator(self.gt2[self.current_page])
+
                     # show diff
                     if self.current_page in self.diff.keys():
                         if self.diff[self.current_page] is None:
@@ -116,6 +122,11 @@ class metric_logic(QDialog, Ui_metricViewer):
 
             if self.current_page in self.gt1.keys():
                 if self.gt1[self.current_page] is not None:
+                    # regularize the dimensions of gt1 and gt2
+                    if self.gt1[self.current_page].shape != self.gt2[self.current_page].shape:
+                        self.gt1[self.current_page] = dimension_regulator(self.gt1[self.current_page])
+                        self.gt2[self.current_page] = dimension_regulator(self.gt2[self.current_page])
+
                     # show diff
                     if self.current_page in self.diff.keys():
                         if self.diff[self.current_page] is None:
@@ -208,7 +219,6 @@ class metric_logic(QDialog, Ui_metricViewer):
                 self.gt1_frame.setText('Drop a (reference) segmentation here')
         else:
             self.gt1_frame.setText('Drop a (reference) segmentation here')
-
 
     def show_gt2(self):
         if self.current_page in self.gt2.keys():

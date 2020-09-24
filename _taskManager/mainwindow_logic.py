@@ -497,6 +497,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
                 self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(v))
 
+            # fill somethine on the ckpt line
+            i = self.tableWidget.findItems('ckpt path', Qt.MatchFlag.MatchExactly)
+            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+
             if nb_col > 2:
                 self.header.append('train')
             else:

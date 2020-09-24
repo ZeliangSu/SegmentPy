@@ -843,7 +843,10 @@ def model_LRCS_LeCun(pipeline,
                                              name='conv4bis', reuse=reuse)
 
         with tf.name_scope('decoder'):
-            deconv_5bis, m5b = conv2d_layer(conv4bis, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
+            deconv5, m5 = conv2d_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                             is_train=BN_phase, activation=activation, if_BN=if_BN,
+                                             name='conv5', reuse=reuse)
+            deconv_5bis, m5b = conv2d_layer(deconv5, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
                                           is_train=BN_phase, activation=activation, name='deconv5bis', reuse=reuse)
 
             up1 = up_2by2_ind(deconv_5bis, ind3, name='up1')
@@ -1368,7 +1371,7 @@ def model_LRCS_dropout_on_conv(pipeline,
         'loss_update_op': node of updating loss function summary,
         'acc_update_op': node of updating accuracy summary
     """
-    with tf.name_scope('LRCS11'):
+    with tf.name_scope('LRCS13'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2],
                                      # [height, width, in_channels, output_channels]
