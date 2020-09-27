@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-ckpt', '--checkpoint_path', nargs='+', type=str, required=True, help='.meta path')
     parser.add_argument('-step', '--steps', type=int, nargs='+', required=True, help='which step to retrieve analytics')
+    parser.add_argument('-dir', '--data_dir', type=str, required=False, default='./test/', help='which data to use for input')
     parser.add_argument('-type', '--retrieve_type', nargs='+', type=str, default='activation', required=False,
                         help='choose activation/weight/tsne/l2/ang/hist or a combo of them doing -type activation weight euclidean...')
     parser.add_argument('-node', '--conserve_nodes', type=str, nargs='+', required=True, help='enter operation/tensor name to check, can be plural')
@@ -49,11 +50,12 @@ if __name__ == '__main__':
                 'ckpt_path': graph_def_dir + 'ckpt/step{}'.format(step),
                 'save_pb_dir': graph_def_dir + 'pb/',
                 'save_pb_path': graph_def_dir + 'pb/step{}.pb'.format(step),
-                'data_dir': './test/', #todo:
+                'data_dir': args.data_dir,
                 'rlt_dir':  graph_def_dir + 'rlt/',
                 'tsne_dir':  graph_def_dir + 'tsne/',
                 'tsne_path':  graph_def_dir + 'tsne/',
             }
+            print(args.data_dir)
             conserve_nodes = args.conserve_nodes
 
             logger.info('paths: {}'.format(paths))

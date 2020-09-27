@@ -387,58 +387,67 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def activation_plugin(self):
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
         import tensorflow as tf
+        # get ckpt file
         dialog = file_dialog(title='select ckpts (*.meta) to retrieve activations', type='.meta')
         ckpt_paths = dialog.openFileNamesDialog()
-        if len(ckpt_paths) != 0:
-            # restore from ckpt the nodes
-            tf.reset_default_graph()
-            logger.debug(ckpt_paths[0])
-            _ = tf.train.import_meta_graph(
-                ckpt_paths[0],
-                clear_devices=True,
-            )
+        logger.debug('ckpt_paths: {}'.format(ckpt_paths))
+        if ckpt_paths is not None:
+            # get input path
+            dialog = file_dialog(title='select folder which contains datas for analyses')
+            data_folder = dialog.openFolderDialog()
+            logger.debug('data_folder: {}'.format(data_folder))
+            if data_folder is not None:
+                if len(ckpt_paths) != 0:
+                    # restore from ckpt the nodes
+                    tf.reset_default_graph()
+                    logger.debug(ckpt_paths[0])
+                    _ = tf.train.import_meta_graph(
+                        ckpt_paths[0],
+                        clear_devices=True,
+                    )
 
-            # get arguments
-            graph = tf.get_default_graph().as_graph_def()
-            nodes = print_nodes_name(graph)
-            steps = [re.search('step(\d+)', ck_pth).group(1) for ck_pth in ckpt_paths]
+                    # get arguments
+                    graph = tf.get_default_graph().as_graph_def()
+                    nodes = print_nodes_name(graph)
+                    steps = [re.search('step(\d+)', ck_pth).group(1) for ck_pth in ckpt_paths]
 
-            # retrive nodes of activations
-            options = []
-            for node in nodes:
-                tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4|concat)$', node)
-                if tmp is not None:
-                    tmp = tmp.string
-                    if 'identity' in tmp:
-                        iden = tmp
-                    else:
-                        options.append(tmp)
+                    # retrive nodes of activations
+                    options = []
+                    for node in nodes:
+                        tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4|concat)$', node)
+                        if tmp is not None:
+                            tmp = tmp.string
+                            if 'identity' in tmp:
+                                iden = tmp
+                            else:
+                                options.append(tmp)
 
-            # open nodes list dialog
-            nodes_list = node_list_logic(options=options)
-            nodes_list.exec()
-            if nodes_list.result() == 1:
-                acts = nodes_list.return_nodes()
-                if iden:
-                    acts.append(iden)
-                types = nodes_list.return_analysis_types()
-                if len(types) == 0:
-                    types = ['activation']
+                    # open nodes list dialog
+                    nodes_list = node_list_logic(options=options)
+                    nodes_list.exec()
+                    if nodes_list.result() == 1:
+                        acts = nodes_list.return_nodes()
+                        if iden:
+                            acts.append(iden)
+                        types = nodes_list.return_analysis_types()
+                        if len(types) == 0:
+                            types = ['activation']
 
-                terminal = [
-                    'python', 'main_analytic.py',
-                    '-ckpt', *ckpt_paths,
-                    '-step', *steps,
-                    '-type', *types,
-                    '-node', *acts,
-                ]
+                        terminal = [
+                            'python', 'main_analytic.py',
+                            '-ckpt', *ckpt_paths,
+                            '-step', *steps,
+                            '-type', *types,
+                            '-node', *acts,
+                            '-dir', data_folder,
+                        ]
 
-                logger.debug(terminal)
+                        logger.debug(terminal)
 
-                proc = subprocess.Popen(
-                    terminal
-                )
-                proc.wait()
+                        proc = subprocess.Popen(
+                            terminal
+                        )
+                        proc.wait()
 
     def log_window(self, title: str, Msg: str):
         msg = QMessageBox()
