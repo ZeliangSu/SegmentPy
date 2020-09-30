@@ -85,6 +85,7 @@ LRCS_conserve_nodes = [
     'LRCS/dnn/dnn1/leaky',
     'LRCS/dnn/dnn2/leaky',
     'LRCS/dnn/dnn3/leaky',
+    'LRCS2/dnn/reshape/reshape',
     'LRCS/decoder/deconv5/leaky',
     'LRCS/decoder/deconv5bis/leaky',
     'LRCS/decoder/deconv6/leaky',
@@ -107,6 +108,9 @@ LRCS2_conserve_nodes = [
     'LRCS2/encoder/conv4/leaky',
     'LRCS2/encoder/conv4bis/leaky',
     'LRCS2/encoder/conv4bisbis/leaky',
+    'LRCS2/dnn/dnn1/leaky',
+    'LRCS2/dnn/dnn2/leaky',
+    'LRCS2/dnn/dnn3/leaky',
     'LRCS2/dnn/reshape/reshape',
     'LRCS2/decoder/deconv5/leaky',
     'LRCS2/decoder/deconv5bis/leaky',
@@ -316,7 +320,11 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                 l.append(input_dir + f)
 
         img_path = l[0]
-        img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)
+        logger.debug('img_path: %s' % img_path)
+        if hyper['model'] in ['LRCS', 'LRCS2', 'Xlearn']:
+            img = load_img(img_path)[:hyper['window_size'], :hyper['window_size']]
+        else:
+            img = dimension_regulator(load_img(img_path), maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)
 
         # note: the following try to normalize the input img e.g. 32IDC FBP-CUDA --> ~range(0, 0.0012) *1000 ~ (0 ~ 1)
         if norm:
@@ -352,8 +360,11 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             imgs = [
                 img
             ]
-            labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')),
-                                          maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)]
+            if hyper['model'] in ['LRCS', 'LRCS2', 'Xlearn']:
+                labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif'))[:hyper['window_size'], :hyper['window_size']])]
+            else:
+                labels = [dimension_regulator(load_img(img_path.replace('.tif', '_label.tif')),
+                                            maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)]
             logger.info('label shape: {}'.format(labels[0].shape))
 
         # save imgs
@@ -377,7 +388,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             feed_dict[dropout_input] = 1.0
 
         except Exception as e:
-            print('Error(message):', e)
+            logger.error(e)
             pass
 
         # run inference
@@ -399,7 +410,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                         else:
                             tensors = [np.squeeze(tensors[i]) for i in range(tensors.shape[0])]
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     pass
                 if layer_name == 'add':
                     _resultWriter(tensors, layer_name=layer_name,
@@ -942,6 +953,7 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
     assert conserve_nodes!=None, 'please define the list of nodes that you conserve'
     assert isinstance(paths, dict), 'paths should be a dictionary containning path'
     assert isinstance(conserve_nodes, list), 'conoserve_nodes should be a list of node names'
+    logger.debug(paths)
 
     # clean graph first
     tf.reset_default_graph()

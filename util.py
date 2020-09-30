@@ -228,6 +228,7 @@ def dimension_regulator(img, maxp_times=3):
 
 
 def load_img(path):
+    logger.info('path: %s' % path)
     img = np.asarray(Image.open(path))
     return img
 

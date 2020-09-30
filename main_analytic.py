@@ -29,8 +29,8 @@ if __name__ == '__main__':
         print('model: ', model)
         hyperparams = {
             'model': model,
-            'window_size': re.search('ps(\d+)', ckpt_path).group(1),
-            'batch_size': re.search('bs(\d+)', ckpt_path).group(1),
+            'window_size': int(re.search('ps(\d+)', ckpt_path).group(1)),
+            'batch_size': int(re.search('bs(\d+)', ckpt_path).group(1)),
             'stride': args.stride,
             'device_option': 'cpu',
             'mode': 'classification',  # todo:
