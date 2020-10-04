@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '_taskManager/mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.15.0
+# Created by: PyQt5 UI code generator 5.14.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_LRCSNet(object):
     def setupUi(self, LRCSNet):
         LRCSNet.setObjectName("LRCSNet")
-        LRCSNet.resize(1178, 718)
+        LRCSNet.resize(1178, 724)
         self.centralwidget = QtWidgets.QWidget(LRCSNet)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -242,6 +242,8 @@ class Ui_LRCSNet(object):
         self.Preferences.setObjectName("Preferences")
         self.GradViewer = QtWidgets.QAction(LRCSNet)
         self.GradViewer.setObjectName("GradViewer")
+        self.ActViewer = QtWidgets.QAction(LRCSNet)
+        self.ActViewer.setObjectName("ActViewer")
         self.menuMenu.addAction(self.About_us)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.Preferences)
@@ -253,6 +255,7 @@ class Ui_LRCSNet(object):
         self.menuPlugin.addAction(self.Metrics)
         self.menuPlugin.addAction(self.AugViewer)
         self.menuPlugin.addAction(self.GradViewer)
+        self.menuPlugin.addAction(self.ActViewer)
         self.menubar.addAction(self.menuMenu.menuAction())
         self.menubar.addAction(self.menuPlugin.menuAction())
 
@@ -342,4 +345,5 @@ class Ui_LRCSNet(object):
         self.AugViewer.setText(_translate("LRCSNet", "AugViewer"))
         self.Preferences.setText(_translate("LRCSNet", "Preferences"))
         self.GradViewer.setText(_translate("LRCSNet", "GradViewer"))
+        self.ActViewer.setText(_translate("LRCSNet", "ActViewer"))
 

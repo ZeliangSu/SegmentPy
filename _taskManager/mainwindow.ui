@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1178</width>
-    <height>718</height>
+    <height>724</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -268,11 +268,11 @@
           <property name="columnCount">
            <number>2</number>
           </property>
-          <attribute name="horizontalHeaderDefaultSectionSize">
-           <number>100</number>
-          </attribute>
           <attribute name="horizontalHeaderMinimumSectionSize">
            <number>18</number>
+          </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>100</number>
           </attribute>
           <row/>
           <row/>
@@ -540,6 +540,7 @@
     <addaction name="Metrics"/>
     <addaction name="AugViewer"/>
     <addaction name="GradViewer"/>
+    <addaction name="ActViewer"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuPlugin"/>
@@ -593,6 +594,11 @@
   <action name="GradViewer">
    <property name="text">
     <string>GradViewer</string>
+   </property>
+  </action>
+  <action name="ActViewer">
+   <property name="text">
+    <string>ActViewer</string>
    </property>
   </action>
  </widget>

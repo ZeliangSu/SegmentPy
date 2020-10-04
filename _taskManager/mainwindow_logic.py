@@ -10,6 +10,7 @@ from _taskManager.nodes_list_logic import node_list_logic
 from _taskManager.volumes_viewer_logic import volViewer_logic
 from _taskManager.metric_logic import metric_logic
 from _taskManager.augmentationViewer_logic import augViewer_logic
+from _taskManager.ActViewer_logic import actViewer_logic
 from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
 
@@ -245,6 +246,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.refresh_gpu_list()
         self.proc_list = []  # tuple of (str: gpu, str: pid, subprocess)
         self.refresh_proc_list()
+        self.actVs = []
 
         self.threadpool = QThreadPool()
         self.qManager.signals.available_gpu.connect(self.start)
@@ -357,6 +359,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
         # menu bar
         self.Activations.triggered.connect(self.activation_plugin)
+        self.ActViewer.triggered.connect(self.actViewer_plugin)
         self.Loss_Landscape.triggered.connect(self.loss_landscape)
         self.Random_Forest.triggered.connect(self.random_forest)
         self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
@@ -371,6 +374,12 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.gradV.exec_()
         if self.gradV.result() == 1:
             self.gradV.extract_gradient()
+
+    def actViewer_plugin(self):
+        i = self.actVs.__len__()
+        actV = actViewer_logic()
+        self.actVs.append(actV)  #note: not using self.actV to create a new instance
+        self.actVs[i].show()
 
     def augViewer_plugin(self):
         self.augV = augViewer_logic()
