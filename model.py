@@ -1434,6 +1434,26 @@ def model_LRCS_dropout_on_conv(pipeline,
         return logits, []
 
 
+def model_LRCS_full_FCLs(pipeline,
+               patch_size,
+               batch_size,
+               conv_size,
+               nb_conv,
+               drop_prob,
+               if_BN=True,
+               BN_phase=None,
+               activation='relu',
+               reuse=False,
+               mode='regression',
+               nb_classes=3,
+               ):
+    with tf.name_scope('LRCS14'):
+        with tf.name_scope('encoder'):
+            pass
+        with tf.name_scope('decoder'):
+            pass
+
+
 def model_Segnet_like(pipeline,
                patch_size,
                batch_size,
@@ -2934,6 +2954,7 @@ model_dict = {
     'LRCS11': model_LRCS_lecun_thinner_encoder,
     'LRCS12': model_LRCS_mix_skipconnect,
     'LRCS13': model_LRCS_dropout_on_conv,
+    'LRCS14': model_LRCS_full_FCLs,
     'Xlearn': model_xlearn_like,
     'Unet': model_Unet,
     'Unet2': model_Unet_shallow,
