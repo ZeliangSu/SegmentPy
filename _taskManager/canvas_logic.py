@@ -22,7 +22,12 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
+def heatmapPreparation(x, y, z):
+    pass
+
+
 class MPL(QWidget):
+    """learning curves plot"""
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -187,3 +192,59 @@ class volFracPlotter(QWidget):
         plot.tight_layout()
         self.canvas_volfrac.draw()
 
+
+class gradient_plot(QWidget):
+    """gradient plot"""
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.w = {}
+        self.b = {}
+        self.gamma = {}
+        self.beta = {}
+        self.step = {}
+
+        # todo: w/gamma/beta plots if using batch norm (gamma beta), or 2 plots w/b without batch norm
+        figure_w = plt.figure(dpi=50)
+        figure_gamma = plt.figure(dpi=50)
+        figure_beta = plt.figure(dpi=50)
+
+        # set canvas
+        self.canvas_w = canvas(figure_w)
+        self.canvas_gamma = canvas(figure_gamma)
+        self.canvas_beta = canvas(figure_beta)
+
+        # layout
+        self.QHBL = QtWidgets.QHBoxLayout()
+        self.QHBL.addWidget(self.canvas_w)
+        self.QHBL.addWidget(self.canvas_gamma)
+        self.QHBL.addWidget(self.canvas_beta)
+
+        # todo: scrollable
+        # self.QHBL.layout().setContentsMargins(0, 0, 0, 0)
+        # self.QHBL.layout().setSpacing(0)
+
+
+        # draw blancket
+        self.canvas_w.draw()
+        self.canvas_gamma.draw()
+        self.canvas_beta.draw()
+
+    def plot(self):
+        if self.w.__len__() == 0:
+            return
+
+        fig_w = self.canvas_w.figure
+
+        fig_w.clear()
+
+        w_ax = fig_w.add_subplot(111)
+        w_ax.set_title('weights')
+
+        w_ax.xticks(rotation=45)
+
+        df = pd.DataFrame(self.w, index=self.step)
+        c = w_ax.pcolormesh(df)
+        fig_w.colorbar(c)
+
+        self.canvas_w.draw()

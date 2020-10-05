@@ -247,6 +247,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.proc_list = []  # tuple of (str: gpu, str: pid, subprocess)
         self.refresh_proc_list()
         self.actVs = []
+        self.gradVs = []
 
         self.threadpool = QThreadPool()
         self.qManager.signals.available_gpu.connect(self.start)
@@ -370,10 +371,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     ################# menubar methods
 
     def gradViewer_plugin(self):
-        self.gradV = gradView_logic()
-        self.gradV.exec_()
-        if self.gradV.result() == 1:
-            self.gradV.extract_gradient()
+        i = self.gradVs.__len__()
+        gradV = gradView_logic()
+        self.gradVs.append(gradV)
+        self.gradVs[i].show()
 
     def actViewer_plugin(self):
         i = self.actVs.__len__()

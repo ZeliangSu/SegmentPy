@@ -531,7 +531,7 @@
    </widget>
    <widget class="QMenu" name="menuPlugin">
     <property name="title">
-     <string>plug-ins</string>
+     <string>Plug-ins</string>
     </property>
     <addaction name="Activations"/>
     <addaction name="Loss_Landscape"/>
@@ -541,8 +541,19 @@
     <addaction name="AugViewer"/>
     <addaction name="GradViewer"/>
     <addaction name="ActViewer"/>
+    <addaction name="actionThresholder"/>
+   </widget>
+   <widget class="QMenu" name="menuVisualization">
+    <property name="title">
+     <string>Visualization</string>
+    </property>
+    <addaction name="actionActViewer"/>
+    <addaction name="actionVolViewer"/>
+    <addaction name="actionAugViewer"/>
+    <addaction name="actionGradViewer"/>
    </widget>
    <addaction name="menuMenu"/>
+   <addaction name="menuVisualization"/>
    <addaction name="menuPlugin"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -599,6 +610,31 @@
   <action name="ActViewer">
    <property name="text">
     <string>ActViewer</string>
+   </property>
+  </action>
+  <action name="actionActViewer">
+   <property name="text">
+    <string>ActViewer</string>
+   </property>
+  </action>
+  <action name="actionVolViewer">
+   <property name="text">
+    <string>VolViewer</string>
+   </property>
+  </action>
+  <action name="actionAugViewer">
+   <property name="text">
+    <string>AugViewer</string>
+   </property>
+  </action>
+  <action name="actionGradViewer">
+   <property name="text">
+    <string>GradViewer</string>
+   </property>
+  </action>
+  <action name="actionThresholder">
+   <property name="text">
+    <string>Threshold</string>
    </property>
   </action>
  </widget>
