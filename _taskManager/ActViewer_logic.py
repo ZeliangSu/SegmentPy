@@ -15,8 +15,7 @@ import os
 import numpy as np
 import subprocess
 import tensorflow as tf
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 # logging
 import logging
@@ -31,6 +30,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
         super().__init__()
 
         self.setupUi(self)
+
         self.ckptButton.clicked.connect(self.ckptFileDialog)
         self.inputButton.clicked.connect(self.inputFileDialog)
         self.load.clicked.connect(self.load_activations)
@@ -104,6 +104,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.paths['data_dir'] = self.input
 
     def get_nodes(self):
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
         # restore from ckpt the nodes
         tf.reset_default_graph()
         self.actList.clear()
@@ -131,7 +132,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
     def display(self, nth=0):
         logger.debug(self.layer)
         if not hasattr(self, 'activations'):
-            self.load_graph()
+            self.get_nodes()
             self.load_activations()
         else:
             act = self.activations[self.layer][0]
@@ -178,10 +179,31 @@ class actViewer_logic(QWidget, Ui_actViewer):
         if self.input is None:
             self.log_window(title='Error!', Msg='Please indicate a input image')
         else:
-            partialRlt_and_diff(paths=self.paths, hyperparams=self.hyperparams,
-                                conserve_nodes=[self.actList.item(i).text() for i in range(self.actList.count())],
-                                write_rlt=True)
-            visualize_weights(params=self.paths, write_rlt=True)
+            # retrive nodes of activations
+            # open nodes list dialog
+            nodes_list = node_list_logic(options=list(self.activations.keys()))
+            nodes_list.exec()
+            if nodes_list.result() == 1:
+                acts = nodes_list.return_nodes()
+                types = nodes_list.return_analysis_types()
+                if len(types) == 0:
+                    types = ['activation']
+                step = int(re.search('.+ckpt/step(\d+)\.meta', self.ckpt).group(1))
+                terminal = [
+                    'python', 'main_analytic.py',
+                    '-ckpt', self.ckpt,
+                    '-step', step,
+                    '-type', *types,
+                    '-node', *acts,
+                    '-dir', self.input,
+                ]
+
+                logger.debug(terminal)
+
+                proc = subprocess.Popen(
+                    terminal
+                )
+                proc.wait()
 
     def exit(self):
         self.close()

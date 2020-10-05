@@ -395,7 +395,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.volViewer.exec_()
 
     def activation_plugin(self):
-        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
+        # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
         import tensorflow as tf
         # get ckpt file
         dialog = file_dialog(title='select ckpts (*.meta) to retrieve activations', type='.meta')
