@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 
@@ -27,6 +27,7 @@ logger.setLevel(logging.INFO)
 
 class actViewer_logic(QWidget, Ui_actViewer):
     def __init__(self, *args, **kwargs):
+        """order: set_ckpt() = set_input() > load_graph() > get_nodes() > load_activations()"""
         super().__init__()
 
         self.setupUi(self)
@@ -44,6 +45,13 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.ckpt = None
         self.input = None
         self.layer = None
+
+    def log_window(self, title: str, Msg: str):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(Msg)
+        msg.setWindowTitle(title)
+        msg.exec_()
 
     def ckptFileDialog(self):
         tmp = file_dialog(title='choose .meta file').openFileNameDialog()
@@ -88,7 +96,6 @@ class actViewer_logic(QWidget, Ui_actViewer):
             'feature_map': True if model in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
         }
 
-        self.load_graph()
         # get node and set the listViewWidget
         self.get_nodes()
 
@@ -97,14 +104,20 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.paths['data_dir'] = self.input
 
     def get_nodes(self):
-        if self.input is None:
-            self.set_input()
+        # restore from ckpt the nodes
+        tf.reset_default_graph()
+        self.actList.clear()
+        _ = tf.train.import_meta_graph(
+            self.ckpt,
+            clear_devices=True,
+        )
 
+        # get_nodes
         graph = tf.get_default_graph().as_graph_def()
         nodes = print_nodes_name(graph)
         options = []
         for node in nodes:
-            tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4|concat)$',
+            tmp = re.search('(^[a-zA-Z]+\d*\/).*(leaky|relu|sigmoid|tanh|logits\/identity|up\d+\/Reshape\_4|concat\d+\/concat)$', # concat\d+\/concat for uniquely Unet
                             node)
             if tmp is not None:
                 tmp = tmp.string
@@ -120,51 +133,55 @@ class actViewer_logic(QWidget, Ui_actViewer):
         if not hasattr(self, 'activations'):
             self.load_graph()
             self.load_activations()
+        else:
+            act = self.activations[self.layer][0]
+            self.actSlider.setMaximum(act.shape[-1] - 1) # -1 as starts with 0
 
-        self.actSlider.setMaximum(len(self.activations))
+            # 1D dnn output
+            if 'dnn' in self.layer:
+                ceiling = int(np.ceil(np.sqrt(act.size)))
+                tmp = np.zeros((ceiling ** 2), np.float32).ravel()
+                tmp[:act.size] = act
+                act = tmp.reshape(ceiling, ceiling)
+            else:
+                act = act[:, :, nth]
+            act = (act - np.min(act)) / (np.max(act) - np.min(act)) * 255
+            act = np.asarray(Image.fromarray(act).convert('RGB'))
+            act = act.copy()
 
-        act = self.activations[self.layer][0][:, :, nth]
-        act = (act - np.min(act)) / (np.max(act) - np.min(act)) * 255
-        act = np.asarray(Image.fromarray(act).convert('RGB'))
-        act = act.copy()
-
-        self.q = QImage(act,
-                             act.shape[1],
-                             act.shape[0],
-                             act.shape[1] * 3, QImage.Format_RGB888)
-        self.p = QPixmap(self.q)
-        self.p.scaled(self.width(), self.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.Images.setScaledContents(True)
-        self.Images.setPixmap(self.p)
-        self.Images.update()
-        self.Images.repaint()
-
-    def load_graph(self):
-        # restore from ckpt the nodes
-        tf.reset_default_graph()
-        _ = tf.train.import_meta_graph(
-            self.ckpt,
-            clear_devices=True,
-        )
+            self.q = QImage(act,
+                                 act.shape[1],
+                                 act.shape[0],
+                                 act.shape[1] * 3, QImage.Format_RGB888)
+            self.p = QPixmap(self.q)
+            self.p.scaled(self.width(), self.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.Images.setScaledContents(True)
+            self.Images.setPixmap(self.p)
+            self.Images.update()
+            self.Images.repaint()
 
     def load_activations(self):
-        self.activations = partialRlt_and_diff(paths=self.paths, hyperparams=self.hyperparams,
-                                          conserve_nodes=[self.actList.item(i).text() for i in range(self.actList.count())],
-                                          write_rlt=False)
-        logger.debug(self.activations)
+        if self.input is None:
+            self.log_window(title='Error!', Msg='Please indicate a input image')
 
-        # todo: display the weight the input and output too
-        # self.kern_name, self.kernels = visualize_weights(params=self.paths, write_rlt=False)
-        # logger.debug(self.kern_name)
+        else:
+            self.activations = partialRlt_and_diff(paths=self.paths, hyperparams=self.hyperparams,
+                                              conserve_nodes=[self.actList.item(i).text() for i in range(self.actList.count())],
+                                              write_rlt=False)
+            logger.debug(self.activations)
+
+            # todo: display the weight the input and output too
+            # self.kern_name, self.kernels = visualize_weights(params=self.paths, write_rlt=False)
+            # logger.debug(self.kern_name)
 
     def save_selected_activations(self):
-        # if not selected, warn
-
-        # if selected, save
-        partialRlt_and_diff(paths=self.paths, hyperparams=self.hyperparams,
-                            conserve_nodes=[self.actList.item(i).text() for i in range(self.actList.count())],
-                            write_rlt=True)
-        visualize_weights(params=self.paths, write_rlt=True)
+        if self.input is None:
+            self.log_window(title='Error!', Msg='Please indicate a input image')
+        else:
+            partialRlt_and_diff(paths=self.paths, hyperparams=self.hyperparams,
+                                conserve_nodes=[self.actList.item(i).text() for i in range(self.actList.count())],
+                                write_rlt=True)
+            visualize_weights(params=self.paths, write_rlt=True)
 
     def exit(self):
         self.close()

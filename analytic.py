@@ -976,7 +976,8 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
     tf.reset_default_graph()
 
     # convert ckpt to pb
-    freeze_ckpt_for_inference(paths=paths, hyper=hyperparams, conserve_nodes=conserve_nodes)
+    if not os.path.exists(paths['save_pb_path']):
+        freeze_ckpt_for_inference(paths=paths, hyper=hyperparams, conserve_nodes=conserve_nodes)
 
     # load main graph
     g_main, ops_dict = load_mainGraph(conserve_nodes, path=paths['save_pb_path'])
