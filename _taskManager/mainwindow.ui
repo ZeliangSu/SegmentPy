@@ -536,21 +536,17 @@
     <addaction name="Activations"/>
     <addaction name="Loss_Landscape"/>
     <addaction name="Random_Forest"/>
-    <addaction name="Volumes_Viewer"/>
     <addaction name="Metrics"/>
-    <addaction name="AugViewer"/>
-    <addaction name="GradViewer"/>
-    <addaction name="ActViewer"/>
-    <addaction name="actionThresholder"/>
+    <addaction name="Thresholding"/>
    </widget>
    <widget class="QMenu" name="menuVisualization">
     <property name="title">
      <string>Visualization</string>
     </property>
-    <addaction name="actionActViewer"/>
-    <addaction name="actionVolViewer"/>
-    <addaction name="actionAugViewer"/>
-    <addaction name="actionGradViewer"/>
+    <addaction name="ActViewer"/>
+    <addaction name="Volumes_Viewer"/>
+    <addaction name="AugViewer"/>
+    <addaction name="GradViewer"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuVisualization"/>
@@ -582,19 +578,9 @@
     <string>Random-Forest</string>
    </property>
   </action>
-  <action name="Volumes_Viewer">
-   <property name="text">
-    <string>Volumes-Viewer</string>
-   </property>
-  </action>
   <action name="Metrics">
    <property name="text">
     <string>Metrics</string>
-   </property>
-  </action>
-  <action name="AugViewer">
-   <property name="text">
-    <string>AugViewer</string>
    </property>
   </action>
   <action name="Preferences">
@@ -602,37 +588,27 @@
     <string>Preferences</string>
    </property>
   </action>
-  <action name="GradViewer">
-   <property name="text">
-    <string>GradViewer</string>
-   </property>
-  </action>
   <action name="ActViewer">
    <property name="text">
     <string>ActViewer</string>
    </property>
   </action>
-  <action name="actionActViewer">
-   <property name="text">
-    <string>ActViewer</string>
-   </property>
-  </action>
-  <action name="actionVolViewer">
+  <action name="Volumes_Viewer">
    <property name="text">
     <string>VolViewer</string>
    </property>
   </action>
-  <action name="actionAugViewer">
+  <action name="AugViewer">
    <property name="text">
     <string>AugViewer</string>
    </property>
   </action>
-  <action name="actionGradViewer">
+  <action name="GradViewer">
    <property name="text">
     <string>GradViewer</string>
    </property>
   </action>
-  <action name="actionThresholder">
+  <action name="Thresholding">
    <property name="text">
     <string>Threshold</string>
    </property>
