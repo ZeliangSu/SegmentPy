@@ -55,13 +55,13 @@ class actViewer_logic(QWidget, Ui_actViewer):
 
     def ckptFileDialog(self):
         tmp = file_dialog(title='choose .meta file').openFileNameDialog()
-        if tmp is not None:
+        if tmp:
             self.ckptPathLine.setText(tmp)
             self.set_ckpt()
 
     def inputFileDialog(self):
         tmp = file_dialog(title='choose .tif for input').openFileNameDialog()
-        if tmp is not None:
+        if tmp:
             self.inputPathLine.setText(tmp)
             self.set_input()
 
@@ -70,34 +70,35 @@ class actViewer_logic(QWidget, Ui_actViewer):
         # hit Enter or close file dialog load automatically the model
 
         # prepare
-        _re = re.search('(.+)ckpt/step(\d+)\.meta', self.ckpt)
-        self.step = _re.group(2)
-        self.graph_def_dir = _re.group(1)
-        self.paths = {
-            'step': self.step,
-            'working_dir': self.graph_def_dir,
-            'ckpt_dir': self.graph_def_dir + 'ckpt/',
-            'ckpt_path': self.graph_def_dir + 'ckpt/step{}'.format(self.step),
-            'save_pb_dir': self.graph_def_dir + 'pb/',
-            'save_pb_path': self.graph_def_dir + 'pb/step{}.pb'.format(self.step),
-            'data_dir': self.input,
-        }
+        if self.ckpt:
+            _re = re.search('(.+)ckpt/step(\d+)\.meta', self.ckpt)
+            self.step = _re.group(2)
+            self.graph_def_dir = _re.group(1)
+            self.paths = {
+                'step': self.step,
+                'working_dir': self.graph_def_dir,
+                'ckpt_dir': self.graph_def_dir + 'ckpt/',
+                'ckpt_path': self.graph_def_dir + 'ckpt/step{}'.format(self.step),
+                'save_pb_dir': self.graph_def_dir + 'pb/',
+                'save_pb_path': self.graph_def_dir + 'pb/step{}.pb'.format(self.step),
+                'data_dir': self.input,
+            }
 
-        model = re.search('mdl_([A-Za-z]*\d*)', self.ckpt).group(1)
+            model = re.search('mdl_([A-Za-z]*\d*)', self.ckpt).group(1)
 
-        self.hyperparams = {
-            'model': model,
-            'window_size': int(re.search('ps(\d+)', self.ckpt).group(1)),
-            'batch_size': int(re.search('bs(\d+)', self.ckpt).group(1)),
-            # 'stride': args.stride,
-            'device_option': 'cpu',
-            'mode': 'classification',  # todo:
-            'batch_normalization': False,
-            'feature_map': True if model in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
-        }
+            self.hyperparams = {
+                'model': model,
+                'window_size': int(re.search('ps(\d+)', self.ckpt).group(1)),
+                'batch_size': int(re.search('bs(\d+)', self.ckpt).group(1)),
+                # 'stride': args.stride,
+                'device_option': 'cpu',
+                'mode': 'classification',  # todo:
+                'batch_normalization': False,
+                'feature_map': True if model in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
+            }
 
-        # get node and set the listViewWidget
-        self.get_nodes()
+            # get node and set the listViewWidget
+            self.get_nodes()
 
     def set_input(self):
         self.input = self.inputPathLine.text()
@@ -162,7 +163,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
             self.Images.repaint()
 
     def load_activations(self):
-        if self.input is None:
+        if self.input:
             self.log_window(title='Error!', Msg='Please indicate a input image')
 
         else:
@@ -176,7 +177,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
             # logger.debug(self.kern_name)
 
     def save_selected_activations(self):
-        if self.input is None:
+        if self.input:
             self.log_window(title='Error!', Msg='Please indicate a input image')
         else:
             # retrive nodes of activations

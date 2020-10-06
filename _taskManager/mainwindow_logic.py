@@ -401,12 +401,12 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         dialog = file_dialog(title='select ckpts (*.meta) to retrieve activations', type='.meta')
         ckpt_paths = dialog.openFileNamesDialog()
         logger.debug('ckpt_paths: {}'.format(ckpt_paths))
-        if ckpt_paths is not None:
+        if ckpt_paths is not None and (not not ckpt_paths):
             # get input path
             dialog = file_dialog(title='select folder which contains datas for analyses')
             data_folder = dialog.openFolderDialog()
             logger.debug('data_folder: {}'.format(data_folder))
-            if data_folder is not None:
+            if data_folder is not None and (not not data_folder):
                 if len(ckpt_paths) != 0:
                     # restore from ckpt the nodes
                     tf.reset_default_graph()
