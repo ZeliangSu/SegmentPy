@@ -14,7 +14,7 @@ logger = log.setup_custom_logger('root')
 logger.setLevel(logging.DEBUG)
 
 
-def gradient_extractor(event_dir: str):
+def gradient_extractor(event_dir: str, write_rlt=True):
     if not event_dir.endswith('train/'):
         _dir = event_dir + 'train/'
     else:
@@ -35,18 +35,24 @@ def gradient_extractor(event_dir: str):
     # stack params
     mapping = []
     gamma = []
+    gamman = []
     beta = []
+    betan = []
     w = []
+    wn = []
     layer = {}
-    # step = np.asarray(get_sum(accumulator, l_grad_tag[0])[1])
+    step = np.asarray(get_sum(accumulator, l_grad_tag[0])[1])
     for grad in l_grad_tag:
         mapping.append(np.asarray(get_sum(accumulator, grad)[0]))
         if 'gamma' in grad:
             gamma.append(np.asarray(get_sum(accumulator, grad)[0]))
+            gamman.append(grad)
         elif 'beta' in grad:
             beta.append(np.asarray(get_sum(accumulator, grad)[0]))
+            betan.append(grad)
         elif 'w_0' in grad:
             w.append(np.asarray(get_sum(accumulator, grad)[0]))
+            wn.append(grad)
         try:
             layer_name = re.search('conv(\d+b?)', grad).group(1)
             try:
@@ -65,6 +71,7 @@ def gradient_extractor(event_dir: str):
         layer_mapping.append(np.sum(np.abs(elt) for elt in v))
         if 'b' in k:
             block_mapping.append(np.sum(np.abs(elt) for elt in v))
+
     block_mapping = np.stack(block_mapping).transpose()
     layer_mapping = np.stack(layer_mapping).transpose()
     full_mapping = np.stack(mapping, axis=1)
@@ -84,23 +91,38 @@ def gradient_extractor(event_dir: str):
     beta = np.repeat(np.repeat(beta, N, axis=1), M, axis=0)
     w = np.repeat(np.repeat(w, N, axis=1), M, axis=0)
 
-    check_N_mkdir(event_dir + 'grad/')
+    if write_rlt:
+        check_N_mkdir(event_dir + 'grad/')
 
-    # save gradient mappings
-    Image.fromarray(block_mapping).save(event_dir + 'grad/each_block_mapping.tif')
-    Image.fromarray(layer_mapping).save(event_dir + 'grad/each_layer_mapping.tif')
-    Image.fromarray(full_mapping).save(event_dir + 'grad/all_param_mapping.tif')
-    Image.fromarray(gamma).save(event_dir + 'grad/gamma.tif')
-    Image.fromarray(beta).save(event_dir + 'grad/beta.tif')
-    Image.fromarray(w).save(event_dir + 'grad/w.tif')
+        # save gradient mappings
+        Image.fromarray(block_mapping).save(event_dir + 'grad/each_block_mapping.tif')
+        Image.fromarray(layer_mapping).save(event_dir + 'grad/each_layer_mapping.tif')
+        Image.fromarray(full_mapping).save(event_dir + 'grad/all_param_mapping.tif')
+        Image.fromarray(gamma).save(event_dir + 'grad/gamma.tif')
+        Image.fromarray(beta).save(event_dir + 'grad/beta.tif')
+        Image.fromarray(w).save(event_dir + 'grad/w.tif')
 
-    # save gradient as .csv
-    np.savetxt(event_dir + "grad/each_layer_mapping.csv", block_mapping, delimiter=",")
-    np.savetxt(event_dir + "grad/all_param_mapping.csv", full_mapping, delimiter=",")
-    np.savetxt(event_dir + "grad/gamma.csv", gamma, delimiter=",")
-    np.savetxt(event_dir + "grad/beta.csv", beta, delimiter=",")
-    np.savetxt(event_dir + "grad/w.csv", w, delimiter=",")
-    return block_mapping, full_mapping, gamma, beta, w
+        # save gradient as .csv
+        np.savetxt(event_dir + "grad/each_layer_mapping.csv", block_mapping, delimiter=",")
+        np.savetxt(event_dir + "grad/all_param_mapping.csv", full_mapping, delimiter=",")
+        np.savetxt(event_dir + "grad/gamma.csv", gamma, delimiter=",")
+        np.savetxt(event_dir + "grad/beta.csv", beta, delimiter=",")
+        np.savetxt(event_dir + "grad/w.csv", w, delimiter=",")
+
+    _gamma = {}
+    _beta = {}
+    _w = {}
+
+    for k, v in zip(gamma, gamman):
+        _gamma[k] = v
+
+    for k, v in zip(beta, betan):
+        _beta[k] = v
+
+    for k, v in zip(w, wn):
+        _w[k] = v
+
+    return block_mapping, full_mapping, _gamma, _beta, _w, step
 
 
 def get_sum(accumulator, param_name):

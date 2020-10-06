@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 
@@ -18,9 +18,9 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
-class augViewer_logic(QDialog, Ui_augViewer):
+class augViewer_logic(QWidget, Ui_augViewer):
     def __init__(self, tn_dir='./train/', batch_size=1, window_size=512, stride=5, norm=1e-3, *args, **kwargs):
-        QDialog.__init__(self, *args, **kwargs)
+        QWidget.__init__(self, *args, **kwargs)
 
         self.setupUi(self)
 
@@ -49,7 +49,7 @@ class augViewer_logic(QDialog, Ui_augViewer):
                    self.ys[random]:self.ys[random] + self.window_sizes[random]]
         aug, _ = random_aug(tomogram, tomogram.reshape(*tomogram.shape, 1))
 
-        # 2 RGB
+        # to RGB
         tomogram = (tomogram - np.min(tomogram)) / (np.max(tomogram) - np.min(tomogram)) * 255
         tomogram = np.asarray(Image.fromarray(tomogram).convert('RGB'))
         aug = (aug - np.min(aug)) / (np.max(aug) - np.min(aug)) * 255

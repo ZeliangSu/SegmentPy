@@ -194,6 +194,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
             pd.DataFrame(ls_tn).to_csv(self.get_save_path() + 'loss_train.csv', header=True, index=False, sep=',')
             pd.DataFrame(ls_val).to_csv(self.get_save_path() + 'loss_val.csv', header=True, index=False, sep=',')
 
+
 def test():
     app = QApplication(sys.argv)
 

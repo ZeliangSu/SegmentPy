@@ -283,7 +283,7 @@ def load_mainGraph(conserve_nodes, path='./dummy/pb/test.pb'):
     return g_main, ops_dict
 
 
-def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, feature_map=False, norm=1e3):
+def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None, input_dir=None, rlt_dir=None, feature_map=False, norm=1e3, write_rlt=True):
     """
 
     Parameters
@@ -314,10 +314,15 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
         new_input = g_main.get_tensor_by_name('new_input:0')
 
         # write firstly input and output images
+        # todo: following is useless
         l = []
-        for f in os.listdir(input_dir):
-            if '_label' not in f:
-                l.append(input_dir + f)
+        if os.path.isdir(input_dir):
+            for f in os.listdir(input_dir):
+                if '_label' not in f:
+                    l.append(input_dir + f)
+        else:
+            l.append(input_dir)
+        # todo: above is useless
 
         img_path = l[0]
         logger.debug('img_path: %s' % img_path)
@@ -369,10 +374,12 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         # save imgs
         plt_illd.add_input(np.asarray(imgs))
-        _resultWriter(imgs, 'input', path=rlt_dir, contrast=False)
+        if write_rlt:
+            _resultWriter(imgs, 'input', path=rlt_dir, contrast=False)
 
         plt_illd.add_label(np.asarray(labels))
-        _resultWriter(labels, 'label', path=rlt_dir)
+        if write_rlt:
+            _resultWriter(labels, 'label', path=rlt_dir)
 
 
         # prepare feed_dict
@@ -396,7 +403,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
             print_nodes_name_shape(sess.graph)
             # run partial results operations and diff block
             res = sess.run(ops_dict['ops'], feed_dict=feed_dict)
-            activations = []
+            activations = {}
 
             # note: save partial/final inferences of the first image
             for layer_name, tensors in zip(conserve_nodes, res):
@@ -413,22 +420,26 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                     logger.error(e)
                     pass
                 if layer_name == 'add':
-                    _resultWriter(tensors, layer_name=layer_name,
-                              path=rlt_dir, batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
+                    if write_rlt:
+                        _resultWriter(tensors, layer_name=layer_name,
+                                      path=rlt_dir,
+                                      batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
                 else:
-                    _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
-                                  path=rlt_dir, batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
-                activations.append(tensors)
+                    if write_rlt:
+                        _resultWriter(tensors, layer_name=layer_name.split('/')[-2],
+                                      path=rlt_dir,
+                                      batch_or_channel='channel' if hyper['feature_map'] else 'batch')  # for cnn outputs shape: [batch, w, h, nb_conv]
+                activations[layer_name] = tensors
 
     # calculate diff by numpy
     # res[-1] final result
     if hyper['mode'] == 'regression':
         res_diff = np.equal(np.asarray(np.squeeze(res[-1]), dtype=np.int), np.asarray(labels))
         res_diff = np.asarray(res_diff, dtype=np.int)
-        # note: save diff of all imgs
         plt_illd.add_diff(np.asarray(res_diff))
-        _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
-                      path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
+        if write_rlt:
+            _resultWriter(np.transpose(res_diff, (1, 2, 0)), 'diff',
+                          path=rlt_dir)  # for diff output shape: [batch, w, h, 1]
     else:
         # one-hot the label
         labels = np.expand_dims(np.asarray(labels), axis=3)  # list --> array --> (B, H, W, 1)
@@ -436,40 +447,46 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
 
         res_diff = np.equal(_inverse_one_hot(clean(logits)), labels)  #(B, H, W)
         plt_illd.add_diff(res_diff.astype(int))
-        _resultWriter(res_diff.astype(int), 'diff', path=rlt_dir)  # for diff output shape: [batch, w, h, 3]
+        if write_rlt:
+            _resultWriter(res_diff.astype(int), 'diff', path=rlt_dir)  # for diff output shape: [batch, w, h, 3]
 
-    check_N_mkdir(rlt_dir + 'illd/')
-    plt_illd.plot(out_path=rlt_dir + 'illd/illd.tif')
+    if write_rlt:
+        check_N_mkdir(rlt_dir + 'illd/')
+        plt_illd.plot(out_path=rlt_dir + 'illd/illd.tif')
+
     # return
     return activations
 
 
-def visualize_weights(params=None, plt=False, mode='copy'):
+def visualize_weights(params=None, plt=False, mode='copy', write_rlt=True):
     assert isinstance(params, dict)
-    dir = params['rlt_dir'] + 'weights/step{}/'.format(params['step'])
+    if write_rlt:
+        dir = params['rlt_dir'] + 'weights/step{}/'.format(params['step'])
     wn, _, ws, _, _, _, _, _ = get_all_trainable_variables(params['ckpt_path'])
-    for _wn, _w in zip(wn, ws):
-        for i in range(_w.shape[3]):
-            if mode == 'interpolation':
-                # interpolation and enlarge to a bigger matrix (instead of repeating)
-                x = np.linspace(-1, 1, _w.shape[0])
-                y = np.linspace(-1, 1, _w.shape[1])
-                f = interpolate.interp2d(x, y, np.sum(_w[:, :, :, i], axis=2), kind='cubic')
-                x = np.linspace(-1, 1, _w.shape[0] * 30)
-                y = np.linspace(-1, 1, _w.shape[1] * 30)
-                tmp = f(x, y)
 
-            elif mode == 'copy':
-                tmp = np.repeat(np.repeat(np.sum(_w[:, :, :, i], axis=2), 30, axis=0), 30, axis=1)
+    if write_rlt:
+        for _wn, _w in zip(wn, ws):
+            for i in range(_w.shape[3]):
+                if mode == 'interpolation':
+                    # interpolation and enlarge to a bigger matrix (instead of repeating)
+                    x = np.linspace(-1, 1, _w.shape[0])
+                    y = np.linspace(-1, 1, _w.shape[1])
+                    f = interpolate.interp2d(x, y, np.sum(_w[:, :, :, i], axis=2), kind='cubic')
+                    x = np.linspace(-1, 1, _w.shape[0] * 30)
+                    y = np.linspace(-1, 1, _w.shape[1] * 30)
+                    tmp = f(x, y)
 
-            else:
-                raise NotImplementedError('mode??')
-            # save
-            check_N_mkdir(dir + '{}/'.format(_wn.split('/')[0]))
-            Image.fromarray(tmp).save(
-                dir + '{}/{}.tif'.format(_wn.split('/')[0], i))
-        if plt:
-            pass
+                elif mode == 'copy':
+                    tmp = np.repeat(np.repeat(np.sum(_w[:, :, :, i], axis=2), 30, axis=0), 30, axis=1)
+
+                else:
+                    raise NotImplementedError('mode??')
+                # save
+                if write_rlt:
+                    check_N_mkdir(dir + '{}/'.format(_wn.split('/')[0]))
+                    Image.fromarray(tmp).save(
+                        dir + '{}/{}.tif'.format(_wn.split('/')[0], i))
+    return wn, ws
 
 
 def tsne_on_bias(params=None, mode='2D'):
@@ -940,7 +957,7 @@ def weights_angularity(ckpt_dir=None, rlt_dir=None):
             dfs[sheet_name].sort_values('step').to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=False):
+def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=False, write_rlt=True):
     """
     input:
     -------
@@ -959,23 +976,25 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
     tf.reset_default_graph()
 
     # convert ckpt to pb
-    freeze_ckpt_for_inference(paths=paths, hyper=hyperparams, conserve_nodes=conserve_nodes)
+    if not os.path.exists(paths['save_pb_path']):
+        freeze_ckpt_for_inference(paths=paths, hyper=hyperparams, conserve_nodes=conserve_nodes)
 
     # load main graph
     g_main, ops_dict = load_mainGraph(conserve_nodes, path=paths['save_pb_path'])
 
     # run nodes and save results
-    inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
-                                   input_dir=paths['data_dir'],
-                                   rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']),
-                                   hyper=hyperparams,
-                                   feature_map=hyperparams['feature_map'])
+    activations = inference_and_save_partial_res(g_main, ops_dict, conserve_nodes,
+                                                 input_dir=paths['data_dir'],
+                                                 rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']) if write_rlt else None,
+                                                 hyper=hyperparams,
+                                                 feature_map=hyperparams['feature_map'],
+                                                 write_rlt=write_rlt)
 
     # plt
     if plt:
         # todo: plot top 10 activations
         pass
-
+    return activations
 
 if __name__ == '__main__':
     # disable the GPU if there's a traning

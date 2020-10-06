@@ -10,6 +10,7 @@ from _taskManager.nodes_list_logic import node_list_logic
 from _taskManager.volumes_viewer_logic import volViewer_logic
 from _taskManager.metric_logic import metric_logic
 from _taskManager.augmentationViewer_logic import augViewer_logic
+from _taskManager.ActViewer_logic import actViewer_logic
 from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
 
@@ -245,6 +246,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.refresh_gpu_list()
         self.proc_list = []  # tuple of (str: gpu, str: pid, subprocess)
         self.refresh_proc_list()
+        self.actVs = []
+        self.gradVs = []
 
         self.threadpool = QThreadPool()
         self.qManager.signals.available_gpu.connect(self.start)
@@ -357,6 +360,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
         # menu bar
         self.Activations.triggered.connect(self.activation_plugin)
+        self.ActViewer.triggered.connect(self.actViewer_plugin)
         self.Loss_Landscape.triggered.connect(self.loss_landscape)
         self.Random_Forest.triggered.connect(self.random_forest)
         self.Volumes_Viewer.triggered.connect(self.volViewer_plugin)
@@ -367,10 +371,16 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     ################# menubar methods
 
     def gradViewer_plugin(self):
-        self.gradV = gradView_logic()
-        self.gradV.exec_()
-        if self.gradV.result() == 1:
-            self.gradV.extract_gradient()
+        i = self.gradVs.__len__()
+        gradV = gradView_logic()
+        self.gradVs.append(gradV)
+        self.gradVs[i].show()
+
+    def actViewer_plugin(self):
+        i = self.actVs.__len__()
+        actV = actViewer_logic()
+        self.actVs.append(actV)  #note: not using self.actV to create a new instance
+        self.actVs[i].show()
 
     def augViewer_plugin(self):
         self.augV = augViewer_logic()
@@ -385,18 +395,18 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.volViewer.exec_()
 
     def activation_plugin(self):
-        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
+        # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU
         import tensorflow as tf
         # get ckpt file
         dialog = file_dialog(title='select ckpts (*.meta) to retrieve activations', type='.meta')
         ckpt_paths = dialog.openFileNamesDialog()
         logger.debug('ckpt_paths: {}'.format(ckpt_paths))
-        if ckpt_paths is not None:
+        if ckpt_paths is not None and (not not ckpt_paths):
             # get input path
             dialog = file_dialog(title='select folder which contains datas for analyses')
             data_folder = dialog.openFolderDialog()
             logger.debug('data_folder: {}'.format(data_folder))
-            if data_folder is not None:
+            if data_folder is not None and (not not data_folder):
                 if len(ckpt_paths) != 0:
                     # restore from ckpt the nodes
                     tf.reset_default_graph()

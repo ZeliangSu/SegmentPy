@@ -50,6 +50,7 @@ def _resultWriter(tensor, layer_name='', path=None, batch_or_channel='batch', co
             # scope: dnn p_infer: (nb_post neuron)
             elif elt.ndim == 1:
                 # reshape the 1D array
+                # note: round the shape into a square
                 ceil = int(np.ceil(np.sqrt(elt.size)))
                 tmp = np.zeros((ceil ** 2), np.float32).ravel()
                 tmp[:elt.size] = elt

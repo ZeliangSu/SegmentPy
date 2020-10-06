@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '_taskManager/mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.15.0
+# Created by: PyQt5 UI code generator 5.14.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_LRCSNet(object):
     def setupUi(self, LRCSNet):
         LRCSNet.setObjectName("LRCSNet")
-        LRCSNet.resize(1178, 718)
+        LRCSNet.resize(1178, 724)
         self.centralwidget = QtWidgets.QWidget(LRCSNet)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -218,6 +218,8 @@ class Ui_LRCSNet(object):
         self.menuMenu.setObjectName("menuMenu")
         self.menuPlugin = QtWidgets.QMenu(self.menubar)
         self.menuPlugin.setObjectName("menuPlugin")
+        self.menuVisualization = QtWidgets.QMenu(self.menubar)
+        self.menuVisualization.setObjectName("menuVisualization")
         LRCSNet.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(LRCSNet)
         self.statusbar.setObjectName("statusbar")
@@ -232,16 +234,20 @@ class Ui_LRCSNet(object):
         self.Loss_Landscape.setObjectName("Loss_Landscape")
         self.Random_Forest = QtWidgets.QAction(LRCSNet)
         self.Random_Forest.setObjectName("Random_Forest")
-        self.Volumes_Viewer = QtWidgets.QAction(LRCSNet)
-        self.Volumes_Viewer.setObjectName("Volumes_Viewer")
         self.Metrics = QtWidgets.QAction(LRCSNet)
         self.Metrics.setObjectName("Metrics")
-        self.AugViewer = QtWidgets.QAction(LRCSNet)
-        self.AugViewer.setObjectName("AugViewer")
         self.Preferences = QtWidgets.QAction(LRCSNet)
         self.Preferences.setObjectName("Preferences")
+        self.ActViewer = QtWidgets.QAction(LRCSNet)
+        self.ActViewer.setObjectName("ActViewer")
+        self.Volumes_Viewer = QtWidgets.QAction(LRCSNet)
+        self.Volumes_Viewer.setObjectName("Volumes_Viewer")
+        self.AugViewer = QtWidgets.QAction(LRCSNet)
+        self.AugViewer.setObjectName("AugViewer")
         self.GradViewer = QtWidgets.QAction(LRCSNet)
         self.GradViewer.setObjectName("GradViewer")
+        self.Thresholding = QtWidgets.QAction(LRCSNet)
+        self.Thresholding.setObjectName("Thresholding")
         self.menuMenu.addAction(self.About_us)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.Preferences)
@@ -249,11 +255,14 @@ class Ui_LRCSNet(object):
         self.menuPlugin.addAction(self.Activations)
         self.menuPlugin.addAction(self.Loss_Landscape)
         self.menuPlugin.addAction(self.Random_Forest)
-        self.menuPlugin.addAction(self.Volumes_Viewer)
         self.menuPlugin.addAction(self.Metrics)
-        self.menuPlugin.addAction(self.AugViewer)
-        self.menuPlugin.addAction(self.GradViewer)
+        self.menuPlugin.addAction(self.Thresholding)
+        self.menuVisualization.addAction(self.ActViewer)
+        self.menuVisualization.addAction(self.Volumes_Viewer)
+        self.menuVisualization.addAction(self.AugViewer)
+        self.menuVisualization.addAction(self.GradViewer)
         self.menubar.addAction(self.menuMenu.menuAction())
+        self.menubar.addAction(self.menuVisualization.menuAction())
         self.menubar.addAction(self.menuPlugin.menuAction())
 
         self.retranslateUi(LRCSNet)
@@ -331,15 +340,18 @@ class Ui_LRCSNet(object):
         self.label.setText(_translate("LRCSNet", "Available GPUs:"))
         self.label_2.setText(_translate("LRCSNet", "Ongoing Process:"))
         self.menuMenu.setTitle(_translate("LRCSNet", "Menu"))
-        self.menuPlugin.setTitle(_translate("LRCSNet", "plug-ins"))
+        self.menuPlugin.setTitle(_translate("LRCSNet", "Plug-ins"))
+        self.menuVisualization.setTitle(_translate("LRCSNet", "Visualization"))
         self.About_us.setText(_translate("LRCSNet", "About us"))
         self.Activations.setText(_translate("LRCSNet", "Activations"))
         self.Exit.setText(_translate("LRCSNet", "Exit"))
         self.Loss_Landscape.setText(_translate("LRCSNet", "Loss-Landscape"))
         self.Random_Forest.setText(_translate("LRCSNet", "Random-Forest"))
-        self.Volumes_Viewer.setText(_translate("LRCSNet", "Volumes-Viewer"))
         self.Metrics.setText(_translate("LRCSNet", "Metrics"))
-        self.AugViewer.setText(_translate("LRCSNet", "AugViewer"))
         self.Preferences.setText(_translate("LRCSNet", "Preferences"))
+        self.ActViewer.setText(_translate("LRCSNet", "ActViewer"))
+        self.Volumes_Viewer.setText(_translate("LRCSNet", "VolViewer"))
+        self.AugViewer.setText(_translate("LRCSNet", "AugViewer"))
         self.GradViewer.setText(_translate("LRCSNet", "GradViewer"))
+        self.Thresholding.setText(_translate("LRCSNet", "Threshold"))
 

@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QDialog, QProgressDialog
+from PyQt5.QtWidgets import QWidget, QDialog, QProgressDialog
 
 from _taskManager.gradViewer_design import Ui_grad_extractor
+from _taskManager.gradViewer2_design import Ui_gradPlot
 from _taskManager.file_dialog import file_dialog
 
 from tensorboard_extractor import gradient_extractor
@@ -9,18 +10,22 @@ import json
 import os
 
 
-class gradView_logic(QDialog, Ui_grad_extractor):
+class gradView_logic(QWidget, Ui_grad_extractor):
     def __init__(self, *args, **kwargs):
         QDialog.__init__(self, *args, **kwargs)
 
         # front end config
         self.setupUi(self)
-        self.pathButton.clicked.connect(self.set_grad_path)
-        self.path = None
+        self.folderButton.clicked.connect(self.set_grad_path)
 
         if os.path.exists('./_taskManager/latest_gradView.json'):
             with open('./_taskManager/latest_gradView.json', 'r') as f:
-                self.pathLine.setText(json.load(f)['path'])
+                tmp = json.load(f)['path']
+                self.lineEdit.setText(tmp)
+                self.path = tmp
+
+        else:
+            self.path = None
 
     def return_grad_path(self):
         try:
@@ -32,14 +37,20 @@ class gradView_logic(QDialog, Ui_grad_extractor):
     def set_grad_path(self):
         grad_dial = file_dialog(title='select a training that you want to view its gradients', type='/')
         self.path = grad_dial.openFolderDialog()
-        self.pathLine.setText(self.path)
+        self.lineEdit.setText(self.path)
 
     def extract_gradient(self):
-        pbar = QProgressDialog('Be patient... extracting gradient from saved logs', None, 0, 1, self)
-        pbar.setAutoClose(True)
-        gradient_extractor(self.path)
-        pbar.setValue(1)
+        _, _, gamma, beta, w, step = gradient_extractor(self.path)
         with open('./_taskManager/latest_gradView.json', 'w') as f:
             json.dump({"path": self.path}, f)
+
+        self.plotWidget.gamma = gamma
+        self.plotWidget.beta = beta
+        self.plotWidget.w = w
+        self.plotWidget.step = step
+
+
+
+
 
 
