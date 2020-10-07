@@ -113,14 +113,15 @@ def gradient_extractor(event_dir: str, write_rlt=True):
     _beta = {}
     _w = {}
 
-    for k, v in zip(gamma, gamman):
-        _gamma[k] = v
+    for i, n in enumerate(gamman):
+        #gamma.shape: (step, N*nb_layer), gamman.shape: (nb_layer)
+        _gamma[n] = gamma[::M, i * N]
 
-    for k, v in zip(beta, betan):
-        _beta[k] = v
+    for i, n in enumerate(betan):
+        _beta[n] = beta[::M, i * N]
 
-    for k, v in zip(w, wn):
-        _w[k] = v
+    for i, n in enumerate(wn):
+        _w[n] = w[::M, i * N]
 
     return block_mapping, full_mapping, _gamma, _beta, _w, step
 

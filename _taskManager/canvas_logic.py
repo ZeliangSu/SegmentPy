@@ -219,6 +219,7 @@ class gradient_plot(QWidget):
         self.QHBL.addWidget(self.canvas_w)
         self.QHBL.addWidget(self.canvas_gamma)
         self.QHBL.addWidget(self.canvas_beta)
+        self.setLayout(self.QHBL)
 
         # todo: scrollable
         # self.QHBL.layout().setContentsMargins(0, 0, 0, 0)
@@ -234,17 +235,36 @@ class gradient_plot(QWidget):
         if self.w.__len__() == 0:
             return
 
+        # weight
         fig_w = self.canvas_w.figure
-
         fig_w.clear()
-
         w_ax = fig_w.add_subplot(111)
         w_ax.set_title('weights')
-
-        w_ax.xticks(rotation=45)
-
-        df = pd.DataFrame(self.w, index=self.step)
+        df = pd.DataFrame(self.w, index=self.step, columns=self.w.keys())
+        # w_ax.set_xticklabels(rotation=45)
         c = w_ax.pcolormesh(df)
         fig_w.colorbar(c)
-
         self.canvas_w.draw()
+
+        # gamma
+        fig_g = self.canvas_gamma.figure
+        fig_g.clear()
+        g_ax = fig_g.add_subplot(111)
+        g_ax.set_title('gammas')
+        df2 = pd.DataFrame(self.gamma, index=self.step, columns=self.gamma.keys())
+        # w_ax.set_xticklabels(rotation=45)
+        c2 = g_ax.pcolormesh(df2)
+        fig_g.colorbar(c2)
+        self.canvas_gamma.draw()
+
+        # beta
+        fig_b = self.canvas_gamma.figure
+        fig_b.clear()
+        b_ax = fig_b.add_subplot(111)
+        b_ax.set_title('gammas')
+        df3 = pd.DataFrame(self.beta, index=self.step, columns=self.beta.keys())
+        # w_ax.set_xticklabels(rotation=45)
+        c3 = g_ax.pcolormesh(df3)
+        fig_g.colorbar(c3)
+        self.canvas_beta.draw()
+
