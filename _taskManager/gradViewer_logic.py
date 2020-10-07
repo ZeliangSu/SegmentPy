@@ -27,6 +27,8 @@ class gradView_logic(QWidget, Ui_gradPlot):
         else:
             self.path = None
 
+        self.lineEdit.returnPressed.connect(self.extract_gradient)
+
     def return_grad_path(self):
         try:
             return self.path
