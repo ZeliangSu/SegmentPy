@@ -199,7 +199,7 @@ class gradient_plot(QWidget):
         super().__init__(parent)
 
         self.w = {}
-        self.b = {}
+        self.betaOrBias = {}
         self.gamma = {}
         self.beta = {}
         self.step = {}
@@ -236,9 +236,9 @@ class gradient_plot(QWidget):
             return
 
         # weight
-        fig_w = self.canvas_w.figure
-        fig_w.clear()
-        w_ax = fig_w.add_subplot(131)
+        fig = self.canvas_w.figure
+        fig.clear()
+        w_ax = fig.add_subplot(131)
         w_ax.set_title('weights', fontsize=20)
         df = pd.DataFrame(self.w, index=self.step)
         w_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '') for n in self.w.keys()],
@@ -246,36 +246,30 @@ class gradient_plot(QWidget):
         w_ax.set_xticks(np.arange(len(self.w.keys())))
         w_ax.tick_params(axis='y', which='major', labelsize=20)
         c = w_ax.pcolor(df, cmap='RdBu')
-        fig_w.colorbar(c)
-        # self.canvas_w.draw()
+        fig.colorbar(c)
 
         # gamma
-        # fig_g = self.canvas_gamma.figure
-        # fig_g.clear()
-        g_ax = fig_w.add_subplot(132)
+        g_ax = fig.add_subplot(132)
         g_ax.set_title('gammas', fontsize=20)
         df2 = pd.DataFrame(self.gamma, index=self.step)
-        g_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '') for n in self.gamma.keys()],
+        g_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '').replace('/batch_norm', '') for n in self.gamma.keys()],
                              minor=False, rotation=90, fontsize=20, ha='left')
         g_ax.set_xticks(np.arange(len(self.gamma.keys())))
         g_ax.tick_params(axis='y', which='major', labelsize=20)
         c2 = g_ax.pcolor(df2, cmap='RdBu')
-        fig_w.colorbar(c2)
-        # self.canvas_gamma.draw()
+        fig.colorbar(c2)
 
         # beta
-        # fig_b = self.canvas_gamma.figure
-        # fig_b.clear()
-        b_ax = fig_w.add_subplot(133)
-        b_ax.set_title('betas', fontsize=20)
-        df3 = pd.DataFrame(self.beta, index=self.step)
-        b_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '') for n in self.w.keys()],
+        b_ax = fig.add_subplot(133)
+        b_ax.set_title('betas or bias', fontsize=20)
+        df3 = pd.DataFrame(self.betaOrBias, index=self.step)
+        b_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '').replace('/batch_norm', '')
+                              for n in self.betaOrBias.keys()],
                              minor=False, rotation=90, fontsize=20, ha='left')
-        b_ax.set_xticks(np.arange(len(self.beta.keys())))
+        b_ax.set_xticks(np.arange(len(self.betaOrBias.keys())))
         b_ax.tick_params(axis='y', which='major', labelsize=20)
-        c3 = g_ax.pcolor(df3, cmap='RdBu',
-                         vmin=df3.min().min(), vmax=df3.max().max())
-        fig_w.colorbar(c3)
-        fig_w.tight_layout()
+        c3 = b_ax.pcolor(df3, vmin=df3.min().min(), vmax=df3.max().max())
+        fig.colorbar(c3)
+        fig.tight_layout()
         self.canvas_w.draw()
 

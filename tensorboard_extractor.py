@@ -47,7 +47,7 @@ def gradient_extractor(event_dir: str, write_rlt=True):
         if 'gamma' in grad:
             gamma.append(np.asarray(get_sum(accumulator, grad)[0]))
             gamman.append(grad)
-        elif 'beta' in grad:
+        elif ('beta' in grad) or ('b_0' in grad):
             beta.append(np.asarray(get_sum(accumulator, grad)[0]))
             betan.append(grad)
         elif 'w_0' in grad:
@@ -75,9 +75,11 @@ def gradient_extractor(event_dir: str, write_rlt=True):
     block_mapping = np.stack(block_mapping).transpose()
     layer_mapping = np.stack(layer_mapping).transpose()
     full_mapping = np.stack(mapping, axis=1)
-    gamma = np.stack(gamma, axis=1)
-    beta = np.stack(beta, axis=1)
-    w = np.stack(w, axis=1)
+
+    # take the absolute values of the gradients
+    gamma = np.abs(np.stack(gamma, axis=1))
+    beta = np.abs(np.stack(np.abs(beta), axis=1))
+    w = np.abs(np.stack(np.abs(w), axis=1))
 
     # fold N times then sum
     N = 50
@@ -110,7 +112,7 @@ def gradient_extractor(event_dir: str, write_rlt=True):
         np.savetxt(event_dir + "grad/w.csv", w, delimiter=",")
 
     _gamma = {}
-    _beta = {}
+    _betaOrBias = {}
     _w = {}
 
     for i, n in enumerate(gamman):
@@ -118,12 +120,12 @@ def gradient_extractor(event_dir: str, write_rlt=True):
         _gamma[n] = gamma[::M, i * N]
 
     for i, n in enumerate(betan):
-        _beta[n] = beta[::M, i * N]
+        _betaOrBias[n] = beta[::M, i * N]
 
     for i, n in enumerate(wn):
         _w[n] = w[::M, i * N]
 
-    return block_mapping, full_mapping, _gamma, _beta, _w, step
+    return block_mapping, full_mapping, _gamma, _betaOrBias, _w, step
 
 
 def get_sum(accumulator, param_name):

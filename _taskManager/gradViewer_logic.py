@@ -44,12 +44,12 @@ class gradView_logic(QWidget, Ui_gradPlot):
             self.extract_gradient()
 
     def extract_gradient(self):
-        _, _, gamma, beta, w, step = gradient_extractor(self.path)
+        _, _, gamma, betaOrBias, w, step = gradient_extractor(self.path)
         with open('./_taskManager/latest_gradView.json', 'w') as f:
             json.dump({"path": self.path}, f)
 
         self.plotWidget.gamma = gamma
-        self.plotWidget.beta = beta
+        self.plotWidget.betaOrBias = betaOrBias
         self.plotWidget.w = w
         self.plotWidget.step = step
         self.plotWidget.plot()
