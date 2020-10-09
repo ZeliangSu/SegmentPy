@@ -241,35 +241,40 @@ class gradient_plot(QWidget):
         w_ax = fig.add_subplot(131)
         w_ax.set_title('weights', fontsize=20)
         df = pd.DataFrame(self.w, index=self.step)
-        w_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '') for n in self.w.keys()],
+        w_ax.set_xticklabels([n.replace('summary/', '').replace('/w_0/grad', '') for n in self.w.keys()],
                              rotation=90, fontsize=20, ha='left')  # center
         w_ax.set_xticks(np.arange(len(self.w.keys())))
         w_ax.tick_params(axis='y', which='major', labelsize=20)
-        c = w_ax.pcolor(df, cmap='RdBu')
-        fig.colorbar(c)
+        c = w_ax.pcolor(df)  #, cmap='RdBu'
+        cbar = fig.colorbar(c)
+        cbar.ax.tick_params(labelsize=20)
 
         # gamma
         g_ax = fig.add_subplot(132)
         g_ax.set_title('gammas', fontsize=20)
         df2 = pd.DataFrame(self.gamma, index=self.step)
-        g_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '').replace('/batch_norm', '') for n in self.gamma.keys()],
+        g_ax.set_xticklabels([n.replace('summary/', '').replace('/gamma_0/grad', '').replace('_BN/batch_norm', '')
+                              for n in self.gamma.keys()],
                              minor=False, rotation=90, fontsize=20, ha='left')
         g_ax.set_xticks(np.arange(len(self.gamma.keys())))
         g_ax.tick_params(axis='y', which='major', labelsize=20)
-        c2 = g_ax.pcolor(df2, cmap='RdBu')
-        fig.colorbar(c2)
+        c2 = g_ax.pcolor(df2)
+        cbar2 = fig.colorbar(c2)
+        cbar2.ax.tick_params(labelsize=20)
 
         # beta
         b_ax = fig.add_subplot(133)
         b_ax.set_title('betas or bias', fontsize=20)
         df3 = pd.DataFrame(self.betaOrBias, index=self.step)
-        b_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '').replace('/batch_norm', '')
+        b_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '').replace('_BN/batch_norm', '')
                               for n in self.betaOrBias.keys()],
                              minor=False, rotation=90, fontsize=20, ha='left')
         b_ax.set_xticks(np.arange(len(self.betaOrBias.keys())))
         b_ax.tick_params(axis='y', which='major', labelsize=20)
         c3 = b_ax.pcolor(df3, vmin=df3.min().min(), vmax=df3.max().max())
-        fig.colorbar(c3)
+        cbar3 = fig.colorbar(c3)
+        cbar3.ax.tick_params(labelsize=20)
+
         fig.tight_layout()
         self.canvas_w.draw()
 

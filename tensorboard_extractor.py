@@ -30,7 +30,7 @@ def gradient_extractor(event_dir: str, write_rlt=True):
     for param_name in tags['histograms']:
         if 'grad' in param_name:
             l_grad_tag.append(param_name)
-    print(l_grad_tag)
+    logger.info(l_grad_tag)
 
     # stack params
     mapping = []
@@ -58,10 +58,10 @@ def gradient_extractor(event_dir: str, write_rlt=True):
             try:
                 layer[layer_name].append(np.asarray(get_sum(accumulator, grad)[0]))
             except Exception as e:
-                print(e)
+                logger.error(e)
                 layer[layer_name] = [np.asarray(get_sum(accumulator, grad)[0])]
         except Exception as e:
-            print(grad)
+            logger.error(grad)
             pass
 
     block_mapping = []

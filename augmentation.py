@@ -157,6 +157,11 @@ def warping(X_img, y_img):
     return X_img, y_img
 
 
+def transforming():
+
+    pass
+
+
 def _minmaxscalar(ndarray, dtype=np.float32):
     """
     func normalize values of a ndarray into interval of 0 to 1
