@@ -10,7 +10,7 @@ import json
 import os
 
 
-class gradView_logic(QWidget, Ui_grad_extractor):
+class gradView_logic(QWidget, Ui_gradPlot):
     def __init__(self, *args, **kwargs):
         QDialog.__init__(self, *args, **kwargs)
 
@@ -27,6 +27,8 @@ class gradView_logic(QWidget, Ui_grad_extractor):
         else:
             self.path = None
 
+        self.lineEdit.returnPressed.connect(self.extract_gradient)
+
     def return_grad_path(self):
         try:
             return self.path
@@ -37,17 +39,20 @@ class gradView_logic(QWidget, Ui_grad_extractor):
     def set_grad_path(self):
         grad_dial = file_dialog(title='select a training that you want to view its gradients', type='/')
         self.path = grad_dial.openFolderDialog()
-        self.lineEdit.setText(self.path)
+        if self.path:
+            self.lineEdit.setText(self.path)
+            self.extract_gradient()
 
     def extract_gradient(self):
-        _, _, gamma, beta, w, step = gradient_extractor(self.path)
+        _, _, gamma, betaOrBias, w, step = gradient_extractor(self.path)
         with open('./_taskManager/latest_gradView.json', 'w') as f:
             json.dump({"path": self.path}, f)
 
         self.plotWidget.gamma = gamma
-        self.plotWidget.beta = beta
+        self.plotWidget.betaOrBias = betaOrBias
         self.plotWidget.w = w
         self.plotWidget.step = step
+        self.plotWidget.plot()
 
 
 

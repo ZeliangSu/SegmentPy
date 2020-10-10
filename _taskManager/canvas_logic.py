@@ -199,26 +199,27 @@ class gradient_plot(QWidget):
         super().__init__(parent)
 
         self.w = {}
-        self.b = {}
+        self.betaOrBias = {}
         self.gamma = {}
         self.beta = {}
         self.step = {}
 
         # todo: w/gamma/beta plots if using batch norm (gamma beta), or 2 plots w/b without batch norm
         figure_w = plt.figure(dpi=50)
-        figure_gamma = plt.figure(dpi=50)
-        figure_beta = plt.figure(dpi=50)
+        # figure_gamma = plt.figure(dpi=50)
+        # figure_beta = plt.figure(dpi=50)
 
         # set canvas
         self.canvas_w = canvas(figure_w)
-        self.canvas_gamma = canvas(figure_gamma)
-        self.canvas_beta = canvas(figure_beta)
+        # self.canvas_gamma = canvas(figure_gamma)
+        # self.canvas_beta = canvas(figure_beta)
 
         # layout
         self.QHBL = QtWidgets.QHBoxLayout()
         self.QHBL.addWidget(self.canvas_w)
-        self.QHBL.addWidget(self.canvas_gamma)
-        self.QHBL.addWidget(self.canvas_beta)
+        # self.QHBL.addWidget(self.canvas_gamma)
+        # self.QHBL.addWidget(self.canvas_beta)
+        self.setLayout(self.QHBL)
 
         # todo: scrollable
         # self.QHBL.layout().setContentsMargins(0, 0, 0, 0)
@@ -227,24 +228,53 @@ class gradient_plot(QWidget):
 
         # draw blancket
         self.canvas_w.draw()
-        self.canvas_gamma.draw()
-        self.canvas_beta.draw()
+        # self.canvas_gamma.draw()
+        # self.canvas_beta.draw()
 
     def plot(self):
         if self.w.__len__() == 0:
             return
 
-        fig_w = self.canvas_w.figure
-
-        fig_w.clear()
-
-        w_ax = fig_w.add_subplot(111)
-        w_ax.set_title('weights')
-
-        w_ax.xticks(rotation=45)
-
+        # weight
+        fig = self.canvas_w.figure
+        fig.clear()
+        w_ax = fig.add_subplot(131)
+        w_ax.set_title('weights', fontsize=20)
         df = pd.DataFrame(self.w, index=self.step)
-        c = w_ax.pcolormesh(df)
-        fig_w.colorbar(c)
+        w_ax.set_xticklabels([n.replace('summary/', '').replace('/w_0/grad', '') for n in self.w.keys()],
+                             rotation=90, fontsize=20, ha='left')  # center
+        w_ax.set_xticks(np.arange(len(self.w.keys())))
+        w_ax.tick_params(axis='y', which='major', labelsize=20)
+        c = w_ax.pcolor(df)  #, cmap='RdBu'
+        cbar = fig.colorbar(c)
+        cbar.ax.tick_params(labelsize=20)
 
+        # gamma
+        g_ax = fig.add_subplot(132)
+        g_ax.set_title('gammas', fontsize=20)
+        df2 = pd.DataFrame(self.gamma, index=self.step)
+        g_ax.set_xticklabels([n.replace('summary/', '').replace('/gamma_0/grad', '').replace('_BN/batch_norm', '')
+                              for n in self.gamma.keys()],
+                             minor=False, rotation=90, fontsize=20, ha='left')
+        g_ax.set_xticks(np.arange(len(self.gamma.keys())))
+        g_ax.tick_params(axis='y', which='major', labelsize=20)
+        c2 = g_ax.pcolor(df2)
+        cbar2 = fig.colorbar(c2)
+        cbar2.ax.tick_params(labelsize=20)
+
+        # beta
+        b_ax = fig.add_subplot(133)
+        b_ax.set_title('betas or bias', fontsize=20)
+        df3 = pd.DataFrame(self.betaOrBias, index=self.step)
+        b_ax.set_xticklabels([n.replace('summary/', '').replace('_0/grad', '').replace('_BN/batch_norm', '')
+                              for n in self.betaOrBias.keys()],
+                             minor=False, rotation=90, fontsize=20, ha='left')
+        b_ax.set_xticks(np.arange(len(self.betaOrBias.keys())))
+        b_ax.tick_params(axis='y', which='major', labelsize=20)
+        c3 = b_ax.pcolor(df3, vmin=df3.min().min(), vmax=df3.max().max())
+        cbar3 = fig.colorbar(c3)
+        cbar3.ax.tick_params(labelsize=20)
+
+        fig.tight_layout()
         self.canvas_w.draw()
+

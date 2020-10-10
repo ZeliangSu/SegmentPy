@@ -412,6 +412,8 @@ def dropout(input_layer, hold_prob, name=''):
     -------
         output_activation: (tf.Tensor) the output the activation function of the convolution layer
     """
+    logger.warning('***************************(TF1.X) e.g. do1.0 means keep 100% neurons, do0.5 means keep 50%, do0.0 means do not apply \n'
+                   '*************************** model LRCS, LRCS2 apply dropout at FCL level, whereas LRCS13 apply on the convolution')
     with tf.name_scope(name):
         return tf.nn.dropout(input_layer, keep_prob=hold_prob, name='dropout')
 

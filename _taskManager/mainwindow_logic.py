@@ -374,25 +374,40 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         i = self.gradVs.__len__()
         gradV = gradView_logic()
         self.gradVs.append(gradV)
-        self.gradVs[i].show()
+        try:
+            self.gradVs[i].show()
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
 
     def actViewer_plugin(self):
         i = self.actVs.__len__()
         actV = actViewer_logic()
         self.actVs.append(actV)  #note: not using self.actV to create a new instance
-        self.actVs[i].show()
+        try:
+            self.actVs[i].show()
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
 
     def augViewer_plugin(self):
         self.augV = augViewer_logic()
-        self.augV.exec_()
+        try:
+            self.augV.show()
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
 
     def metric_plugin(self):
         self.metric = metric_logic()
-        self.metric.exec_()
+        try:
+            self.metric.exec_()
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
 
     def volViewer_plugin(self):
         self.volViewer = volViewer_logic()
-        self.volViewer.exec_()
+        try:
+            self.volViewer.exec_()
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
 
     def activation_plugin(self):
         # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #note: here might have conflict if there's an ongoing training with GPU

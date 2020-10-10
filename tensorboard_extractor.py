@@ -30,7 +30,7 @@ def gradient_extractor(event_dir: str, write_rlt=True):
     for param_name in tags['histograms']:
         if 'grad' in param_name:
             l_grad_tag.append(param_name)
-    print(l_grad_tag)
+    logger.info(l_grad_tag)
 
     # stack params
     mapping = []
@@ -47,7 +47,7 @@ def gradient_extractor(event_dir: str, write_rlt=True):
         if 'gamma' in grad:
             gamma.append(np.asarray(get_sum(accumulator, grad)[0]))
             gamman.append(grad)
-        elif 'beta' in grad:
+        elif ('beta' in grad) or ('b_0' in grad):
             beta.append(np.asarray(get_sum(accumulator, grad)[0]))
             betan.append(grad)
         elif 'w_0' in grad:
@@ -58,10 +58,10 @@ def gradient_extractor(event_dir: str, write_rlt=True):
             try:
                 layer[layer_name].append(np.asarray(get_sum(accumulator, grad)[0]))
             except Exception as e:
-                print(e)
+                logger.error(e)
                 layer[layer_name] = [np.asarray(get_sum(accumulator, grad)[0])]
         except Exception as e:
-            print(grad)
+            logger.error(grad)
             pass
 
     block_mapping = []
@@ -75,9 +75,11 @@ def gradient_extractor(event_dir: str, write_rlt=True):
     block_mapping = np.stack(block_mapping).transpose()
     layer_mapping = np.stack(layer_mapping).transpose()
     full_mapping = np.stack(mapping, axis=1)
-    gamma = np.stack(gamma, axis=1)
-    beta = np.stack(beta, axis=1)
-    w = np.stack(w, axis=1)
+
+    # take the absolute values of the gradients
+    gamma = np.abs(np.stack(gamma, axis=1))
+    beta = np.abs(np.stack(np.abs(beta), axis=1))
+    w = np.abs(np.stack(np.abs(w), axis=1))
 
     # fold N times then sum
     N = 50
@@ -110,19 +112,20 @@ def gradient_extractor(event_dir: str, write_rlt=True):
         np.savetxt(event_dir + "grad/w.csv", w, delimiter=",")
 
     _gamma = {}
-    _beta = {}
+    _betaOrBias = {}
     _w = {}
 
-    for k, v in zip(gamma, gamman):
-        _gamma[k] = v
+    for i, n in enumerate(gamman):
+        #gamma.shape: (step, N*nb_layer), gamman.shape: (nb_layer)
+        _gamma[n] = gamma[::M, i * N]
 
-    for k, v in zip(beta, betan):
-        _beta[k] = v
+    for i, n in enumerate(betan):
+        _betaOrBias[n] = beta[::M, i * N]
 
-    for k, v in zip(w, wn):
-        _w[k] = v
+    for i, n in enumerate(wn):
+        _w[n] = w[::M, i * N]
 
-    return block_mapping, full_mapping, _gamma, _beta, _w, step
+    return block_mapping, full_mapping, _gamma, _betaOrBias, _w, step
 
 
 def get_sum(accumulator, param_name):
