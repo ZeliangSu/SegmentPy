@@ -81,8 +81,9 @@ class dashboard_logic(QDialog, Ui_dashboard):
         else:
             self.sideLoop.stop()
 
-    def thickenCurve(self, ith):
-        self.mplwidget.thicken(ith)
+    def thickenCurve(self):
+        idxes = [idx.row() for idx in self.curves_list.selectionModel().selectedIndexes()]
+        self.mplwidget.thicken(idxes)
 
     def refresh(self):
         logger.debug('refresh')

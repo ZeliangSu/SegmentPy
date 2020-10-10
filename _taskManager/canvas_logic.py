@@ -133,7 +133,7 @@ class MPL(QWidget):
         self.canvas_acc_val.draw()
         self.canvas_lss_val.draw()
 
-    def thicken(self, ith):
+    def thicken(self, idxes: list):
         if self.paths.__len__() == 0:
             return
 
@@ -153,20 +153,19 @@ class MPL(QWidget):
         ls_val_ax = fig_lss_val.add_subplot(111)
 
         # sometimes no event conducts to NoneType
-
         for i, (k, v) in enumerate(self.paths.items()):
             try:
-                if i == ith:
+                if i not in idxes:
                     ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k, alpha=0.5)
                     ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k, alpha=0.5)
                     ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k, alpha=0.5)
                     ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k, alpha=0.5)
 
                 else:
-                    ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k, linewidth=10)
-                    ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k, linewidth=10)
-                    ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k, linewidth=10)
-                    ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k, linewidth=10)
+                    ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k, linewidth=2)
+                    ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k, linewidth=2)
+                    ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k, linewidth=2)
+                    ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k, linewidth=2)
             except Exception as e:
                 logger.debug(e)
 
