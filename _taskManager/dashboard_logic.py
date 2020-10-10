@@ -71,6 +71,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
         self.save_button.clicked.connect(self.save_csv)
         self.folder_button.clicked.connect(self.choose_save_path)
         self.live_button.clicked.connect(self.check_live_button)
+        self.curves_list.itemClicked.connect(self.thickenCurve)
 
         self.signal.launch.connect(self.refresh)
 
@@ -80,8 +81,11 @@ class dashboard_logic(QDialog, Ui_dashboard):
         else:
             self.sideLoop.stop()
 
+    def thickenCurve(self, ith):
+        self.mplwidget.thicken(ith)
+
     def refresh(self):
-        print('refresh')
+        logger.debug('refresh')
         self.mplwidget.curves = {}  # note: clean curves but not paths to let it reloads curves
         self.mplwidget.plot()
         self.curves_list.clear()
@@ -104,6 +108,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
 
         self.mplwidget.paths = {}
         self.mplwidget.curves = {}
+        self.curves_list.clear()
         self.mplwidget.repaint()
 
     def dragEnterEvent(self, event):
