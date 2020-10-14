@@ -325,32 +325,7 @@ def model_LRCS_improved(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS2'):
         with tf.name_scope('encoder'):
             conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], if_BN=if_BN,
@@ -447,32 +422,7 @@ def model_LRCS_constant(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     #note: Batch Norm automatically applied, can be tuned manually
     with tf.name_scope('LRCS3'):
         with tf.name_scope('encoder'):
@@ -555,32 +505,7 @@ def model_LRCS_shallow(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS4'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[1, 1, 1, nb_conv * 2],
@@ -646,32 +571,7 @@ def model_LRCS_simple(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS5'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[1, 1, 1, nb_conv * 2],
@@ -723,32 +623,7 @@ def model_LRCS_purConv(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS6'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2], if_BN=if_BN,
@@ -783,32 +658,7 @@ def model_LRCS_LeCun(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS7'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2],
@@ -887,32 +737,7 @@ def model_LRCS_Weka(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS8'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 10, nb_conv * 2],
@@ -975,32 +800,7 @@ def model_LRCS_weka_constant(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS9'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 10, nb_conv * 2],
@@ -1066,32 +866,7 @@ def model_LRCS_lecun_thinner_weka_encoder(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS10'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 10, 20],
@@ -1159,32 +934,7 @@ def model_LRCS_lecun_thinner_encoder(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS11'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2],
@@ -1252,32 +1002,7 @@ def model_LRCS_mix_skipconnect(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS12'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2],
@@ -1345,32 +1070,7 @@ def model_LRCS_dropout_on_conv(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('LRCS13'):
         with tf.name_scope('encoder'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2],
@@ -1454,6 +1154,100 @@ def model_LRCS_full_FCLs(pipeline,
             pass
 
 
+def model_LRCS_deeper_with_dropout_on_conv(pipeline,
+               patch_size,
+               batch_size,
+               conv_size,
+               nb_conv,
+               drop_prob,
+               if_BN=True,
+               BN_phase=None,
+               activation='relu',
+               reuse=False,
+               mode='regression',
+               nb_classes=3,
+               ):
+
+    with tf.name_scope('LRCS15'):
+        with tf.name_scope('encoder'):
+            conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv * 2],
+                                     # [height, width, in_channels, output_channels]
+                                     is_train=BN_phase, activation=activation, if_BN=False,
+                                     name='conv1', reuse=reuse)  # [height, width, in_channels, output_channels]
+            drop1 = dropout(conv1, drop_prob, name='do1')
+            conv1b, m1 = conv2d_layer(drop1, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                                     # [height, width, in_channels, output_channels]
+                                     is_train=BN_phase, activation=activation, if_BN=False,
+                                     name='conv1b', reuse=reuse)  # [height, width, in_channels, output_channels]
+            drop1b = dropout(conv1b, drop_prob, name='do1b')
+            conv1_pooling, ind1 = max_pool_2by2_with_arg(drop1b, name='maxp1')
+
+            conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], if_BN=False,
+                                    is_train=BN_phase, activation=activation, name='conv2', reuse=reuse)
+            drop2 = dropout(conv2, drop_prob, name='do2')
+            conv2b, m2 = conv2d_layer(drop2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2], if_BN=False,
+                                    is_train=BN_phase, activation=activation, name='conv2b', reuse=reuse)
+            drop2b = dropout(conv2b, drop_prob, name='do2b')
+            conv2_pooling, ind2 = max_pool_2by2_with_arg(drop2b, name='maxp2')
+
+            conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4], if_BN=False,
+                                    is_train=BN_phase, activation=activation, name='conv3', reuse=reuse)
+            drop3 = dropout(conv3, drop_prob, name='do3')
+            conv3b, m3 = conv2d_layer(drop3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=False,
+                                    is_train=BN_phase, activation=activation, name='conv3b', reuse=reuse)
+            drop3b = dropout(conv3b, drop_prob, name='do3b')
+            conv3_pooling, ind3 = max_pool_2by2_with_arg(drop3b, name='maxp3')
+
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                             is_train=BN_phase, activation=activation, if_BN=False,
+                                             name='conv4', reuse=reuse)
+            drop4 = dropout(conv4, drop_prob, name='do4')
+            conv4b, m4 = conv2d_layer(drop4, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                             is_train=BN_phase, activation='sigmoid', if_BN=False,
+                                             name='conv4b', reuse=reuse)
+            drop4 = dropout(conv4b, drop_prob, name='do4b')
+
+        with tf.name_scope('decoder'):
+            deconv_5, m5 = conv2d_layer(drop4, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
+                                          is_train=BN_phase, activation=activation, name='deconv5', reuse=reuse)
+            drop5 = dropout(deconv_5, drop_prob, name='do5')
+            deconv_5bis, m5b = conv2d_layer(drop5, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                            if_BN=if_BN,
+                                            is_train=BN_phase, activation=activation, name='deconv5bis',
+                                            reuse=reuse)
+            drop5b = dropout(deconv_5bis, drop_prob, name='do5b')
+
+            up1 = up_2by2_ind(drop5b, ind3, name='up1')
+            deconv_6, _ = conv2d_layer(up1, [conv_size, conv_size, nb_conv * 4, nb_conv * 4], if_BN=if_BN,
+                                       is_train=BN_phase, activation=activation, name='deconv6', reuse=reuse)
+            drop6 = dropout(deconv_6, drop_prob, name='do6')
+            deconv_6bis, _ = conv2d_layer(drop6, [conv_size, conv_size, nb_conv * 4, nb_conv * 2], if_BN=if_BN,
+                                          is_train=BN_phase, activation=activation, name='deconv6bis', reuse=reuse)
+            drop6b = dropout(deconv_6bis, drop_prob, name='do6b')
+
+            up2 = up_2by2_ind(drop6b, ind2, name='up2')
+            deconv_7, _ = conv2d_layer(up2, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], if_BN=if_BN,
+                                       is_train=BN_phase, activation=activation, name='deconv7', reuse=reuse)
+            drop7 = dropout(deconv_7, drop_prob, name='do7')
+            deconv_7bis, _ = conv2d_layer(drop7, [conv_size, conv_size, nb_conv * 2, nb_conv * 2], if_BN=if_BN,
+                                          is_train=BN_phase, activation=activation, name='deconv7bis', reuse=reuse)
+            drop7b = dropout(deconv_7bis, drop_prob, name='do7b')
+
+            up3 = up_2by2_ind(drop7b, ind1, name='up3')
+            deconv_8, _ = conv2d_layer(up3, [conv_size, conv_size, nb_conv * 2, nb_conv], if_BN=if_BN,
+                                       is_train=BN_phase, activation=activation, name='deconv8', reuse=reuse)
+            drop8 = dropout(deconv_8, drop_prob, name='do8')
+            deconv_8bis, _ = conv2d_layer(drop8, [conv_size, conv_size, nb_conv, nb_conv], if_BN=if_BN,
+                                          is_train=BN_phase, activation=activation, name='deconv8bis', reuse=reuse)
+            drop8b = dropout(deconv_8bis, drop_prob, name='do8b')
+            logits, m8bb = conv2d_layer(drop8b,
+                                        [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
+                                        if_BN=False,is_train=BN_phase,
+                                        name='logits', reuse=reuse)
+        print_nodes_name_shape(tf.get_default_graph())
+        return logits, []
+
+
 def model_Segnet_like(pipeline,
                patch_size,
                batch_size,
@@ -1467,32 +1261,7 @@ def model_Segnet_like(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Segnet'):
         with tf.name_scope('encoder'):
             conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], if_BN=if_BN,
@@ -1575,32 +1344,7 @@ def model_Segnet_improved(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Segnet2'):
         with tf.name_scope('encoder'):
             conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], if_BN=if_BN,
@@ -1687,32 +1431,7 @@ def model_Segnet_constant(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Segnet3'):
         with tf.name_scope('encoder'):
             conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], if_BN=if_BN,
@@ -1793,32 +1512,7 @@ def model_Segnet_shallow(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    lite version (less GPU occupancy) of xlearn segmentation convolutional neural net model with summary. histograms are
-    saved in
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': compared to the original model, only summary of loss, accuracy and histograms of gradients are invovled,
-        which lighten GPU resource occupancy,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Segnet4'):
         with tf.name_scope('encoder'):
             conv1, _ = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], if_BN=if_BN,
@@ -1886,30 +1580,7 @@ def model_Unet(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], #[height, width, in_channels, output_channels]
@@ -2010,30 +1681,7 @@ def model_Unet_shallow(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet2'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], #[height, width, in_channels, output_channels]
@@ -2124,30 +1772,7 @@ def model_Unet_weka(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet4'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 10, nb_conv], #[height, width, in_channels, output_channels]
@@ -2220,30 +1845,7 @@ def model_Unet_upsample(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet4'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], #[height, width, in_channels, output_channels]
@@ -2325,30 +1927,7 @@ def model_Unet_encoder_no_BN(pipeline,
                mode='regression',
                nb_classes=3,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet5'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv], #[height, width, in_channels, output_channels]
@@ -2449,30 +2028,7 @@ def model_Unet_without_BN(pipeline,
                nb_classes=3,
                device=0,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet6'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],  #[height, width, in_channels, output_channels]
@@ -2566,113 +2122,98 @@ def model_Unet_with_droupout(pipeline,
                nb_classes=3,
                device=0,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet7'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],  #[height, width, in_channels, output_channels]
                                      if_BN=False, activation=activation,
                                      name='conv1', reuse=reuse)
-            conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv],
+            conv1D = dropout(conv1, drop_prob, 'do1')
+            conv1bis, m1b = conv2d_layer(conv1D, shape=[conv_size, conv_size, nb_conv, nb_conv],
                                          if_BN=False, activation=activation, name='conv1bis', reuse=reuse)
-            conv1bis = dropout(conv1bis, drop_prob, 'do1')
-            conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
+            conv1bisD = dropout(conv1bis, drop_prob, 'do1b')
+            conv1_pooling = max_pool_2by2(conv1bisD, name='maxp1')
 
             conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2],
                                      if_BN=False, activation=activation, name='conv2', reuse=reuse)
-            conv2bis, m2b = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+            conv2D = dropout(conv2, drop_prob, 'do2')
+            conv2bis, m2b = conv2d_layer(conv2D, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                          if_BN=False, activation=activation, name='conv2bis', reuse=reuse)
-            conv2bis = dropout(conv2bis, drop_prob, 'do2')
-            conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
+            conv2bisD = dropout(conv2bis, drop_prob, 'do2b')
+            conv2_pooling = max_pool_2by2(conv2bisD, name='maxp2')
 
             conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
                                      if_BN=False, activation=activation, name='conv3', reuse=reuse)
-            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+            conv3D = dropout(conv3, drop_prob, 'do3')
+            conv3bis, m3b = conv2d_layer(conv3D, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                          if_BN=False, activation=activation, name='conv3bis', reuse=reuse)
-            conv3bis = dropout(conv3bis, drop_prob, 'do3')
-            conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
+            conv3bisD = dropout(conv3bis, drop_prob, 'do3b')
+            conv3_pooling = max_pool_2by2(conv3bisD, name='maxp3')
 
             conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
                                      if_BN=False, activation=activation, name='conv4', reuse=reuse)
-            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
-                                         activation=activation,
+            conv4D = dropout(conv4, drop_prob, 'do4')
+            conv4bis, m4b = conv2d_layer(conv4D, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
+                                         if_BN=False, activation=activation,
                                          name='conv4bisbis', reuse=reuse)
-            conv4bis = dropout(conv4bis, drop_prob, 'do4')
-            conv4_pooling = max_pool_2by2(conv4bis, name='maxp4')
-
+            conv4bisD = dropout(conv4bis, drop_prob, 'do4b')
+            conv4_pooling = max_pool_2by2(conv4bisD, name='maxp4')
 
         with tf.name_scope('bottom'):
             conv5, m5 = conv2d_layer(conv4_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16],
-                                     if_BN=False, activation=activation, name='bot5', reuse=reuse)
-            conv5bis, m5b = conv2d_layer(conv5, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16],
-                                         if_BN=False, activation=activation, name='bot5bis', reuse=reuse)
-            conv5bis = dropout(conv5bis, drop_prob, 'do5')
+                                     if_BN=if_BN, activation=activation, name='bot5', reuse=reuse)
+            conv5D = dropout(conv5, drop_prob, 'do5')
+            conv5bis, m5b = conv2d_layer(conv5D, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16],
+                                         if_BN=if_BN, activation=activation, name='bot5bis', reuse=reuse)
+            conv5bisD = dropout(conv5bis, drop_prob, 'do5b')
 
-            deconv1, m5u = conv2d_transpose_layer(conv5bis, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 8],
+            deconv1, m5u = conv2d_transpose_layer(conv5bisD, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 8],
                                                   stride=2, if_BN=False,
                                                   activation=activation, name='deconv1', reuse=reuse)
 
         with tf.name_scope('decontractor'):
             concat1 = concat([deconv1, conv4bis], name='concat1')
             conv_6, m6 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 16, nb_conv * 8],
-                                      if_BN=False,
+                                      if_BN=if_BN,
                                       activation=activation, name='conv6', reuse=reuse)
-            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 8, nb_conv * 8],
-                                          if_BN=False,
+            conv6D = dropout(conv_6, drop_prob, 'do6')
+            conv_6bis, m6b = conv2d_layer(conv6D, [conv_size, conv_size, nb_conv * 8, nb_conv * 8],
+                                          if_BN=if_BN,
                                           activation=activation, name='conv6bis', reuse=reuse)
-            conv6bis = dropout(conv_6bis, drop_prob, 'do6')
-            deconv2, m6u = conv2d_transpose_layer(conv_6bis, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 4],
+            conv6bisD = dropout(conv_6bis, drop_prob, 'do6b')
+            deconv2, m6u = conv2d_transpose_layer(conv6bisD, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 4],
                                                   stride=2, if_BN=False,
                                                   activation=activation,
                                                   name='deconv2', reuse=reuse)
 
             concat2 = concat([deconv2, conv3bis], name='concat2')
             conv_7, m7 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 8, nb_conv * 4],
-                                      if_BN=False, activation=activation, name='conv7', reuse=reuse)
-            conv_7bis, m7b = conv2d_layer(conv_7, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
-                                          if_BN=False, activation=activation, name='conv7bis', reuse=reuse)
-            conv7bis = dropout(conv_7bis, drop_prob, 'do7')
-            deconv3, m7u = conv2d_transpose_layer(conv_7bis, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 2],
-                                                  stride=2, if_BN=if_BN, is_train=BN_phase,
+                                      if_BN=if_BN, activation=activation, name='conv7', reuse=reuse)
+            conv7D = dropout(conv_7, drop_prob, 'do7')
+            conv_7bis, m7b = conv2d_layer(conv7D, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+                                          if_BN=if_BN, activation=activation, name='conv7bis', reuse=reuse)
+            conv7bisD = dropout(conv_7bis, drop_prob, 'do7b')
+            deconv3, m7u = conv2d_transpose_layer(conv7bisD, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+                                                  stride=2, if_BN=False, is_train=BN_phase,
                                                   activation=activation, name='deconv3', reuse=reuse)
 
             concat3 = concat([deconv3, conv2bis], name='concat3')
             conv_8, m8 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 4, nb_conv * 2],
-                                      if_BN=False, activation=activation, name='conv8', reuse=reuse)
-            conv_8bis, m8b = conv2d_layer(conv_8, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
-                                          if_BN=False, activation=activation,  name='conv8bis', reuse=reuse)
-            conv8bis = dropout(conv_8bis, drop_prob, 'do8')
-            deconv4, m8u = conv2d_transpose_layer(conv_8bis, shape=[conv_size, conv_size, nb_conv * 2, nb_conv],
+                                      if_BN=if_BN, activation=activation, name='conv8', reuse=reuse)
+            conv8D = dropout(conv_8, drop_prob, 'do8')
+            conv_8bis, m8b = conv2d_layer(conv8D, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+                                          if_BN=if_BN, activation=activation,  name='conv8bis', reuse=reuse)
+            conv8bisD = dropout(conv_8bis, drop_prob, 'do8b')
+            deconv4, m8u = conv2d_transpose_layer(conv8bisD, shape=[conv_size, conv_size, nb_conv * 2, nb_conv],
                                                   stride=2, if_BN=False, activation=activation, name='deconv4', reuse=reuse)
 
             concat4 = concat([deconv4, conv1bis], name='concat4')
-            deconv_9, m9 = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv],
-                                        if_BN=False, activation=activation, name='conv9', reuse=reuse)
-            deconv_9bis, m9b = conv2d_layer(deconv_9, [conv_size, conv_size, nb_conv, nb_conv],
-                                            if_BN=False, activation=activation, name='conv9bis', reuse=reuse)
-            logits, m9bb = conv2d_layer(deconv_9bis,
+            conv_9, m9 = conv2d_layer(concat4, [conv_size, conv_size, nb_conv * 2, nb_conv],
+                                        if_BN=if_BN, activation=activation, name='conv9', reuse=reuse)
+            conv9D = dropout(conv_9, drop_prob, 'do8b')
+            conv_9bis, m9b = conv2d_layer(conv9D, [conv_size, conv_size, nb_conv, nb_conv],
+                                            if_BN=if_BN, activation=activation, name='conv9bis', reuse=reuse)
+            logits, m9bb = conv2d_layer(conv_9bis,
                                         [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                         if_BN=False, name='logits', reuse=reuse)
     print_nodes_name_shape(tf.get_default_graph())
@@ -2693,63 +2234,43 @@ def model_Unet_with_droupout_shallow(pipeline,
                nb_classes=3,
                device=0,
                ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Unet8'):
         with tf.name_scope('contractor'):
             conv1, m1 = conv2d_layer(pipeline['img'], shape=[conv_size, conv_size, 1, nb_conv],  #[height, width, in_channels, output_channels]
                                      if_BN=False, activation=activation,
                                      name='conv1', reuse=reuse)
-            conv1bis, m1b = conv2d_layer(conv1, shape=[conv_size, conv_size, nb_conv, nb_conv],
+            conv1D = dropout(conv1, drop_prob, 'do1')
+            conv1bis, m1b = conv2d_layer(conv1D, shape=[conv_size, conv_size, nb_conv, nb_conv],
                                          if_BN=False, activation=activation, name='conv1bis', reuse=reuse)
-            conv1bis = dropout(conv1bis, drop_prob, 'do1')
-            conv1_pooling = max_pool_2by2(conv1bis, name='maxp1')
+            conv1bisD = dropout(conv1bis, drop_prob, 'do1b')
+            conv1_pooling = max_pool_2by2(conv1bisD, name='maxp1')
 
             conv2, m2 = conv2d_layer(conv1_pooling, shape=[conv_size, conv_size, nb_conv, nb_conv * 2],
                                      if_BN=False, activation=activation, name='conv2', reuse=reuse)
-            conv2bis, m2b = conv2d_layer(conv2, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+            conv2D = dropout(conv2, drop_prob, 'do2')
+            conv2bis, m2b = conv2d_layer(conv2D, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                          if_BN=False, activation=activation, name='conv2bis', reuse=reuse)
-            conv2bis = dropout(conv2bis, drop_prob, 'do2')
-            conv2_pooling = max_pool_2by2(conv2bis, name='maxp2')
+            conv2bisD = dropout(conv2bis, drop_prob, 'do2b')
+            conv2_pooling = max_pool_2by2(conv2bisD, name='maxp2')
 
             conv3, m3 = conv2d_layer(conv2_pooling, shape=[conv_size, conv_size, nb_conv * 2, nb_conv * 4],
                                      if_BN=False, activation=activation, name='conv3', reuse=reuse)
-            conv3bis, m3b = conv2d_layer(conv3, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+            conv3D = dropout(conv3, drop_prob, 'do3')
+            conv3bis, m3b = conv2d_layer(conv3D, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                          if_BN=False, activation=activation, name='conv3bis', reuse=reuse)
-            conv3bis = dropout(conv3bis, drop_prob, 'do3')
-            conv3_pooling = max_pool_2by2(conv3bis, name='maxp3')
-
+            conv3bisD = dropout(conv3bis, drop_prob, 'do3b')
+            conv3_pooling = max_pool_2by2(conv3bisD, name='maxp3')
 
         with tf.name_scope('bottom'):
-            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 16],
+            conv4, m4 = conv2d_layer(conv3_pooling, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 8],
                                      if_BN=False, activation=activation, name='bot4', reuse=reuse)
-            conv4bis, m4b = conv2d_layer(conv4, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 16],
+            conv4D = dropout(conv4, drop_prob, 'do4')
+            conv4bis, m4b = conv2d_layer(conv4D, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 8],
                                          if_BN=False, activation=activation, name='bot4bis', reuse=reuse)
-            conv4bis = dropout(conv4bis, drop_prob, 'do4')
+            conv4bisD = dropout(conv4bis, drop_prob, 'do4b')
 
-            deconv1, m4u = conv2d_transpose_layer(conv4bis, shape=[conv_size, conv_size, nb_conv * 16, nb_conv * 8],
+            deconv1, m4u = conv2d_transpose_layer(conv4bisD, shape=[conv_size, conv_size, nb_conv * 8, nb_conv * 4],
                                                   stride=2, if_BN=False,
                                                   activation=activation, name='deconv1', reuse=reuse)
 
@@ -2757,28 +2278,32 @@ def model_Unet_with_droupout_shallow(pipeline,
             concat1 = concat([deconv1, conv3bis], name='concat1')
             conv_5, m5 = conv2d_layer(concat1, [conv_size, conv_size, nb_conv * 8, nb_conv * 4],
                                       if_BN=False, activation=activation, name='conv5', reuse=reuse)
-            conv_5bis, m5b = conv2d_layer(conv_5, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
+            conv5D = dropout(conv_5, drop_prob, 'do5')
+            conv_5bis, m5b = conv2d_layer(conv5D, [conv_size, conv_size, nb_conv * 4, nb_conv * 4],
                                           if_BN=False, activation=activation, name='conv5bis', reuse=reuse)
-            conv5bis = dropout(conv_5bis, drop_prob, 'do5')
-            deconv2, m5u = conv2d_transpose_layer(conv_5bis, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 2],
+            conv5bisD = dropout(conv_5bis, drop_prob, 'do5b')
+            deconv2, m5u = conv2d_transpose_layer(conv5bisD, shape=[conv_size, conv_size, nb_conv * 4, nb_conv * 2],
                                                   stride=2, if_BN=if_BN, is_train=BN_phase,
                                                   activation=activation, name='deconv2', reuse=reuse)
 
             concat2 = concat([deconv2, conv2bis], name='concat2')
             conv_6, m6 = conv2d_layer(concat2, [conv_size, conv_size, nb_conv * 4, nb_conv * 2],
                                       if_BN=False, activation=activation, name='conv6', reuse=reuse)
-            conv_6bis, m6b = conv2d_layer(conv_6, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
+            conv6D = dropout(conv_6, drop_prob, 'do6')
+            conv_6bis, m6b = conv2d_layer(conv6D, [conv_size, conv_size, nb_conv * 2, nb_conv * 2],
                                           if_BN=False, activation=activation,  name='conv6bis', reuse=reuse)
-            conv6bis = dropout(conv_6bis, drop_prob, 'do6')
-            deconv3, m6u = conv2d_transpose_layer(conv6bis, shape=[conv_size, conv_size, nb_conv * 2, nb_conv],
+            conv6bisD = dropout(conv_6bis, drop_prob, 'do6b')
+            deconv3, m6u = conv2d_transpose_layer(conv6bisD, shape=[conv_size, conv_size, nb_conv * 2, nb_conv],
                                                   stride=2, if_BN=False, activation=activation, name='deconv3', reuse=reuse)
 
             concat3 = concat([deconv3, conv1bis], name='concat3')
-            deconv_7, m7 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 2, nb_conv],
+            conv_7, m7 = conv2d_layer(concat3, [conv_size, conv_size, nb_conv * 2, nb_conv],
                                         if_BN=False, activation=activation, name='conv7', reuse=reuse)
-            deconv_7bis, m7b = conv2d_layer(deconv_7, [conv_size, conv_size, nb_conv, nb_conv],
+            conv7D = dropout(conv_7, drop_prob, 'do6')
+            conv_7bis, m7b = conv2d_layer(conv7D, [conv_size, conv_size, nb_conv, nb_conv],
                                             if_BN=False, activation=activation, name='conv7bis', reuse=reuse)
-            logits, m7bb = conv2d_layer(deconv_7bis,
+            conv7bisD = dropout(conv_7bis, drop_prob, 'do6b')
+            logits, m7bb = conv2d_layer(conv7bisD,
                                         [conv_size, conv_size, nb_conv, 1 if mode == 'regression' else nb_classes],
                                         if_BN=False, name='logits', reuse=reuse)
     print_nodes_name_shape(tf.get_default_graph())
@@ -2798,30 +2323,7 @@ def model_xlearn_like(pipeline,
                  mode='regression',
                  nb_classes=3,
                  ):
-    """
-    xlearn segmentation convolutional neural net model with summary
 
-    input:
-    -------
-        train_inputs: (tf.iterator?)
-        test_inputs: (tf.iterator?)
-        patch_size: (int) height and width (here we assume the same length for both)
-        batch_size: (int) number of images per batch (average the gradient within a batch,
-        the weights and bias upgrade after one batch)
-        conv_size: (int) size of the convolution matrix e.g. 5x5, 7x7, ...
-        nb_conv: (int) number of convolution per layer e.g. 32, 64, ...
-        learning_rate: (float) learning rate for the optimizer
-    return:
-    -------
-    (dictionary) dictionary of nodes in the conv net
-        'y_pred': output of the neural net,
-        'train_op': node of the trainning operation, once called, it will update weights and bias,
-        'drop': dropout layers' probability parameters,
-        'summary': merged(tensorflow) summary of histograms, evolution of scalars etc,
-        'train_or_test': switch button for a training/testing input pipeline,
-        'loss_update_op': node of updating loss function summary,
-        'acc_update_op': node of updating accuracy summary
-    """
     with tf.name_scope('Xlearn'):
 
         with tf.name_scope('encoder'):
@@ -2955,6 +2457,7 @@ model_dict = {
     'LRCS12': model_LRCS_mix_skipconnect,
     'LRCS13': model_LRCS_dropout_on_conv,
     'LRCS14': model_LRCS_full_FCLs,
+    'LRCS15': model_LRCS_deeper_with_dropout_on_conv,
     'Xlearn': model_xlearn_like,
     'Unet': model_Unet,
     'Unet2': model_Unet_shallow,
