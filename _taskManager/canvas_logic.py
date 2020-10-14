@@ -133,6 +133,52 @@ class MPL(QWidget):
         self.canvas_acc_val.draw()
         self.canvas_lss_val.draw()
 
+    def thicken(self, idxes: list):
+        if self.paths.__len__() == 0:
+            return
+
+        fig_acc_tn = self.canvas_acc_train.figure
+        fig_acc_val = self.canvas_acc_val.figure
+        fig_lss_tn = self.canvas_lss_train.figure
+        fig_lss_val = self.canvas_lss_val.figure
+
+        fig_acc_tn.clear()
+        fig_lss_tn.clear()
+        fig_acc_val.clear()
+        fig_lss_val.clear()
+
+        ac_tn_ax = fig_acc_tn.add_subplot(111)
+        ls_tn_ax = fig_lss_tn.add_subplot(111)
+        ac_val_ax = fig_acc_val.add_subplot(111)
+        ls_val_ax = fig_lss_val.add_subplot(111)
+
+        # sometimes no event conducts to NoneType
+        for i, (k, v) in enumerate(self.paths.items()):
+            try:
+                if i not in idxes:
+                    ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k, alpha=0.5)
+                    ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k, alpha=0.5)
+                    ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k, alpha=0.5)
+                    ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k, alpha=0.5)
+
+                else:
+                    ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k, linewidth=2)
+                    ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k, linewidth=2)
+                    ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k, linewidth=2)
+                    ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k, linewidth=2)
+            except Exception as e:
+                logger.debug(e)
+
+        fig_acc_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_lss_tn.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_acc_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+        fig_lss_val.legend(loc='center left', bbox_to_anchor=(0.65, 0.2), shadow=True, ncol=2)
+
+        self.canvas_acc_train.draw()
+        self.canvas_lss_train.draw()
+        self.canvas_acc_val.draw()
+        self.canvas_lss_val.draw()
+
 
 class volFracPlotter(QWidget):
     '''on disk volFracPlotter'''

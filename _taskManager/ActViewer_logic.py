@@ -163,7 +163,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
             self.Images.repaint()
 
     def load_activations(self):
-        if self.input:
+        if not self.input:
             self.log_window(title='Error!', Msg='Please indicate a input image')
 
         else:

@@ -360,7 +360,6 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
                                           maxp_times=4 if hyper['model'] in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3)]
             logger.info('label shape: {}'.format(labels[0].shape))
 
-
         else:
             imgs = [
                 img
@@ -995,6 +994,7 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
         # todo: plot top 10 activations
         pass
     return activations
+
 
 if __name__ == '__main__':
     # disable the GPU if there's a traning
