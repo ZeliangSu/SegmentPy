@@ -1,6 +1,8 @@
 import numpy as np
 import h5py
 import tensorflow as tf
+from scipy.ndimage.interpolation import map_coordinates
+from scipy.interpolate import interp2d
 from itertools import product
 from PIL import Image
 from augmentation import random_aug
@@ -16,7 +18,9 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)  #changeHere: debug level
 
 
-def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(), suffix='', augmentation=False, mode='regression'):
+def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
+                     suffix='', augmentation=False, mode='regression',
+                     correction=None, max_nb_cls=None, stretch=None):
     """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -131,7 +135,7 @@ def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
         function: (function) tensorflow's pythonic function with its arguements
     """
     return tf.py_func(parse_h5_one_hot_V2,  #wrapped pythonic function
-                      [fname, patch_size, x_coord, y_coord, 1e3, 3],  #fixme: max number of class should be automatic
+                      [fname, patch_size, x_coord, y_coord, 1e3, 3, 2.0],  #fixme: max number of class should be automatic
                       [tf.float32, tf.int32]  #[output, output] dtype
                       )
 
@@ -168,16 +172,25 @@ def _pyfn_aug_wrapper(X_img, y_img):
                       )
 
 
-def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3):
+def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3, stretch=None):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
     assert img.shape == label.shape, 'img and label shape should be equal'
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
-    X = np.expand_dims(img[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
-    y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
-    y = _one_hot(y, impose_nb_cls=impose_nb_cls)
+
+    if not stretch:
+        X = np.expand_dims(img[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
+        y = np.expand_dims(label[x_coord: x_coord + window_size, y_coord: y_coord + window_size], axis=2)
+        y = _one_hot(y, impose_nb_cls=impose_nb_cls)
+
+    else:
+        X, y = stretching(img, label, x_coord, y_coord, window_size, stretch_max=stretch)
+        X = np.expand_dims(X, axis=2)
+        y = np.expand_dims(y, axis=2)
+        y = _one_hot(y, impose_nb_cls=impose_nb_cls)
+
     logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # H, W, C
     # return X, y.astype(np.int32)
     # return _minmaxscalar(X), y.astype(np.int32)
@@ -468,3 +481,119 @@ class coords_gen:
                    self.test_xcoord, \
                    self.test_ycoord
 
+
+def stretching(img: np.ndarray,
+               label: np.ndarray,
+               x_coord: int,
+               y_coord: int,
+               window_size: int,
+               stretch_max: float):
+    stretch_param = np.random.rand(0, stretch_max)
+    a, b = img.shape[0], img.shape[1]
+
+    # find the stretching coordinations
+    # left-top corner
+    x0 = (
+            x_coord
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(x0 < 0):
+        x0 = 0
+    elif np.logical(x0 > a):
+        x0 = a
+
+    # left-bottom corner
+    x2 = (
+            x_coord
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(x2 < 0):
+        x2 = 0
+    elif np.logical(x2 > a):
+        x2 = a
+
+    # right-top corner
+    x1 = (
+            x_coord
+            + window_size
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(x1 < 0):
+        x1 = 0
+    elif np.logical(x1 > a):
+        x1 = a
+
+    # right-bottom corner
+    x3 = (
+            x_coord
+            + window_size
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(x3 < 0):
+        x3 = 0
+    elif np.logical(x3 > a):
+        x3 = a
+
+    # left-top corner
+    y0 = (
+            y_coord
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(y0 < 0):
+        y0 = 0
+    elif np.logical(y0 > b):
+        y0 = b
+
+    # left-bottom corner
+    y1 = (
+            y_coord
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(y1 < 0):
+        y1 = 0
+    elif np.logical(y1 > b):
+        y1 = b
+
+    # right-top corner
+    y2 = (
+            y_coord
+            + window_size
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(y2 < 0):
+        y2 = 0
+    elif np.logical(y2 > b):
+        y2 = b
+
+    # right-bottom corner
+    y3 = (
+            y_coord
+            + window_size
+            + ((2 * np.random.random() - 1) * stretch_param)
+            * window_size
+    )
+    if np.logical(y3 < 0):
+        y3 = 0
+    elif np.logical(y3 > b):
+        y3 = b
+
+    row_idx = np.array([0, window_size])
+    col_idx = np.array([0, window_size])
+    interp_row = interp2d(row_idx, col_idx, [x0, x1, x2, x3])
+    interp_col = interp2d(row_idx, col_idx, [y0, y1, y2, y3])
+
+    row = np.arange(window_size)
+    col = np.arange(window_size)
+    coords_row = interp_row(row, col)
+    coords_col = interp_col(row, col)
+
+    X = map_coordinates(img, [coords_col, coords_row])
+    y = map_coordinates(label, [coords_col, coords_row], order=0)
+    return X, y
