@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
         # coordinations gen
         hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                                 test_dir=hyperparams['val_dir'],
+                                                 valid_dir=hyperparams['val_dir'],
                                                  window_size=hyperparams['patch_size'],
                                                  train_test_ratio=0.9,
                                                  stride=5,

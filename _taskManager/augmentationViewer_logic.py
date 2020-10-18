@@ -38,6 +38,18 @@ class augViewer_logic(QWidget, Ui_augViewer):
             batch_size=self.bs
         )
 
+        if np.greater(self.ws, self.coords_gen.get_min_dim()):
+            logger.warning('detected window size {} larger than the smallest training dimension {}'.format(self.ws, self.coords_gen.get_min_dim()))
+            self.ws = self.coords_gen.get_min_dim()
+            # todo: the following should be override
+            self.coords_gen = coords_gen(
+                train_dir=tn_dir,
+                window_size=self.ws,
+                train_test_ratio=0.9,
+                stride=self.stride,
+                batch_size=self.bs
+            )
+
         self.img_paths, self.window_sizes, self.xs, self.ys = self.coords_gen.get_train_args()
         self.next.clicked.connect(self.show_imgs)
 
