@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 
 from _taskManager.augmentationViewer_design import Ui_augViewer
-from input import coords_gen
+from input import coords_gen, stretching
 from augmentation import random_aug
 from util import load_img
 
@@ -59,7 +59,12 @@ class augViewer_logic(QWidget, Ui_augViewer):
         tomogram = load_img(self.img_paths[random]) / self.normalization
         tomogram = tomogram[self.xs[random]:self.xs[random] + self.window_sizes[random],
                    self.ys[random]:self.ys[random] + self.window_sizes[random]]
-        aug, _ = random_aug(tomogram, tomogram.reshape(*tomogram.shape, 1))
+        # stretch
+        aug, _ = stretching(tomogram.copy(), label=None,
+                            x_coord=self.xs[random], y_coord=self.ys[random],
+                            window_size=self.ws, stretch_max=3)
+        # + augmentation
+        aug, _ = random_aug(aug, tomogram.copy().reshape(*tomogram.shape, 1))
 
         # to RGB
         tomogram = (tomogram - np.min(tomogram)) / (np.max(tomogram) - np.min(tomogram)) * 255

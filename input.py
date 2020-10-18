@@ -505,11 +505,12 @@ class coords_gen:
 
 
 def stretching(img: np.ndarray,
-               label: np.ndarray,
                x_coord: int,
                y_coord: int,
                window_size: int,
-               stretch_max: float):
+               stretch_max: float,
+               label=None,
+               ):
     stretch_param = np.random.random() * (stretch_max - 0.5) + 0.5  # e.g. from 0.5 - 2
     a, b = img.shape[0], img.shape[1]
 
@@ -617,5 +618,7 @@ def stretching(img: np.ndarray,
     coords_col = interp_col(row, col)
 
     X = map_coordinates(img, [coords_col, coords_row])
-    y = map_coordinates(label, [coords_col, coords_row], order=0)
-    return X, y
+    if label is not None:
+        y = map_coordinates(label, [coords_col, coords_row], order=0)
+        return X, y
+    return X, None
