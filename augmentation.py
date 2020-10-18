@@ -149,11 +149,14 @@ def warping(X_img, y_img):
     rows = rows ** (1 / 2) * (X_img.shape[1] - 1) ** (1 / 2)  #todo: make this random?
     cols = cols ** (2) / (X_img.shape[0] - 1)  #todo: make this random?
 
-    for i in range(X_img.shape[2]):
-        X_img[:, :, i] = ndimage.map_coordinates(X_img[:, :, i], [cols, rows], order=3)
-    # y_img = y_img.copy()
-    for i in range(y_img.shape[2]):
-        y_img[:, :, i] = ndimage.map_coordinates(y_img[:, :, i], [cols, rows], order=3)
+    if len(y_img.shape) == 3:
+        X_img = ndimage.map_coordinates(X_img, [cols, rows], order=3)
+        # y_img = y_img.copy()
+        for i in range(y_img.shape[2]):
+            y_img[:, :, i] = ndimage.map_coordinates(y_img[:, :, i], [cols, rows], order=3)
+    else:
+        X_img = ndimage.map_coordinates(X_img, [cols, rows], order=3)
+        y_img = ndimage.map_coordinates(y_img, [cols, rows], order=3)
     return X_img, y_img
 
 

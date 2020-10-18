@@ -172,7 +172,7 @@ def _pyfn_aug_wrapper(X_img, y_img):
                       )
 
 
-def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3, stretch=None):
+def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=2, stretch=2.0):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
@@ -333,14 +333,14 @@ def _inverse_one_hot(tensor):
 
 
 class coords_gen:
-    def __init__(self, train_dir=None, test_dir=None, window_size=512, train_test_ratio=0.9, stride=5, batch_size=None, nb_batch=None):
+    def __init__(self, train_dir=None, valid_dir=None, window_size=512, train_test_ratio=0.9, stride=5, batch_size=None, nb_batch=None):
         self.stride = stride
         self.train_test_ratio = train_test_ratio
         self.batch_size = batch_size
         self.window_size = window_size
-        self.totest_img = None
+        self.tovalid_img = None
 
-        # train id without specified testset repo indicated
+        # train id without specified validtestset repo indicated
         if isinstance(train_dir, str):
             if not train_dir.endswith('/'):
                 self.list_train_fname = [train_dir]
@@ -352,23 +352,23 @@ class coords_gen:
         else:
             raise TypeError('fname should be a string of path or list of .tif file path strings')
 
-        # train and test ids with testset repo path indicated
-        if test_dir is not None:
-            # generate indices for testset data if another repo is indicated
-            if isinstance(test_dir, str):
-                if not test_dir.endswith('/'):
-                    self.list_test_fname = [test_dir]
+        # train and valid ids with validset repo path indicated
+        if valid_dir is not None:
+            # generate indices for validset data if another repo is indicated
+            if isinstance(valid_dir, str):
+                if not valid_dir.endswith('/'):
+                    self.list_valid_fname = [valid_dir]
                 else:
-                    self.list_test_fname = os.listdir(test_dir)
-                    self.list_test_fname = [test_dir + relative for relative in self.list_test_fname if not relative.endswith('_label.tif')]
-            elif isinstance(test_dir, list):
-                self.list_test_fname = test_dir
+                    self.list_valid_fname = os.listdir(valid_dir)
+                    self.list_valid_fname = [valid_dir + relative for relative in self.list_valid_fname if not relative.endswith('_label.tif')]
+            elif isinstance(valid_dir, list):
+                self.list_valid_fname = valid_dir
             else:
                 raise TypeError('fname should be a string of path or list of .tif file path strings')
-            self.list_test_shapes = self.get_shapes(self.list_test_fname)
-            self.test_id = self.id_gen(self.list_test_shapes, self.window_size, self.stride)
-            self.totest_img, self.test_list_ps, self.test_xcoord, self.test_ycoord = self.generate_lists(
-                id=self.test_id, list_fname=self.list_test_fname, seed=42
+            self.valid_list_shapes = self.get_shapes(self.list_valid_fname)
+            self.valid_id = self.id_gen(self.valid_list_shapes, self.window_size, self.stride)
+            self.tovalid_img, self.valid_list_ps, self.valid_xcoord, self.valid_ycoord = self.generate_lists(
+                id=self.valid_id, list_fname=self.list_valid_fname, seed=42
             )
 
         self.train_list_shapes = self.get_shapes(self.list_train_fname)
@@ -443,12 +443,12 @@ class coords_gen:
         self.train_xcoord[:tmp] = self.train_xcoord[idx]
         self.train_ycoord[:tmp] = self.train_ycoord[idx]
 
-        if self.totest_img is not None:
-            idx = np.random.permutation(len(self.totest_img))
-            self.totest_img = self.totest_img[idx]
-            self.totest_img = self.totest_img[idx]
-            self.totest_img = self.totest_img[idx]
-            self.totest_img = self.totest_img[idx]
+        if self.tovalid_img is not None:
+            idx = np.random.permutation(len(self.tovalid_img))
+            self.tovalid_img = self.tovalid_img[idx]
+            self.tovalid_img = self.tovalid_img[idx]
+            self.tovalid_img = self.tovalid_img[idx]
+            self.tovalid_img = self.tovalid_img[idx]
 
     def get_train_args(self):
         if self.nb_batch is not None:
@@ -464,8 +464,8 @@ class coords_gen:
                    self.train_xcoord[: tmp], \
                    self.train_ycoord[: tmp]
 
-    def get_test_args(self):
-        if self.totest_img is None:
+    def get_valid_args(self):
+        if self.tovalid_img is None:
             tmp = int(self.nb_batch) if self.nb_batch is not None else (int(self.get_nb_batch()))
 
             return self.totrain_img[tmp:], \
@@ -476,10 +476,32 @@ class coords_gen:
         else:
             # tmp = int(self.nb_batch) if self.nb_batch is not None else (int(self.get_nb_batch()))
 
-            return self.totest_img, \
-                   self.test_list_ps, \
-                   self.test_xcoord, \
-                   self.test_ycoord
+            return self.tovalid_img, \
+                   self.valid_list_ps, \
+                   self.valid_xcoord, \
+                   self.valid_ycoord
+
+    def get_min_dim(self):
+        train_min_dim = None
+        for shape in self.train_list_shapes:
+            tmp = min(*shape)
+            if train_min_dim is None:
+                train_min_dim = tmp
+            else:
+                if np.less(tmp, train_min_dim):
+                    train_min_dim = tmp
+
+        if hasattr(self, 'list_valid_fname'):
+            valid_min_dim = None
+            for shape in self.valid_list_shapes:
+                tmp = min(*shape)
+                if valid_min_dim is None:
+                    valid_min_dim = tmp
+                else:
+                    if np.less(tmp, valid_min_dim):
+                        valid_min_dim = tmp
+            return train_min_dim, valid_min_dim
+        return train_min_dim
 
 
 def stretching(img: np.ndarray,
@@ -488,7 +510,7 @@ def stretching(img: np.ndarray,
                y_coord: int,
                window_size: int,
                stretch_max: float):
-    stretch_param = np.random.rand(0, stretch_max)
+    stretch_param = np.random.random() * (stretch_max - 0.5) + 0.5  # e.g. from 0.5 - 2
     a, b = img.shape[0], img.shape[1]
 
     # find the stretching coordinations
@@ -498,9 +520,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(x0 < 0):
+    if np.less(x0, 0):
         x0 = 0
-    elif np.logical(x0 > a):
+    elif np.greater(x0, a):
         x0 = a
 
     # left-bottom corner
@@ -509,9 +531,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(x2 < 0):
+    if np.less(x2, 0):
         x2 = 0
-    elif np.logical(x2 > a):
+    elif np.greater(x2, a):
         x2 = a
 
     # right-top corner
@@ -521,9 +543,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(x1 < 0):
+    if np.less(x1, 0):
         x1 = 0
-    elif np.logical(x1 > a):
+    elif np.greater(x1, a):
         x1 = a
 
     # right-bottom corner
@@ -533,9 +555,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(x3 < 0):
+    if np.less(x3, 0):
         x3 = 0
-    elif np.logical(x3 > a):
+    elif np.greater(x3, a):
         x3 = a
 
     # left-top corner
@@ -544,9 +566,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(y0 < 0):
+    if np.less(y0, 0):
         y0 = 0
-    elif np.logical(y0 > b):
+    elif np.greater(y0, b):
         y0 = b
 
     # left-bottom corner
@@ -555,9 +577,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(y1 < 0):
+    if np.less(y1, 0):
         y1 = 0
-    elif np.logical(y1 > b):
+    elif np.greater(y1, b):
         y1 = b
 
     # right-top corner
@@ -567,9 +589,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(y2 < 0):
+    if np.less(y2, 0):
         y2 = 0
-    elif np.logical(y2 > b):
+    elif np.greater(y2, b):
         y2 = b
 
     # right-bottom corner
@@ -579,9 +601,9 @@ def stretching(img: np.ndarray,
             + ((2 * np.random.random() - 1) * stretch_param)
             * window_size
     )
-    if np.logical(y3 < 0):
+    if np.less(y3, 0):
         y3 = 0
-    elif np.logical(y3 > b):
+    elif np.greater(y3, b):
         y3 = b
 
     row_idx = np.array([0, window_size])
