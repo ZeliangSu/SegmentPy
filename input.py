@@ -172,7 +172,7 @@ def _pyfn_aug_wrapper(X_img, y_img):
                       )
 
 
-def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=2, stretch=2.0):
+def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3, stretch=2.0):
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
@@ -186,7 +186,9 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, im
         y = _one_hot(y, impose_nb_cls=impose_nb_cls)
 
     else:
-        X, y = stretching(img, label, x_coord, y_coord, window_size, stretch_max=stretch)
+        X, y = stretching(img, label=label,
+                          x_coord=x_coord, y_coord=y_coord,
+                          window_size=window_size, stretch_max=stretch)
         X = np.expand_dims(X, axis=2)
         y = np.expand_dims(y, axis=2)
         y = _one_hot(y, impose_nb_cls=impose_nb_cls)
