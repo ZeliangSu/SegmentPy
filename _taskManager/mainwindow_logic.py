@@ -699,7 +699,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def openDashboard(self):
         self.Dashboard = dashboard_logic(None)
-        self.Dashboard.exec()
+        self.Dashboard.show()
 
     ########### ongoing/available Qlist methods
 

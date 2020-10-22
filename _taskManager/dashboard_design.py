@@ -2,21 +2,16 @@
 
 # Form implementation generated from reading ui file '_taskManager/dashboard.ui'
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created by: PyQt5 UI code generator 5.15.0
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_dashboard(object):
     def setupUi(self, dashboard):
         dashboard.setObjectName("dashboard")
         dashboard.resize(1310, 761)
-        dashboard.setLayoutDirection(QtCore.Qt.LeftToRight)
-        dashboard.setSizeGripEnabled(False)
-        dashboard.setModal(False)
         self.gridLayout = QtWidgets.QGridLayout(dashboard)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -81,7 +76,7 @@ class Ui_dashboard(object):
         sizePolicy.setHeightForWidth(self.refresh_button.sizePolicy().hasHeightForWidth())
         self.refresh_button.setSizePolicy(sizePolicy)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("_taskManager/reload.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap("reload.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.refresh_button.setIcon(icon)
         self.refresh_button.setIconSize(QtCore.QSize(16, 32))
         self.refresh_button.setObjectName("refresh_button")
@@ -96,7 +91,7 @@ class Ui_dashboard(object):
         self.live_button.setSizePolicy(sizePolicy)
         self.live_button.setMaximumSize(QtCore.QSize(16777215, 48))
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("_taskManager/live.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap("live.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.live_button.setIcon(icon1)
         self.live_button.setIconSize(QtCore.QSize(32, 32))
         self.live_button.setCheckable(True)
@@ -111,7 +106,7 @@ class Ui_dashboard(object):
         sizePolicy.setHeightForWidth(self.save_button.sizePolicy().hasHeightForWidth())
         self.save_button.setSizePolicy(sizePolicy)
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("_taskManager/floppy-disk.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon2.addPixmap(QtGui.QPixmap("floppy-disk.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.save_button.setIcon(icon2)
         self.save_button.setIconSize(QtCore.QSize(16, 32))
         self.save_button.setObjectName("save_button")
@@ -145,7 +140,7 @@ class Ui_dashboard(object):
 
     def retranslateUi(self, dashboard):
         _translate = QtCore.QCoreApplication.translate
-        dashboard.setWindowTitle(_translate("dashboard", "Dialog"))
+        dashboard.setWindowTitle(_translate("dashboard", "Form"))
         self.label.setText(_translate("dashboard", "Training"))
         self.label_2.setText(_translate("dashboard", "Validation"))
         self.refresh_button.setText(_translate("dashboard", "Refresh(R)"))
@@ -156,4 +151,5 @@ class Ui_dashboard(object):
         self.save_button.setShortcut(_translate("dashboard", "S"))
         self.label_3.setText(_translate("dashboard", "Save path :"))
         self.folder_button.setText(_translate("dashboard", "..."))
+
 from _taskManager.canvas_logic import MPL
