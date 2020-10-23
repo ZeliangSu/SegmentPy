@@ -7,7 +7,7 @@ import platform
 
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
-from input import coords_gen
+from input import coords_gen, get_max_nb_cls
 
 # logging
 import logging
@@ -239,10 +239,11 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
 
-    try:
-        main_train(hyperparams, grad_view=True)
+    # try:
+    max_nb_cls = get_max_nb_cls(hyperparams['train_dir'])
+    main_train(hyperparams, grad_view=True, nb_classes=max_nb_cls)
 
-    except Exception as e:
-        logger.debug(e)
-        with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
-            f.write(str(e))
+    # except Exception as e:
+    #     logger.error(e)
+    #     with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
+    #         f.write(str(e))

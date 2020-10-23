@@ -19,7 +19,8 @@ logger.setLevel(logging.INFO)
 def main_train(
         hyperparams: dict,  # can be a class
         resume=False,
-        grad_view=False
+        grad_view=False,
+        nb_classes=3,
     ):
 
     # clean graph exists in memory
@@ -66,6 +67,7 @@ def main_train(
                                        is_training=True,
                                        # device=hyperparams['device']
                                        grad_view=grad_view,
+                                       nb_classes=nb_classes,
                                        )
     # fixme: the following load 2 modes in one gpu
     test_nodes = classification_nodes(pipeline=test_inputs,
@@ -81,6 +83,7 @@ def main_train(
                                       is_training=False,
                                       # device=hyperparams['device'],
                                       grad_view=False,
+                                      nb_classes=nb_classes,
                                       )
 
     # print number of params
