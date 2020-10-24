@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1178</width>
-    <height>724</height>
+    <width>1146</width>
+    <height>808</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -504,6 +504,16 @@
         </item>
        </layout>
       </item>
+      <item>
+       <widget class="QPlainTextEdit" name="loggerDisplay">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
    </layout>
@@ -513,7 +523,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1178</width>
+     <width>1146</width>
      <height>22</height>
     </rect>
    </property>

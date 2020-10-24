@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '_taskManager/mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_LRCSNet(object):
     def setupUi(self, LRCSNet):
         LRCSNet.setObjectName("LRCSNet")
-        LRCSNet.resize(1178, 724)
+        LRCSNet.resize(1146, 808)
         self.centralwidget = QtWidgets.QWidget(LRCSNet)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -208,10 +208,18 @@ class Ui_LRCSNet(object):
         self.verticalLayout.addWidget(self.ongoing_process)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
+        self.loggerDisplay = QtWidgets.QPlainTextEdit(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.loggerDisplay.sizePolicy().hasHeightForWidth())
+        self.loggerDisplay.setSizePolicy(sizePolicy)
+        self.loggerDisplay.setObjectName("loggerDisplay")
+        self.verticalLayout_2.addWidget(self.loggerDisplay)
         self.gridLayout.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
         LRCSNet.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(LRCSNet)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1178, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1146, 22))
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
         self.menuMenu.setEnabled(True)

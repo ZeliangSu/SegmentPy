@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot, Qt, QProcess
 from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
 from PyQt5 import QtCore, QtGui
 
@@ -244,7 +244,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
         self.qManager = queueManager(gpu_queue=self.gpu_queue)
         self.refresh_gpu_list()
-        self.proc_list = []  # tuple of (str: gpu, str: pid, subprocess)
+        self.Qproc_list = []
+        self.proc_list = []  #tuple(str: device, str: params)
         self.refresh_proc_list()
         self.actVs = []
         self.gradVs = []
@@ -367,6 +368,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Metrics.triggered.connect(self.metric_plugin)
         self.AugViewer.triggered.connect(self.augViewer_plugin)
         self.GradViewer.triggered.connect(self.gradViewer_plugin)
+
+        # logger
+        self.loggerDisplay.setMaximumBlockCount(1000)
+        self.loggerDisplay.setReadOnly(True)
+        self.loggerDisplay.ensureCursorVisible()
 
     ################# menubar methods
 
@@ -621,18 +627,60 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def start(self):
         if self.header[1] == 'nextTrain':
             if not self.gpu_queue.empty() and self.verify_column_not_None():
+                # which gpu
                 gpu = self.gpu_queue.get()
                 self.refresh_gpu_list()
 
-                # start a thread
-                _Worker = training_Worker(gpu, self.grab_params())
-                self.threadpool.start(_Worker)
-                _Worker.signals.start_proc.connect(self.add_proc_surveillance)
+                # what params
+                params = self.grab_params()
+
+                # start a proc
+                nth = self.Qproc_list.__len__()
+                proc = QProcess(self)
+
+                # append in proc list and the Qproc list
+                self.proc_list.append(('train on: {} PID: {}'.format('GPU {}'.format(gpu) if gpu not in ['cpu'] else 'CPU', proc.processId()),
+                                       str(params)))
+                self.Qproc_list.append(proc)
+                self.refresh_proc_list()
+
+                self.print_in_log('On device: {}'.format(gpu))
+
+                cmd = [
+                    'main_train.py',
+                    '-nc', params['conv nb'],
+                    '-bs', params['batch size'],
+                    '-ws', params['window size'],
+                    '-ep', params['nb epoch'],
+                    '-cs', params['kernel size'],
+                    '-lr', params['lr type'],
+                    '-ilr', params['lr init'],
+                    '-klr', params['k param'],
+                    '-plr', params['period'],
+                    '-bn', params['batch norm'],
+                    '-do', params['dropout'],
+                    '-ag', params['augmentation'],
+                    '-fn', params['loss fn'],
+                    '-af', params['act fn'],
+                    '-mdl', params['model'],
+                    '-mode', params['cls/reg'],
+                    '-dv', gpu,
+                    '-st', params['sv step'],
+                    '-tb', params['tb step'],
+                    '-cmt', params['comment'],
+                    '-trnd', params['trn repo. path'],
+                    '-vald', params['val repo. path']
+                ]
+
+                proc.start('python', cmd)
+                self.capture_stdout(nth)
+                proc.waitForFinished()
+                print(proc.finished())
 
                 # release gpu and process
-                _Worker.signals.error.connect(self.print_in_log)
-                _Worker.signals.released_gpu.connect(self.enqueue)
-                _Worker.signals.released_proc.connect(self.remove_process_from_list)
+                # _Worker.signals.error.connect(self.print_in_log)
+                # _Worker.signals.released_gpu.connect(self.enqueue)
+                # _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
             elif not self.verify_column_not_None():
                 print('Should fulfill the first column. \r')
@@ -653,9 +701,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             _Worker.signals.released_gpu.connect(self.enqueue)
             _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
+    def capture_stdout(self, nth_Qproc):
+        self.loggerDisplay.insertPlainText(self.Qproc_list[nth_Qproc].readAll().data().decode())
+
     def print_in_log(self, content):
-        # todo: in the log window
-        print(content)
+        self.loggerDisplay.insertPlainText(content)
 
     def loop_state(self):
         if self.loop_button.isChecked():
@@ -670,7 +720,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             # options
             # os.kill(self.proc_list[item.row()][2].pid, sig.SIGTERM)
             # self.proc_list[item.row()][2].terminate()
-            self.proc_list[item.row()][2].kill()
+            self.Qproc_list[item.row()].kill()
 
     def clean(self):
         column = self.tableWidget.currentColumn()
@@ -729,10 +779,12 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         # this method only manipulate str in QlistWidget
         self.ongoing_process.clear()
         self.ongoing_process.addItems(['{}'.format(t[0]) for t in self.proc_list])
-        for i, sig in zip(range(self.ongoing_process.count()), self.proc_list):
-            self.ongoing_process.item(i).setToolTip(str(sig[3]).replace(',', '\n'))
 
-    ########### Qtable method
+        # set tool tips
+        for i, t in zip(range(self.ongoing_process.count()), self.proc_list):
+            self.ongoing_process.item(i).setToolTip(t[1].replace(',', '\n'))
+
+    ########### Qtable methods
 
     def grab_params(self):
         nb_row = self.tableWidget.rowCount()
