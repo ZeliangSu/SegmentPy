@@ -1,5 +1,6 @@
 import tensorflow as tf
 import os
+from sys import stdout
 
 from tqdm import tqdm
 import re
@@ -139,7 +140,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
             else:
                 raise ValueError('missing checkpoint path for resume')
         try:
-            for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
+            for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch', file=stdout):  # fixme: tqdm print new line after an exception
                 # init ops
                 hyperparams['input_coords'].shuffle()
                 ls_fname_train, ls_ps_train, ls_x_train, ls_y_train = hyperparams['input_coords'].get_train_args()
@@ -157,7 +158,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                                     test_inputs['y_coord_ph']: ls_y_test})
 
                 # begin training
-                for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):
+                for step in tqdm(range(hyperparams['nb_batch']), desc='ep: {} Batch step'.format(ep), file=stdout):
                     global_step = ep * hyperparams['nb_batch'] + step
                     learning_rate = hyperparams['learning_rate'][global_step]
 

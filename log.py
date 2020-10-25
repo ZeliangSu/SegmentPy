@@ -1,4 +1,5 @@
 import logging
+import sys
 
 
 def setup_custom_logger(name, level=logging.WARNING):
@@ -7,7 +8,7 @@ def setup_custom_logger(name, level=logging.WARNING):
                         level=level,
                         format='%(asctime)s, %(levelname)s \n[%(filename)s:%(lineno)d] %(message)s')
 
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)

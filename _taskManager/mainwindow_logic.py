@@ -16,6 +16,7 @@ from _taskManager.gradViewer_logic import gradView_logic
 
 from util import print_nodes_name
 from parser import string_to_hypers
+from functools import partial
 
 import traceback, sys, os
 from queue import Queue
@@ -637,15 +638,6 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 # start a proc
                 nth = self.Qproc_list.__len__()
                 proc = QProcess(self)
-
-                # append in proc list and the Qproc list
-                self.proc_list.append(('train on: {} PID: {}'.format('GPU {}'.format(gpu) if gpu not in ['cpu'] else 'CPU', proc.processId()),
-                                       str(params)))
-                self.Qproc_list.append(proc)
-                self.refresh_proc_list()
-
-                self.print_in_log('On device: {}'.format(gpu))
-
                 cmd = [
                     'main_train.py',
                     '-nc', params['conv nb'],
@@ -671,11 +663,19 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     '-trnd', params['trn repo. path'],
                     '-vald', params['val repo. path']
                 ]
-
                 proc.start('python', cmd)
-                self.capture_stdout(nth)
-                proc.waitForFinished()
-                print(proc.finished())
+
+                # append in proc list and the Qproc list
+                self.proc_list.append(('train on: {} PID: {}'.format('GPU {}'.format(gpu) if gpu not in ['cpu'] else 'CPU', proc.processId()),
+                                       str(params)))
+                self.refresh_proc_list()
+                self.print_in_log('On device: {}'.format(gpu))
+
+
+                # partial (as a wrapper) allows to add 1 more arg
+                # proc.readyReadStandardOutput.connect(partial(self.onReadyReadStandardOutput, i))
+                proc.readyRead.connect(partial(self.capture_stdout, nth))
+                self.Qproc_list.append(proc)
 
                 # release gpu and process
                 # _Worker.signals.error.connect(self.print_in_log)
@@ -701,10 +701,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             _Worker.signals.released_gpu.connect(self.enqueue)
             _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
-    def capture_stdout(self, nth_Qproc):
-        self.loggerDisplay.insertPlainText(self.Qproc_list[nth_Qproc].readAll().data().decode())
+    def capture_stdout(self, nth):
+        self.loggerDisplay.insertPlainText('\n{}'.format(str(self.Qproc_list[nth].readAll().data().decode())))
 
     def print_in_log(self, content):
+        logger.info(content)
         self.loggerDisplay.insertPlainText(content)
 
     def loop_state(self):
@@ -717,10 +718,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         # refers to: https://stackoverflow.com/questions/37601672/how-can-i-get-the-indices-of-qlistwidgetselecteditems
         selected = self.ongoing_process.selectionModel().selectedIndexes()
         for item in selected:
-            # options
-            # os.kill(self.proc_list[item.row()][2].pid, sig.SIGTERM)
-            # self.proc_list[item.row()][2].terminate()
+            self.print_in_log('killing PID {}'.format(self.Qproc_list[item.row()].processId()))
             self.Qproc_list[item.row()].kill()
+            self.Qproc_list.pop(item.row())
+            self.proc_list.pop(item.row())
+        self.refresh_proc_list()
 
     def clean(self):
         column = self.tableWidget.currentColumn()
