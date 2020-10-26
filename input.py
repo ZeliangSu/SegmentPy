@@ -19,9 +19,9 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
 
-def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
+def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
                      suffix='', augmentation=False, mode='regression',
-                     correction=None, max_nb_cls=None, stretch=None):
+                     ):
     """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -46,29 +46,13 @@ def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
             patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
             x_coord_ph = tf.placeholder(tf.int32, shape=[None], name='x_coord_ph')
             y_coord_ph = tf.placeholder(tf.int32, shape=[None], name='y_coord_ph')
-            if correction is None:
-                cst = tf.constant(1e3, dtype=tf.float32)
-                correction = tf.placeholder_with_default(cst, shape=None, name='correction')
-            else:
-                cst = tf.constant(correction)
-                correction = tf.placeholder_with_default(cst, shape=None, name='correction')
-            if max_nb_cls is None:
-                logger.debug('use default 3 classes')
-                cst = tf.constant(3, dtype=tf.int8)
-                max_nb_cls = tf.placeholder_with_default(cst, shape=None, name='max_nb_cls')
-            else:
-                cst = tf.constant(max_nb_cls)
-                max_nb_cls = tf.placeholder_with_default(cst, shape=None, name='max_nb_cls')
-            if stretch is None:
-                cst = tf.constant(2.0)
-                stretch = tf.placeholder_with_default(cst, shape=None, name='stretch')
-            else:
-                cst = tf.constant(stretch)
-                stretch = tf.placeholder_with_default(cst, shape=None, name='stretch')
+            correction_ph = tf.placeholder(tf.string, shape=[None], name='correction_ph')
+            max_nb_cls_ph = tf.placeholder(tf.int32, shape=[None], name='max_nb_cls_ph')
+            stretch_ph = tf.placeholder(tf.float32, shape=[None], name='stretch')
 
             # init and shuffle list of files
             batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph, x_coord_ph, y_coord_ph,
-                                                        correction, max_nb_cls, stretch))
+                                                        correction_ph, max_nb_cls_ph, stretch_ph))
             # batch = batch.shuffle(buffer_size=tf.shape(fnames_ph)[0])
             batch = batch.shuffle(buffer_size=tf.cast(tf.shape(fnames_ph)[0], tf.int64))
             # tf.print(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
@@ -119,7 +103,11 @@ def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
                       'fnames_ph': fnames_ph,
                       'patch_size_ph': patch_size_ph,
                       'x_coord_ph': x_coord_ph,
-                      'y_coord_ph': y_coord_ph}
+                      'y_coord_ph': y_coord_ph,
+                      'correction_ph': correction_ph,
+                      'max_nb_cls_ph': max_nb_cls_ph,
+                      'stretch_ph': stretch_ph,
+                      }
 
     else:
         raise NotImplementedError('Inference input need to be debugged')

@@ -65,7 +65,6 @@ def main_train(
                                        batch_norm=hyperparams['batch_normalization'],
                                        loss_option=hyperparams['loss_option'],
                                        is_training=True,
-                                       # device=hyperparams['device']
                                        grad_view=grad_view,
                                        nb_classes=nb_classes,
                                        )
@@ -81,7 +80,6 @@ def main_train(
                                       batch_norm=hyperparams['batch_normalization'],
                                       loss_option=hyperparams['loss_option'],
                                       is_training=False,
-                                      # device=hyperparams['device'],
                                       grad_view=False,
                                       nb_classes=nb_classes,
                                       )
@@ -152,12 +150,20 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                          feed_dict={train_inputs['fnames_ph']: ls_fname_train,
                                     train_inputs['patch_size_ph']: ls_ps_train,
                                     train_inputs['x_coord_ph']: ls_x_train,
-                                    train_inputs['y_coord_ph']: ls_y_train})
+                                    train_inputs['y_coord_ph']: ls_y_train,
+                                    train_inputs['max_nb_cls_ph']: [hyperparams['max_nb_cls']] * hyperparams['nb_batch'],
+                                    train_inputs['correction_ph']: [hyperparams['correction']] * hyperparams['nb_batch'],
+                                    train_inputs['stretch_ph']: [hyperparams['stretch']] * hyperparams['nb_batch']
+                                    })
                 sess.run(test_inputs['iterator_init_op'],
                          feed_dict={test_inputs['fnames_ph']: ls_fname_test,
                                     test_inputs['patch_size_ph']: ls_ps_test,
                                     test_inputs['x_coord_ph']: ls_x_test,
-                                    test_inputs['y_coord_ph']: ls_y_test})
+                                    test_inputs['y_coord_ph']: ls_y_test,
+                                    test_inputs['max_nb_cls_ph']: [hyperparams['max_nb_cls']] * hyperparams['nb_batch'],
+                                    test_inputs['correction_ph']: [hyperparams['correction']] * hyperparams['nb_batch'],
+                                    test_inputs['stretch_ph']: [hyperparams['stretch']] * hyperparams['nb_batch']
+                                    })
 
                 # begin training
                 for step in tqdm(range(hyperparams['nb_batch']), desc='Batch step'):

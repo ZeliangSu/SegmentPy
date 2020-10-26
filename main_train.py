@@ -100,6 +100,8 @@ if __name__ == '__main__':
             'train_dir': args.train_dir,
             'val_dir': args.val_dir,
             'test_dir': args.test_dir,
+            'correction': 1e3,
+            'stretch': 2.0
             }
 
         # coordinations gen
@@ -189,6 +191,8 @@ if __name__ == '__main__':
             'train_dir': args.train_dir if args.train_dir is not None else './train/',
             'val_dir': args.val_dir if args.val_dir is not None else'./valid/',
             'test_dir': args.test_dir if args.test_dir is not None else'./test/',
+            'correction': 1e3,
+            'stretch': 2.0
         }
 
         # coordinations gen
@@ -240,8 +244,8 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
 
     # try:
-    max_nb_cls = get_max_nb_cls(hyperparams['train_dir'])
-    main_train(hyperparams, grad_view=True, nb_classes=max_nb_cls)
+    hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
+    main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
 
     # except Exception as e:
     #     logger.error(e)
