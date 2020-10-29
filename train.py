@@ -146,7 +146,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                 ls_fname_train, ls_ps_train, ls_x_train, ls_y_train = hyperparams['input_coords'].get_train_args()
                 ls_fname_test, ls_ps_test, ls_x_test, ls_y_test = hyperparams['input_coords'].get_valid_args()
                 logger.debug(hyperparams)
-                
+
                 sess.run(train_inputs['iterator_init_op'],
                          feed_dict={train_inputs['fnames_ph']: ls_fname_train,
                                     train_inputs['patch_size_ph']: ls_ps_train,
