@@ -318,3 +318,24 @@ def boolean_string(s):
     else:
         return True
 
+
+def check_raw_gt_pair(dir_path: str):
+    assert os.path.isdir(dir_path), 'need a string of directory path'
+    list_raw = []
+    list_gt = []
+
+    for rel in os.listdir(dir_path):
+        if '_label.tif' in rel:
+            list_gt.append(dir_path + rel)
+        else:
+            list_raw.append(dir_path + rel)
+    if len(list_raw) >= len(list_gt):
+        logger.debug('detected {} of raw images and {} of gt images'.format(len(list_raw), len(list_gt)))
+    else:
+        logger.warning('found more images of gt{} than raw {}'.format(len(list_gt), len(list_raw)))
+    missing_gt = []
+    for rw in list_raw:
+        if rw.replace('.tif', '_label.tif') not in list_gt:
+            missing_gt.append(dir_path + rw)
+    return list_raw, list_gt, missing_gt
+

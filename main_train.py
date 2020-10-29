@@ -7,7 +7,7 @@ import platform
 
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
-from input import coords_gen
+from input import coords_gen, get_max_nb_cls
 
 # logging
 import logging
@@ -100,6 +100,8 @@ if __name__ == '__main__':
             'train_dir': args.train_dir,
             'val_dir': args.val_dir,
             'test_dir': args.test_dir,
+            'correction': 1e3,
+            'stretch': 2.0
             }
 
         # coordinations gen
@@ -189,6 +191,8 @@ if __name__ == '__main__':
             'train_dir': args.train_dir if args.train_dir is not None else './train/',
             'val_dir': args.val_dir if args.val_dir is not None else'./valid/',
             'test_dir': args.test_dir if args.test_dir is not None else'./test/',
+            'correction': 1e3,
+            'stretch': 2.0
         }
 
         # coordinations gen
@@ -239,10 +243,11 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
 
-    try:
-        main_train(hyperparams, grad_view=True)
+    # try:
+    hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
+    main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
 
-    except Exception as e:
-        logger.debug(e)
-        with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
-            f.write(str(e))
+    # except Exception as e:
+    #     logger.error(e)
+    #     with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
+    #         f.write(str(e))

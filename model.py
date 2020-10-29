@@ -13,6 +13,7 @@ def regression_nodes(pipeline,
                      activation='relu',
                      batch_norm=True,
                      is_training=False,
+                     nb_classes=3
                      ):
 
     # todo: correct
@@ -32,7 +33,7 @@ def regression_nodes(pipeline,
                                                  BN_phase=BN_phase,
                                                  reuse=not is_training,
                                                  mode='regression',
-                                                 nb_classes=3,
+                                                 nb_classes=nb_classes,
                                                  )
 
     with tf.device('/cpu:0'):
@@ -98,6 +99,7 @@ def classification_nodes(pipeline,
                          loss_option='cross_entropy',
                          is_training=False,
                          grad_view=False,
+                         nb_classes=3
                          ):
 
     # check entries
@@ -119,7 +121,7 @@ def classification_nodes(pipeline,
                                                  BN_phase=BN_phase,
                                                  reuse=not is_training,
                                                  mode='classification',
-                                                 nb_classes=3,  # todo: automatize here
+                                                 nb_classes=nb_classes,  # todo: automatize here
                                                  )
 
     # logits shape [B, H, W, nb_class]

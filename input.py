@@ -7,6 +7,7 @@ from itertools import product
 from PIL import Image
 from augmentation import random_aug
 from filter import *
+from util import load_img, check_raw_gt_pair
 import os
 import logging
 import log
@@ -15,12 +16,12 @@ import log
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)  #changeHere: debug level
+logger.setLevel(logging.INFO)
 
 
-def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
+def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
                      suffix='', augmentation=False, mode='regression',
-                     correction=None, max_nb_cls=None, stretch=None):
+                     ):
     """
     tensorflow tf.data input pipeline based helper that return image and label at once
 
@@ -45,11 +46,13 @@ def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
             patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
             x_coord_ph = tf.placeholder(tf.int32, shape=[None], name='x_coord_ph')
             y_coord_ph = tf.placeholder(tf.int32, shape=[None], name='y_coord_ph')
-
-            # max_nb_cls = tf.constant(nb_cls)
+            correction_ph = tf.placeholder(tf.float32, shape=[None], name='correction_ph')
+            max_nb_cls_ph = tf.placeholder(tf.int32, shape=[None], name='max_nb_cls_ph')
+            stretch_ph = tf.placeholder(tf.float32, shape=[None], name='stretch_ph')
 
             # init and shuffle list of files
-            batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph, x_coord_ph, y_coord_ph))
+            batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph, x_coord_ph, y_coord_ph,
+                                                        correction_ph, max_nb_cls_ph, stretch_ph))
             # batch = batch.shuffle(buffer_size=tf.shape(fnames_ph)[0])
             batch = batch.shuffle(buffer_size=tf.cast(tf.shape(fnames_ph)[0], tf.int64))
             # tf.print(tf.cast(tf.shape(fnames_ph)[0], tf.int64))
@@ -100,7 +103,11 @@ def inputpipeline_V2(batch_size, patch_size=None, ncores=mp.cpu_count(),
                       'fnames_ph': fnames_ph,
                       'patch_size_ph': patch_size_ph,
                       'x_coord_ph': x_coord_ph,
-                      'y_coord_ph': y_coord_ph}
+                      'y_coord_ph': y_coord_ph,
+                      'correction_ph': correction_ph,
+                      'max_nb_cls_ph': max_nb_cls_ph,
+                      'stretch_ph': stretch_ph,
+                      }
 
     else:
         raise NotImplementedError('Inference input need to be debugged')
@@ -124,7 +131,8 @@ def _pyfn_regression_parser_wrapper(fname, patch_size):
                       )
 
 
-def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
+def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord,
+                                           correction, max_nb_cls, stretch):
     """
     input:
     -------
@@ -135,12 +143,13 @@ def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord):
         function: (function) tensorflow's pythonic function with its arguements
     """
     return tf.py_func(parse_h5_one_hot_V2,  #wrapped pythonic function
-                      [fname, patch_size, x_coord, y_coord, 1e3, 3, 2.0],  #fixme: max number of class should be automatic
+                      [fname, patch_size, x_coord, y_coord, correction, max_nb_cls, stretch],  #fixme: max number of class should be automatic
                       [tf.float32, tf.int32]  #[output, output] dtype
                       )
 
 
-def _pyfn_classification_parser_wrapper_weka(fname, patch_size, x_coord, y_coord):
+def _pyfn_classification_parser_wrapper_weka(fname, patch_size, x_coord, y_coord,
+                                             ):
     """
     input:
     -------
@@ -176,6 +185,7 @@ def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, im
     img = np.asarray(Image.open(fname))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
+    logger.debug('crt, cls, stch: {}, {}, {}'.format(correction, impose_nb_cls, stretch))
     assert img.shape == label.shape, 'img and label shape should be equal'
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
@@ -624,3 +634,21 @@ def stretching(img: np.ndarray,
         y = map_coordinates(label, [coords_col, coords_row], order=0)
         return X, y
     return X, None
+
+
+def get_max_nb_cls(dir_path: str):
+    '''analyze the training folder and give the maximum number of classes'''
+    assert os.path.isdir(dir_path), 'looking for a string of directory path'
+    rws, gts, missing = check_raw_gt_pair(dir_path)
+    if len(missing) != 0:
+        raise Exception('Found missing gt for the following images: {}'.format(missing))
+    all_cls = []
+    for gt in gts:
+        cls = np.unique(load_img(gt))
+        for i in cls:
+            if i not in all_cls:
+                all_cls.append(i)
+    max_nb_cls = len(all_cls)
+    logger.info('In the traindata set folder, all cls: {}, max nb classes: {}'.format(all_cls, max_nb_cls))
+    return all_cls, max_nb_cls
+
