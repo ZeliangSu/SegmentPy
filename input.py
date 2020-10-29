@@ -16,7 +16,7 @@ import log
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.DEBUG)  #changeHere: debug level
+logger.setLevel(logging.INFO)
 
 
 def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
@@ -46,9 +46,9 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
             patch_size_ph = tf.placeholder(tf.int32, shape=[None], name='patch_size_ph')
             x_coord_ph = tf.placeholder(tf.int32, shape=[None], name='x_coord_ph')
             y_coord_ph = tf.placeholder(tf.int32, shape=[None], name='y_coord_ph')
-            correction_ph = tf.placeholder(tf.string, shape=[None], name='correction_ph')
+            correction_ph = tf.placeholder(tf.float32, shape=[None], name='correction_ph')
             max_nb_cls_ph = tf.placeholder(tf.int32, shape=[None], name='max_nb_cls_ph')
-            stretch_ph = tf.placeholder(tf.float32, shape=[None], name='stretch')
+            stretch_ph = tf.placeholder(tf.float32, shape=[None], name='stretch_ph')
 
             # init and shuffle list of files
             batch = tf.data.Dataset.from_tensor_slices((fnames_ph, patch_size_ph, x_coord_ph, y_coord_ph,
@@ -649,5 +649,6 @@ def get_max_nb_cls(dir_path: str):
             if i not in all_cls:
                 all_cls.append(i)
     max_nb_cls = len(all_cls)
+    logger.info('In the traindata set folder, all cls: {}, max nb classes: {}'.format(all_cls, max_nb_cls))
     return all_cls, max_nb_cls
 
