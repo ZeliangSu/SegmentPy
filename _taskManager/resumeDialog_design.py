@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/resumeDialog_designe.ui'
+# Form implementation generated from reading ui file '_taskManager/resumeDialog_design.ui'
 #
-# Created by: PyQt5 UI code generator 5.14.1
+# Created by: PyQt5 UI code generator 5.14.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(408, 145)
+        Dialog.resize(544, 258)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
+        Dialog.setSizePolicy(sizePolicy)
         self.gridLayout = QtWidgets.QGridLayout(Dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -31,6 +34,30 @@ class Ui_Dialog(object):
         self.ckptButton.setObjectName("ckptButton")
         self.horizontalLayout.addWidget(self.ckptButton)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.trnPathLabel = QtWidgets.QLabel(Dialog)
+        self.trnPathLabel.setObjectName("trnPathLabel")
+        self.horizontalLayout_4.addWidget(self.trnPathLabel)
+        self.trnPathLine = QtWidgets.QLineEdit(Dialog)
+        self.trnPathLine.setObjectName("trnPathLine")
+        self.horizontalLayout_4.addWidget(self.trnPathLine)
+        self.trnPathButton = QtWidgets.QPushButton(Dialog)
+        self.trnPathButton.setObjectName("trnPathButton")
+        self.horizontalLayout_4.addWidget(self.trnPathButton)
+        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.valPathLabel = QtWidgets.QLabel(Dialog)
+        self.valPathLabel.setObjectName("valPathLabel")
+        self.horizontalLayout_5.addWidget(self.valPathLabel)
+        self.valPathLine = QtWidgets.QLineEdit(Dialog)
+        self.valPathLine.setObjectName("valPathLine")
+        self.horizontalLayout_5.addWidget(self.valPathLine)
+        self.valPathButton = QtWidgets.QPushButton(Dialog)
+        self.valPathButton.setObjectName("valPathButton")
+        self.horizontalLayout_5.addWidget(self.valPathButton)
+        self.verticalLayout.addLayout(self.horizontalLayout_5)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.epochLabel = QtWidgets.QLabel(Dialog)
@@ -70,6 +97,16 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
         self.ckptLabel.setText(_translate("Dialog", "Checkpoint"))
+        self.ckptLine.setPlaceholderText(_translate("Dialog", "choose the .meta file"))
         self.ckptButton.setText(_translate("Dialog", "..."))
+        self.trnPathLabel.setText(_translate("Dialog", "trn. repo. path"))
+        self.trnPathLine.setPlaceholderText(_translate("Dialog", "e.g. \"./train/\""))
+        self.trnPathButton.setText(_translate("Dialog", "..."))
+        self.valPathLabel.setText(_translate("Dialog", "val. repo. path"))
+        self.valPathLine.setPlaceholderText(_translate("Dialog", "e.g. \"./valid/\""))
+        self.valPathButton.setText(_translate("Dialog", "..."))
         self.epochLabel.setText(_translate("Dialog", "Extra epoch"))
+        self.epochLine.setPlaceholderText(_translate("Dialog", "e.g. 3"))
         self.commentLabel.setText(_translate("Dialog", "Comment"))
+        self.commentLine.setPlaceholderText(_translate("Dialog", "e.g. None"))
+

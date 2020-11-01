@@ -13,6 +13,7 @@ from _taskManager.augmentationViewer_logic import augViewer_logic
 from _taskManager.ActViewer_logic import actViewer_logic
 from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
+from _taskManager.trainableParamsList_logic import resumeNodes_logic
 
 from util import print_nodes_name
 from parser import string_to_hypers
@@ -343,6 +344,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "ckpt path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(22, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "nodes"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
 
         self.header = ['Parameters', 'nextTrain']
         self.setHeader()
@@ -531,8 +536,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
                 self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(v))
 
-            # fill somethine on the ckpt line
+            # fill somethine on the empty cell
             i = self.tableWidget.findItems('ckpt path', Qt.MatchFlag.MatchExactly)
+            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+
+            i = self.tableWidget.findItems('nodes', Qt.MatchFlag.MatchExactly)
             self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
 
             if nb_col > 2:
@@ -563,7 +571,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'comment': 'comment',
             'ckpt_path': 'ckpt path',
             'nb_epoch': 'nb epoch',
-            'mode': 'cls/reg'
+            'mode': 'cls/reg',
+            'trn repo.path': 'trn repo. path',
+            'val repo.path': 'val repo. path',
         }
         self.Rdialog = resumeDialog_logic(None)
         self.Rdialog.exec()
@@ -577,13 +587,29 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             old_hypers = string_to_hypers(output['ckpt_path']).parse()
             old_hypers['ckpt_path'] = output['ckpt_path']
             old_hypers['nb_epoch'] = int(output['extra_ep'])
-            old_hypers['comment'] = output['new_cmt']
+            old_hypers['trn repo.path'] = output['trn repo. path']
+            old_hypers['val repo.path'] = output['val repo. path']
 
-            # write params
+            # todo: add restricted node to restore
+            self.Rnodes = resumeNodes_logic(ckpt_path=old_hypers['ckpt_path'])
+            self.Rnodes.exec()
+            if self.Rnodes.result() == 1:
+                Rnodes = self.Rnodes.get_restore_nodes()
+                i = self.tableWidget.findItems('nodes', Qt.MatchFlag.MatchExactly)
+                self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(str(Rnodes)))
+
+            # write other params
             for k, v in old_hypers.items():
                 i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
                 self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(str(v)))
 
+            # fill the empty or might throw NoneType error elsewhere
+            i = self.tableWidget.findItems('sv step', Qt.MatchFlag.MatchExactly)
+            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+            i = self.tableWidget.findItems('tb step', Qt.MatchFlag.MatchExactly)
+            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+
+            # handle the headers
             if nb_col > 2:
                 self.header.append('resume')
             else:
@@ -679,6 +705,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             if column == 1:
                 self.bold(column=1)
                 self.popHeader(column)
+        self.tableWidget.repaint()
 
     def forward(self):
         column = self.tableWidget.currentColumn()
@@ -696,6 +723,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
             # swap header
             self.header[column - 1], self.header[column] = self.header[column], self.header[column - 1]
+        self.tableWidget.repaint()
 
     def openDashboard(self):
         self.Dashboard = dashboard_logic(None)
@@ -772,15 +800,19 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         for column, head in enumerate(self.header):
             if 'train' in head.lower():
                 for row in range(self.tableWidget.rowCount()):
-                    if self.tableWidget.item(row, column) is not None:
-                        # self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it editable
-                        pass
+                    # if self.tableWidget.item(row, column) is not None:
+                    #     # self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEnabled)  # note: make it editable
+                    #     pass
+                    if self.tableWidget.item(row, 0).text() in ['ckpt path', 'nodes']:
+                        self.tableWidget.item(row, column).setBackground(QtGui.QColor(230, 230, 250))
+                        self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)
+
             elif 'resume' in head.lower():
                 for row in range(self.tableWidget.rowCount()):
                     if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
-                                                                    'ckpt path', 'comment', 'nb epoch']:
+                                                                    'ckpt path', 'comment', 'nb epoch', 'nodes']:
                         if self.tableWidget.item(row, column) is not None:
-                            self.tableWidget.item(row, column).setBackground(QtGui.QColor(230,230,250))
+                            self.tableWidget.item(row, column).setBackground(QtGui.QColor(230, 230, 250))
                             self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it read only
 
     def setHeader(self):

@@ -18,9 +18,9 @@ logger.setLevel(logging.INFO)
 
 def main_train(
         hyperparams: dict,  # can be a class
-        resume=False,
         grad_view=False,
         nb_classes=3,
+        resume=None,
     ):
 
     # clean graph exists in memory
@@ -92,12 +92,12 @@ def main_train(
 
     # start training/resume training
     if resume:
-        _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=True)
+        _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=resume)
     else:
         _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams)
 
 
-def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=False):
+def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams, resume=None):
     """
     input:
     -------
@@ -133,7 +133,11 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
         if not os.path.exists(folder + 'ckpt/'):
             os.mkdir(folder + 'ckpt/')
 
-        saver = tf.train.Saver(max_to_keep=100000000)
+        if resume:
+            saver = tf.train.Saver(resume)
+        else:
+            saver = tf.train.Saver()
+
         if resume:
             if 'from_ckpt' in hyperparams.keys():
                 saver.restore(sess, hyperparams['from_ckpt'].replace('.meta', ''))
@@ -200,9 +204,6 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                                 train_nodes['train_op'], train_nodes['loss_update_op'], train_nodes['acc_update_op'], update_ops
                             ],
                                 feed_dict=feed_dict)
-
-                        #note: learning rate soucis
-                        # print(sess.run(train_nodes['learning_rate'], feed_dict=feed_dict))
 
                     except tf.errors.OutOfRangeError as e:
                         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))

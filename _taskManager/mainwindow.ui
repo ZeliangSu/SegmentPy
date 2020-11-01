@@ -263,7 +263,7 @@
            <bool>false</bool>
           </property>
           <property name="rowCount">
-           <number>22</number>
+           <number>23</number>
           </property>
           <property name="columnCount">
            <number>2</number>
@@ -274,6 +274,7 @@
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>100</number>
           </attribute>
+          <row/>
           <row/>
           <row/>
           <row/>
@@ -424,6 +425,11 @@
           <item row="21" column="0">
            <property name="text">
             <string>ckpt path</string>
+           </property>
+          </item>
+          <item row="22" column="0">
+           <property name="text">
+            <string>nodes</string>
            </property>
           </item>
          </widget>

@@ -44,6 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('-klr', '--lr_decay_ratio', type=float, metavar='', required=False,
                         help='the decay ratio e.g. 0.1')
     parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=False, help='decay every X epoch')
+    parser.add_argument('-nodes', '--restore_nodes', type=str, default='', nargs='+', required=False, help='restrict nodes to restore')
 
     args = parser.parse_args()
 
@@ -83,6 +84,8 @@ if __name__ == '__main__':
         'train_dir': './train/',
         'val_dir': './valid/',
         'test_dir': './test/',
+
+        'restore_nodes': args.restore_nodes,
     }
 
     logger.warn('new folder name format will be change and adapted in the next version')
@@ -96,7 +99,7 @@ if __name__ == '__main__':
 
     # coordinations gen
     hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                             test_dir=hyperparams['val_dir'],
+                                             valid_dir=hyperparams['val_dir'],
                                              window_size=hyperparams['patch_size'],
                                              train_test_ratio=0.9,
                                              stride=5,
@@ -128,7 +131,7 @@ if __name__ == '__main__':
 
     # coordinations gen
     hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                             test_dir=hyperparams['val_dir'],
+                                             valid_dir=hyperparams['val_dir'],
                                              window_size=hyperparams['patch_size'],
                                              train_test_ratio=0.9,
                                              stride=5,
@@ -198,5 +201,5 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
 
-    main_train(hyperparams, grad_view=True, resume=True)
+    main_train(hyperparams, grad_view=True, resume=args.restore_nodes)
 

@@ -72,12 +72,12 @@ def get_all_trainable_variables(metagraph_path):
     """
     tf.reset_default_graph()
     restorer = tf.train.import_meta_graph(
-        metagraph_path + '.meta',
+        metagraph_path if metagraph_path.endswith('.meta') else metagraph_path + '.meta',  # here with .meta
         clear_devices=True
     )
 
     with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
-        restorer.restore(sess, metagraph_path)
+        restorer.restore(sess, metagraph_path.replace('.meta', '') if metagraph_path.endswith('.meta') else metagraph_path)  # here without .meta
         all_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
         wn = [v.name for v in all_vars if v.name.endswith('w:0') and not v.name.startswith('dnn')]
