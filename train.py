@@ -68,7 +68,7 @@ def main_train(
                                        grad_view=grad_view,
                                        nb_classes=nb_classes,
                                        )
-    # fixme: the following load 2 modes in one gpu
+
     test_nodes = classification_nodes(pipeline=test_inputs,
                                       placeholders=list_placeholders,
                                       model_name=hyperparams['model'],
@@ -79,7 +79,7 @@ def main_train(
                                       activation=hyperparams['activation'],
                                       batch_norm=hyperparams['batch_normalization'],
                                       loss_option=hyperparams['loss_option'],
-                                      is_training=False,
+                                      is_training=False,  # note: False: reuse the nodes from train_nodes but use different input_pipeline
                                       grad_view=False,
                                       nb_classes=nb_classes,
                                       )
@@ -150,7 +150,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
             saver = tf.train.Saver()
 
         try:
-            for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
+            for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):
                 # init ops
                 hyperparams['input_coords'].shuffle()
                 ls_fname_train, ls_ps_train, ls_x_train, ls_y_train = hyperparams['input_coords'].get_train_args()
@@ -213,7 +213,6 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
 
                     except tf.errors.OutOfRangeError as e:
                         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
-                        # model_saved_at.append(step)
                         print(e)
                         break
 
@@ -225,6 +224,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         # valid session
                         #
                         ########################
+                        # note: maybe need to put this session above
                         # change feed dict
                         feed_dict = {
                             test_nodes['learning_rate']: 1.0,
@@ -234,13 +234,11 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         if hyperparams['batch_normalization']:
                             feed_dict[test_nodes['BN_phase']] = False
 
-                        # load graph in the second device
-                        loader = tf.train.Saver()
-                        # change
-                        ckpt_saved_path = folder + 'ckpt/step{}'.format(global_step)
-
-                        # todo: this part is also load in gpu
-                        loader.restore(sess, ckpt_saved_path)
+                        # load graph in the same device
+                        # fixme: is it necessary the loader??
+                        # loader = tf.train.Saver()
+                        # ckpt_saved_path = folder + 'ckpt/step{}'.format(global_step)
+                        # loader.restore(sess, ckpt_saved_path)
                         for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='test batch'):
                             _, summary, _, _ = sess.run(
                                 [

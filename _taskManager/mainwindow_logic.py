@@ -718,12 +718,24 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.tableWidget.removeColumn(column + 1)
 
             if column == 2:
-                self.setHeader()
                 self.bold(column=1)
                 self.unbold(column=2)
 
+                # change the internal header list
+                if self.header[column - 1] == 'nextTrain':
+                    self.header[column - 1] = 'train'
+                elif self.header[column - 1] == 'nextResume':
+                    self.header[column - 1] = 'resume'
+                if self.header[column] == 'train':
+                    self.header[column] = 'nextTrain'
+                elif self.header[column] == 'resume':
+                    self.header[column] = 'nextResume'
+
             # swap header
             self.header[column - 1], self.header[column] = self.header[column], self.header[column - 1]
+
+        # reset headers
+        self.setHeader()
         self.tableWidget.repaint()
 
     def openDashboard(self):
