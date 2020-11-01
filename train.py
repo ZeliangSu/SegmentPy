@@ -13,7 +13,7 @@ from input import inputpipeline_V2
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 def main_train(
@@ -134,15 +134,21 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
             os.mkdir(folder + 'ckpt/')
 
         if resume:
-            saver = tf.train.Saver(resume)
+            logger.info('The nodes to be restored: {}'.format(resume))
+            assert 'from_ckpt' in hyperparams.keys(), 'be sure to have indicated from which ckpt to resume'
+            assert isinstance(resume, list), 'resume arg should be a list'
+            # get all trainable variable then retrieve the ones that want to restore
+            all_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            var_to_restore = []
+            for var in all_var:
+                if var.name in resume:
+                    var_to_restore.append(var)
+            saver = tf.train.Saver(var_to_restore)
+
         else:
+            # otherwise resume the whole network
             saver = tf.train.Saver()
 
-        if resume:
-            if 'from_ckpt' in hyperparams.keys():
-                saver.restore(sess, hyperparams['from_ckpt'].replace('.meta', ''))
-            else:
-                raise ValueError('missing checkpoint path for resume')
         try:
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):  # fixme: tqdm print new line after an exception
                 # init ops

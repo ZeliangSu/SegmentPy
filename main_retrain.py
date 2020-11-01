@@ -3,7 +3,7 @@ import argparse
 
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir
-from input import coords_gen
+from input import coords_gen, get_max_nb_cls
 from parser import string_to_hypers
 
 import numpy as np
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-ckpt', '--from_checkpoint', type=str, metavar='', required=True, help='full/absolute path to the ckpt is required')
     parser.add_argument('-ep', '--nb_epoch', type=int, metavar='', required=True, help='encore howmany epochs')
-    parser.add_argument('-dv', '--device', type=int, metavar='', required=True, help='on which gpu')
+    parser.add_argument('-dv', '--device', metavar='', required=True, help='which GPU to use e.g. -1 use CPU')
     parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
     parser.add_argument('-st', '--save_model_step', type=int, default=500, required=False,
                         help='save the model every X step')
@@ -45,6 +45,8 @@ if __name__ == '__main__':
                         help='the decay ratio e.g. 0.1')
     parser.add_argument('-plr', '--lr_period', type=float, metavar='', required=False, help='decay every X epoch')
     parser.add_argument('-nodes', '--restore_nodes', type=str, default='', nargs='+', required=False, help='restrict nodes to restore')
+    parser.add_argument('-corr', '--correction', type=float, metavar='', default=1e3, required=False, help='img * correction')
+    parser.add_argument('-stch', '--stretch', type=float, metavar='', default=2.0, required=False, help='parameter for stretching')
 
     args = parser.parse_args()
 
@@ -86,6 +88,8 @@ if __name__ == '__main__':
         'test_dir': './test/',
 
         'restore_nodes': args.restore_nodes,
+        'correction': args.correction,
+        'stretch': args.stretch
     }
 
     logger.warn('new folder name format will be change and adapted in the next version')
@@ -143,7 +147,7 @@ if __name__ == '__main__':
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_RESUME_stp_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lFn_{}_lrtype{}_i{}_k{}_p{}_newi_{}_newk_{}_newp_{}_cmt_{}/hour{}_gpu{}/'.format(
+        './logs/{}_RESUME_stp_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lFn_{}_lrtype{}_i{}_k{}_p{}_newi_{}_newk_{}_newp_{}_cmt_{}/hour{}_{}/'.format(
             hyperparams['date'],
             string_to_hypers(hyperparams['from_ckpt']).get_step(),
             hyperparams['model'],
@@ -166,7 +170,7 @@ if __name__ == '__main__':
             hyperparams['lr_period'],
             args.comment.replace(' ', '_'),
             hyperparams['hour'],
-            args.device
+            'gpu{}'.format(args.device) if args.device!='cpu' else 'cpu'
         )
 
     hyperparams['new_params'] = {
@@ -201,5 +205,6 @@ if __name__ == '__main__':
     shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
     shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
 
-    main_train(hyperparams, grad_view=True, resume=args.restore_nodes)
+    hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
+    main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'], resume=args.restore_nodes)
 

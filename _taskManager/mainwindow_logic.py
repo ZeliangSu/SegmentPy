@@ -199,6 +199,7 @@ class retraining_Worker(QRunnable):
             '-plr', self.params['period'],
             '-dv', self.using_gpu,
             '-cmt', self.params['comment'],
+            '-nodes', *self.params['nodes'].split(', ')  # params['nodes'] is a str so need split
         ]
 
 

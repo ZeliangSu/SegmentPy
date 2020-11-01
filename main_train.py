@@ -61,6 +61,8 @@ if __name__ == '__main__':
     parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False, help='where to find the valid dataset')
     parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
     parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False, help='indicate the step/stride with which we sample')
+    parser.add_argument('-corr', '--correction', type=float, metavar='', default=1e3, required=False, help='img * correction')
+    parser.add_argument('-stch', '--stretch', type=float, metavar='', default=2.0, required=False, help='parameter for stretching')
 
     try:
         args = parser.parse_args()
@@ -91,7 +93,7 @@ if __name__ == '__main__':
 
             ############### misc #####################
             'nb_epoch': args.nb_epoch,
-            'device': -1 if args.device == 'cpu' else args.device,
+            'device': 'cpu' if args.device == 'cpu' else args.device,
             'save_step': 500 if args.save_model_step is None else args.save_model_step,
             'save_summary_step': 50 if args.save_tb is None else args.save_tb,
             'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
@@ -138,7 +140,7 @@ if __name__ == '__main__':
 
         # name the log directory
         hyperparams['folder_name'] = \
-            './logs/{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
+            './logs/{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_{}/'.format(
                 hyperparams['date'],
                 hyperparams['model'],
                 hyperparams['batch_size'],
@@ -157,7 +159,7 @@ if __name__ == '__main__':
                 args.lr_period,
                 args.comment.replace(' ', '_'),
                 hyperparams['hour'],
-                hyperparams['device']
+                'gpu{}'.format(args.device) if args.device != 'cpu' else 'cpu'
             )
 
     except Exception as e:
@@ -191,8 +193,8 @@ if __name__ == '__main__':
             'train_dir': args.train_dir if args.train_dir is not None else './train/',
             'val_dir': args.val_dir if args.val_dir is not None else'./valid/',
             'test_dir': args.test_dir if args.test_dir is not None else'./test/',
-            'correction': 1e3,
-            'stretch': 2.0
+            'correction': args.correction,
+            'stretch': args.stretch
         }
 
         # coordinations gen
