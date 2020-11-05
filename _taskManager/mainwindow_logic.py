@@ -14,6 +14,7 @@ from _taskManager.ActViewer_logic import actViewer_logic
 from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
 from _taskManager.trainableParamsList_logic import resumeNodes_logic
+from _taskManager.predictDialog_logic import predictDialog_logic
 
 from util import print_nodes_name
 from parser import string_to_hypers
@@ -621,29 +622,14 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.setHeader()
 
     def predict(self):
-        # define data folder path
-        ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
-        ckpt_path = ckpt_dialog.openFileNameDialog()
-        print(ckpt_path)
-
-        if ckpt_path:
-            # get to predict .tif
-            predict_dialog = file_dialog(title='select folder of raw tomograms (*.tif) to predict', type='/')
-            predict_dir = predict_dialog.openFolderDialog()
-            print(predict_dir)
-
-            # define predict folder path (can create new folder)
-            if predict_dir:
-                save_dialog = file_dialog(title='select folder to put prediction', type='/')
-                save_dir = save_dialog.openFolderDialog()
-                print(save_dir)
-
-                if save_dir:
-                    # spawn sub process
-                    _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
-                    self.threadpool.start(_Worker)
-                    _Worker.signals.start_proc.connect(self.add_proc_surveillance)
-                    _Worker.signals.released_proc.connect(self.remove_process_from_list)
+        self.predDialog = predictDialog_logic(None)
+        self.predDialog.exec()
+        if self.predDialog.result() == 1:
+            ckpt_path, raw_folder, pred_folder = self.predDialog.get_params()
+            _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=raw_folder, save_dir=pred_folder)
+            self.threadpool.start(_Worker)
+            _Worker.signals.start_proc.connect(self.add_proc_surveillance)
+            _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
     def start(self):
         if self.header[1] == 'nextTrain':
