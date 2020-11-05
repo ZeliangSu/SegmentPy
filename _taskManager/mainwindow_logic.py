@@ -626,6 +626,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.predDialog.exec()
         if self.predDialog.result() == 1:
             ckpt_path, raw_folder, pred_folder = self.predDialog.get_params()
+            logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\n'.format(ckpt_path, raw_folder, pred_folder))
             _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=raw_folder, save_dir=pred_folder)
             self.threadpool.start(_Worker)
             _Worker.signals.start_proc.connect(self.add_proc_surveillance)
