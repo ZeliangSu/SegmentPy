@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QLabel, QWidget, QProgressDialog
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
-from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
+from PySide2.QtWidgets import QApplication, QDialog, QMessageBox, QLabel, QWidget, QProgressDialog
+from PySide2.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
+from PySide2.QtCore import Qt, QPoint, QThreadPool, QRunnable, Slot, Signal, QObject
 
 from _taskManager.volumes_viewer_design import Ui_volViewer
 from metric import get_interface_3D, get_surface_3D

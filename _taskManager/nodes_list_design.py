@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'nodes_list_design.ui'
+# Form implementation generated from reading ui file '_taskManager/nodes_list_design.ui',
+# licensing of '_taskManager/nodes_list_design.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 17:58:20 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_nodes_list(object):
     def setupUi(self, nodes_list):
@@ -21,8 +21,8 @@ class Ui_nodes_list(object):
         self.label = QtWidgets.QLabel(nodes_list)
         font = QtGui.QFont()
         font.setPointSize(20)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label.setFont(font)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setObjectName("label")
@@ -32,8 +32,8 @@ class Ui_nodes_list(object):
         self.verticalLayout.addWidget(self.listWidget)
         self.label_2 = QtWidgets.QLabel(nodes_list)
         font = QtGui.QFont()
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label_2.setFont(font)
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
         self.label_2.setObjectName("label_2")
@@ -65,18 +65,18 @@ class Ui_nodes_list(object):
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(nodes_list)
-        self.buttonBox.accepted.connect(nodes_list.accept)
-        self.buttonBox.rejected.connect(nodes_list.reject)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), nodes_list.accept)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("rejected()"), nodes_list.reject)
         QtCore.QMetaObject.connectSlotsByName(nodes_list)
 
     def retranslateUi(self, nodes_list):
-        _translate = QtCore.QCoreApplication.translate
-        nodes_list.setWindowTitle(_translate("nodes_list", "Dialog"))
-        self.label.setText(_translate("nodes_list", "Select the activations to visualize"))
-        self.label_2.setText(_translate("nodes_list", "Check the following analysis type"))
-        self.act.setText(_translate("nodes_list", "activation"))
-        self.wt.setText(_translate("nodes_list", "weight"))
-        self.tsne.setText(_translate("nodes_list", "T-SNE"))
-        self.l2norm.setText(_translate("nodes_list", "L2-norm of weight evolution"))
-        self.ang.setText(_translate("nodes_list", "Angularity of weight evolution"))
-        self.hist.setText(_translate("nodes_list", "Histogram of weight evolution"))
+        nodes_list.setWindowTitle(QtWidgets.QApplication.translate("nodes_list", "Dialog", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("nodes_list", "Select the activations to visualize", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("nodes_list", "Check the following analysis type", None, -1))
+        self.act.setText(QtWidgets.QApplication.translate("nodes_list", "activation", None, -1))
+        self.wt.setText(QtWidgets.QApplication.translate("nodes_list", "weight", None, -1))
+        self.tsne.setText(QtWidgets.QApplication.translate("nodes_list", "T-SNE", None, -1))
+        self.l2norm.setText(QtWidgets.QApplication.translate("nodes_list", "L2-norm of weight evolution", None, -1))
+        self.ang.setText(QtWidgets.QApplication.translate("nodes_list", "Angularity of weight evolution", None, -1))
+        self.hist.setText(QtWidgets.QApplication.translate("nodes_list", "Histogram of weight evolution", None, -1))
+

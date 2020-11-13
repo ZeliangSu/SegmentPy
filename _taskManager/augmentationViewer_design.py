@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/augmentationViewer.ui'
+# Form implementation generated from reading ui file '_taskManager/augmentationViewer.ui',
+# licensing of '_taskManager/augmentationViewer.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 17:54:55 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_augViewer(object):
     def setupUi(self, augViewer):
@@ -23,8 +23,8 @@ class Ui_augViewer(object):
         self.label_3 = QtWidgets.QLabel(augViewer)
         font = QtGui.QFont()
         font.setPointSize(20)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label_3.setFont(font)
         self.label_3.setAlignment(QtCore.Qt.AlignCenter)
         self.label_3.setObjectName("label_3")
@@ -32,8 +32,8 @@ class Ui_augViewer(object):
         self.label_4 = QtWidgets.QLabel(augViewer)
         font = QtGui.QFont()
         font.setPointSize(20)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label_4.setFont(font)
         self.label_4.setAlignment(QtCore.Qt.AlignCenter)
         self.label_4.setObjectName("label_4")
@@ -77,9 +77,9 @@ class Ui_augViewer(object):
         QtCore.QMetaObject.connectSlotsByName(augViewer)
 
     def retranslateUi(self, augViewer):
-        _translate = QtCore.QCoreApplication.translate
-        augViewer.setWindowTitle(_translate("augViewer", "Dialog"))
-        self.label_3.setText(_translate("augViewer", "Raw"))
-        self.label_4.setText(_translate("augViewer", "Augmented"))
-        self.next.setText(_translate("augViewer", "Next(Q)"))
-        self.next.setShortcut(_translate("augViewer", "Q"))
+        augViewer.setWindowTitle(QtWidgets.QApplication.translate("augViewer", "Dialog", None, -1))
+        self.label_3.setText(QtWidgets.QApplication.translate("augViewer", "Raw", None, -1))
+        self.label_4.setText(QtWidgets.QApplication.translate("augViewer", "Augmented", None, -1))
+        self.next.setText(QtWidgets.QApplication.translate("augViewer", "Next(Q)", None, -1))
+        self.next.setShortcut(QtWidgets.QApplication.translate("augViewer", "Q", None, -1))
+

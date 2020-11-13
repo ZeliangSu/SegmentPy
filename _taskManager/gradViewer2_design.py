@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/gradViewer2.ui'
+# Form implementation generated from reading ui file '_taskManager/gradViewer2.ui',
+# licensing of '_taskManager/gradViewer2.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.15.0
+# Created: Fri Nov 13 17:56:43 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_gradPlot(object):
     def setupUi(self, gradPlot):
@@ -42,9 +44,8 @@ class Ui_gradPlot(object):
         QtCore.QMetaObject.connectSlotsByName(gradPlot)
 
     def retranslateUi(self, gradPlot):
-        _translate = QtCore.QCoreApplication.translate
-        gradPlot.setWindowTitle(_translate("gradPlot", "Form"))
-        self.label.setText(_translate("gradPlot", "Select a training folder to exact the gradients"))
-        self.folderButton.setText(_translate("gradPlot", "..."))
+        gradPlot.setWindowTitle(QtWidgets.QApplication.translate("gradPlot", "Form", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("gradPlot", "Select a training folder to exact the gradients", None, -1))
+        self.folderButton.setText(QtWidgets.QApplication.translate("gradPlot", "...", None, -1))
 
 from _taskManager.canvas_logic import gradient_plot

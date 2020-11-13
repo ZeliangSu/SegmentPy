@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/ActViewer.ui'
+# Form implementation generated from reading ui file '_taskManager/ActViewer.ui',
+# licensing of '_taskManager/ActViewer.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 17:53:55 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_actViewer(object):
     def setupUi(self, actViewer):
@@ -108,18 +110,17 @@ class Ui_actViewer(object):
         QtCore.QMetaObject.connectSlotsByName(actViewer)
 
     def retranslateUi(self, actViewer):
-        _translate = QtCore.QCoreApplication.translate
-        actViewer.setWindowTitle(_translate("actViewer", "Form"))
-        self.ckptPathLabel.setText(_translate("actViewer", "Model Checkpoint path:"))
-        self.ckptButton.setText(_translate("actViewer", "..."))
-        self.inputPathLabel.setText(_translate("actViewer", "Input path:"))
-        self.inputButton.setText(_translate("actViewer", "..."))
-        self.ListTitle.setText(_translate("actViewer", "Activation list:"))
-        self.ImgTitle.setText(_translate("actViewer", "Activation:"))
-        self.load.setText(_translate("actViewer", "Load model(A)"))
-        self.load.setShortcut(_translate("actViewer", "A"))
-        self.saveButton.setText(_translate("actViewer", "Save activations(S)"))
-        self.saveButton.setShortcut(_translate("actViewer", "S"))
-        self.cancelButton.setText(_translate("actViewer", "Cancel(C)"))
-        self.cancelButton.setShortcut(_translate("actViewer", "C"))
+        actViewer.setWindowTitle(QtWidgets.QApplication.translate("actViewer", "Form", None, -1))
+        self.ckptPathLabel.setText(QtWidgets.QApplication.translate("actViewer", "Model Checkpoint path:", None, -1))
+        self.ckptButton.setText(QtWidgets.QApplication.translate("actViewer", "...", None, -1))
+        self.inputPathLabel.setText(QtWidgets.QApplication.translate("actViewer", "Input path:", None, -1))
+        self.inputButton.setText(QtWidgets.QApplication.translate("actViewer", "...", None, -1))
+        self.ListTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation list:", None, -1))
+        self.ImgTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation:", None, -1))
+        self.load.setText(QtWidgets.QApplication.translate("actViewer", "Load model(A)", None, -1))
+        self.load.setShortcut(QtWidgets.QApplication.translate("actViewer", "A", None, -1))
+        self.saveButton.setText(QtWidgets.QApplication.translate("actViewer", "Save activations(S)", None, -1))
+        self.saveButton.setShortcut(QtWidgets.QApplication.translate("actViewer", "S", None, -1))
+        self.cancelButton.setText(QtWidgets.QApplication.translate("actViewer", "Cancel(C)", None, -1))
+        self.cancelButton.setShortcut(QtWidgets.QApplication.translate("actViewer", "C", None, -1))
 

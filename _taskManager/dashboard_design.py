@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/dashboard.ui'
+# Form implementation generated from reading ui file '_taskManager/dashboard.ui',
+# licensing of '_taskManager/dashboard.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.15.0
+# Created: Fri Nov 13 17:55:47 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_dashboard(object):
     def setupUi(self, dashboard):
@@ -27,8 +29,8 @@ class Ui_dashboard(object):
         self.label.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setPointSize(18)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label.setFont(font)
         self.label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
@@ -42,8 +44,8 @@ class Ui_dashboard(object):
         self.label_2.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setPointSize(18)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label_2.setFont(font)
         self.label_2.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
@@ -139,17 +141,16 @@ class Ui_dashboard(object):
         QtCore.QMetaObject.connectSlotsByName(dashboard)
 
     def retranslateUi(self, dashboard):
-        _translate = QtCore.QCoreApplication.translate
-        dashboard.setWindowTitle(_translate("dashboard", "Form"))
-        self.label.setText(_translate("dashboard", "Training"))
-        self.label_2.setText(_translate("dashboard", "Validation"))
-        self.refresh_button.setText(_translate("dashboard", "Refresh(R)"))
-        self.refresh_button.setShortcut(_translate("dashboard", "R"))
-        self.live_button.setText(_translate("dashboard", "Live(L)"))
-        self.live_button.setShortcut(_translate("dashboard", "L"))
-        self.save_button.setText(_translate("dashboard", "Save(S)"))
-        self.save_button.setShortcut(_translate("dashboard", "S"))
-        self.label_3.setText(_translate("dashboard", "Save path :"))
-        self.folder_button.setText(_translate("dashboard", "..."))
+        dashboard.setWindowTitle(QtWidgets.QApplication.translate("dashboard", "Form", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("dashboard", "Training", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("dashboard", "Validation", None, -1))
+        self.refresh_button.setText(QtWidgets.QApplication.translate("dashboard", "Refresh(R)", None, -1))
+        self.refresh_button.setShortcut(QtWidgets.QApplication.translate("dashboard", "R", None, -1))
+        self.live_button.setText(QtWidgets.QApplication.translate("dashboard", "Live(L)", None, -1))
+        self.live_button.setShortcut(QtWidgets.QApplication.translate("dashboard", "L", None, -1))
+        self.save_button.setText(QtWidgets.QApplication.translate("dashboard", "Save(S)", None, -1))
+        self.save_button.setShortcut(QtWidgets.QApplication.translate("dashboard", "S", None, -1))
+        self.label_3.setText(QtWidgets.QApplication.translate("dashboard", "Save path :", None, -1))
+        self.folder_button.setText(QtWidgets.QApplication.translate("dashboard", "...", None, -1))
 
 from _taskManager.canvas_logic import MPL

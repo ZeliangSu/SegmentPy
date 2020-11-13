@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
+from PySide2.QtWidgets import QApplication, QWidget, QMessageBox
+from PySide2.QtGui import QPixmap, QImage
+from PySide2.QtCore import Qt
 
 from _taskManager.ActViewer_design import Ui_actViewer
 from _taskManager.nodes_list_logic import node_list_logic

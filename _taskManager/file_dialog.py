@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog, QDesktopWidget
+from PySide2.QtWidgets import QApplication, QWidget, QFileDialog, QDesktopWidget
 
 
 class file_dialog(QWidget):

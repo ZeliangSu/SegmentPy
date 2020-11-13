@@ -1,8 +1,6 @@
 from _taskManager.trainableParamsList_design import Ui_chooseParams
 
-from PyQt5.QtWidgets import QDialog
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
-from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
+from PySide2.QtWidgets import QDialog
 
 from analytic import get_all_trainable_variables
 

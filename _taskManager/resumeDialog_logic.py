@@ -1,7 +1,7 @@
 from _taskManager.resumeDialog_design import Ui_Dialog
 from _taskManager.file_dialog import file_dialog
 
-from PyQt5.QtWidgets import QDialog
+from PySide2.QtWidgets import QDialog
 
 import json
 import os

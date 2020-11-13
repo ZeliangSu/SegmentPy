@@ -1,6 +1,6 @@
-from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot, Qt
-from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
-from PyQt5 import QtCore, QtGui
+from PySide2.QtCore import Signal, QThreadPool, QThread, QObject, QRunnable, Slot, Qt
+from PySide2.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
+from PySide2 import QtCore, QtGui
 
 from _taskManager.mainwindow_design import Ui_LRCSNet
 from _taskManager.dialog_logic import dialog_logic
@@ -50,7 +50,7 @@ class queueManager(QThread):
         self.signals = WorkerSignals()
         self.toggle = False
 
-    @pyqtSlot(name='queue1')
+    @Slot(name='queue1')
     def run(self):
         self.toggle = True
         while self.toggle:
@@ -66,11 +66,11 @@ class queueManager(QThread):
 
 
 class WorkerSignals(QObject):
-    error = pyqtSignal(tuple)
-    released_gpu = pyqtSignal(object)
-    start_proc = pyqtSignal(tuple)
-    released_proc = pyqtSignal(tuple)
-    available_gpu = pyqtSignal(int)
+    error = Signal(tuple)
+    released_gpu = Signal(object)
+    start_proc = Signal(tuple)
+    released_proc = Signal(tuple)
+    available_gpu = Signal(int)
 
 
 class predict_Worker(QRunnable):
@@ -82,7 +82,7 @@ class predict_Worker(QRunnable):
         self.device = 'cpu'
         self.signals = WorkerSignals()
 
-    @pyqtSlot(name='predict')
+    @Slot(name='predict')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())
@@ -121,7 +121,7 @@ class training_Worker(QRunnable):
         self.params = args[1]
         self.signals = WorkerSignals()
 
-    @pyqtSlot(name='train')
+    @Slot(name='train')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())
@@ -183,7 +183,7 @@ class retraining_Worker(QRunnable):
         self.params = args[1]
         self.signals = WorkerSignals()
 
-    @pyqtSlot(name='retrain')
+    @Slot(name='retrain')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())

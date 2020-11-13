@@ -1,7 +1,7 @@
 from _taskManager.predictDialog_design2 import Ui_Dialog
 from _taskManager.file_dialog import file_dialog
 
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PySide2.QtWidgets import QDialog, QMessageBox
 
 import json
 import os

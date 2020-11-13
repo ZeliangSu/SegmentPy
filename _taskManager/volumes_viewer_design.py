@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/volumes_viewer.ui'
+# Form implementation generated from reading ui file '_taskManager/volumes_viewer.ui',
+# licensing of '_taskManager/volumes_viewer.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 18:00:59 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_volViewer(object):
     def setupUi(self, volViewer):
@@ -59,9 +61,9 @@ class Ui_volViewer(object):
         self.horizontalLayout_2.addWidget(self.actual_slide)
         self.label = QtWidgets.QLabel(volViewer)
         font = QtGui.QFont()
-        font.setBold(True)
-        font.setItalic(False)
         font.setWeight(75)
+        font.setItalic(False)
+        font.setBold(True)
         self.label.setFont(font)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setObjectName("label")
@@ -114,8 +116,8 @@ class Ui_volViewer(object):
         self.accumulated_value1.setMinimumSize(QtCore.QSize(100, 100))
         font = QtGui.QFont()
         font.setPointSize(13)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.accumulated_value1.setFont(font)
         self.accumulated_value1.setAlignment(QtCore.Qt.AlignCenter)
         self.accumulated_value1.setObjectName("accumulated_value1")
@@ -146,8 +148,8 @@ class Ui_volViewer(object):
         self.accumulated_value2.setSizePolicy(sizePolicy)
         self.accumulated_value2.setMinimumSize(QtCore.QSize(100, 100))
         font = QtGui.QFont()
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.accumulated_value2.setFont(font)
         self.accumulated_value2.setAlignment(QtCore.Qt.AlignCenter)
         self.accumulated_value2.setObjectName("accumulated_value2")
@@ -169,17 +171,16 @@ class Ui_volViewer(object):
         QtCore.QMetaObject.connectSlotsByName(volViewer)
 
     def retranslateUi(self, volViewer):
-        _translate = QtCore.QCoreApplication.translate
-        volViewer.setWindowTitle(_translate("volViewer", "Dialog"))
-        self.vol1.setText(_translate("volViewer", "Drop a folder of images here"))
-        self.vol2.setText(_translate("volViewer", "Drop a folder of images here"))
-        self.label.setText(_translate("volViewer", "/"))
-        self.label_2.setText(_translate("volViewer", "Slides"))
-        self.zoom_button.setText(_translate("volViewer", "Zoom-in(A)"))
-        self.zoom_button.setShortcut(_translate("volViewer", "A"))
-        self.dezoom_button.setText(_translate("volViewer", "Zoom-out(S)"))
-        self.dezoom_button.setShortcut(_translate("volViewer", "S"))
-        self.accumulated_value1.setText(_translate("volViewer", "Total voxels: Acc. Vol. Frac.:"))
-        self.accumulated_value2.setText(_translate("volViewer", "Total voxels: Acc. Vol. Frac.:"))
+        volViewer.setWindowTitle(QtWidgets.QApplication.translate("volViewer", "Dialog", None, -1))
+        self.vol1.setText(QtWidgets.QApplication.translate("volViewer", "Drop a folder of images here", None, -1))
+        self.vol2.setText(QtWidgets.QApplication.translate("volViewer", "Drop a folder of images here", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("volViewer", "/", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("volViewer", "Slides", None, -1))
+        self.zoom_button.setText(QtWidgets.QApplication.translate("volViewer", "Zoom-in(A)", None, -1))
+        self.zoom_button.setShortcut(QtWidgets.QApplication.translate("volViewer", "A", None, -1))
+        self.dezoom_button.setText(QtWidgets.QApplication.translate("volViewer", "Zoom-out(S)", None, -1))
+        self.dezoom_button.setShortcut(QtWidgets.QApplication.translate("volViewer", "S", None, -1))
+        self.accumulated_value1.setText(QtWidgets.QApplication.translate("volViewer", "Total voxels: Acc. Vol. Frac.:", None, -1))
+        self.accumulated_value2.setText(QtWidgets.QApplication.translate("volViewer", "Total voxels: Acc. Vol. Frac.:", None, -1))
 
 from _taskManager.canvas_logic import volFracPlotter

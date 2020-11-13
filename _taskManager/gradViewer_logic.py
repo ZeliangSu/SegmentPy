@@ -1,6 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QDialog, QProgressDialog
+from PySide2.QtWidgets import QWidget, QDialog
 
-from _taskManager.gradViewer_design import Ui_grad_extractor
 from _taskManager.gradViewer2_design import Ui_gradPlot
 from _taskManager.file_dialog import file_dialog
 
@@ -10,7 +9,7 @@ import json
 import os
 
 
-class gradView_logic(QWidget, Ui_gradPlot):
+class gradView_logic(QDialog, Ui_gradPlot):
     def __init__(self, *args, **kwargs):
         QDialog.__init__(self, *args, **kwargs)
 

@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/resumeDialog_design.ui'
+# Form implementation generated from reading ui file '_taskManager/resumeDialog_design.ui',
+# licensing of '_taskManager/resumeDialog_design.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 17:59:55 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -89,24 +91,23 @@ class Ui_Dialog(object):
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(Dialog.accept)
-        self.buttonBox.rejected.connect(Dialog.reject)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), Dialog.accept)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("rejected()"), Dialog.reject)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.ckptLabel.setText(_translate("Dialog", "Checkpoint"))
-        self.ckptLine.setPlaceholderText(_translate("Dialog", "choose the .meta file"))
-        self.ckptButton.setText(_translate("Dialog", "..."))
-        self.trnPathLabel.setText(_translate("Dialog", "trn. repo. path"))
-        self.trnPathLine.setPlaceholderText(_translate("Dialog", "e.g. \"./train/\""))
-        self.trnPathButton.setText(_translate("Dialog", "..."))
-        self.valPathLabel.setText(_translate("Dialog", "val. repo. path"))
-        self.valPathLine.setPlaceholderText(_translate("Dialog", "e.g. \"./valid/\""))
-        self.valPathButton.setText(_translate("Dialog", "..."))
-        self.epochLabel.setText(_translate("Dialog", "Extra epoch"))
-        self.epochLine.setPlaceholderText(_translate("Dialog", "e.g. 3"))
-        self.commentLabel.setText(_translate("Dialog", "Comment"))
-        self.commentLine.setPlaceholderText(_translate("Dialog", "e.g. None"))
+        Dialog.setWindowTitle(QtWidgets.QApplication.translate("Dialog", "Dialog", None, -1))
+        self.ckptLabel.setText(QtWidgets.QApplication.translate("Dialog", "Checkpoint", None, -1))
+        self.ckptLine.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "choose the .meta file", None, -1))
+        self.ckptButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.trnPathLabel.setText(QtWidgets.QApplication.translate("Dialog", "trn. repo. path", None, -1))
+        self.trnPathLine.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "e.g. \"./train/\"", None, -1))
+        self.trnPathButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.valPathLabel.setText(QtWidgets.QApplication.translate("Dialog", "val. repo. path", None, -1))
+        self.valPathLine.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "e.g. \"./valid/\"", None, -1))
+        self.valPathButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.epochLabel.setText(QtWidgets.QApplication.translate("Dialog", "Extra epoch", None, -1))
+        self.epochLine.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "e.g. 3", None, -1))
+        self.commentLabel.setText(QtWidgets.QApplication.translate("Dialog", "Comment", None, -1))
+        self.commentLine.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "e.g. None", None, -1))
 

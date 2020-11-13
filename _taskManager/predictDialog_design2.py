@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/predictDialog_design2.ui'
+# Form implementation generated from reading ui file '_taskManager/predictDialog_design2.ui',
+# licensing of '_taskManager/predictDialog_design2.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created: Fri Nov 13 17:59:27 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -72,17 +74,16 @@ class Ui_Dialog(object):
         self.gridLayout_2.addLayout(self.verticalLayout_4, 0, 0, 1, 1)
 
         self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(Dialog.accept)
-        self.buttonBox.rejected.connect(Dialog.reject)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), Dialog.accept)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("rejected()"), Dialog.reject)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.predLabel.setText(_translate("Dialog", "select a folder to put your predictions"))
-        self.predButton.setText(_translate("Dialog", "..."))
-        self.metaLabel.setText(_translate("Dialog", "select a checkpoint file .meta"))
-        self.metaButton.setText(_translate("Dialog", "..."))
-        self.rawLabel.setText(_translate("Dialog", "select a folder of raw tomogram (*.tif) to predict"))
-        self.rawButton.setText(_translate("Dialog", "..."))
+        Dialog.setWindowTitle(QtWidgets.QApplication.translate("Dialog", "Dialog", None, -1))
+        self.predLabel.setText(QtWidgets.QApplication.translate("Dialog", "select a folder to put your predictions", None, -1))
+        self.predButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.metaLabel.setText(QtWidgets.QApplication.translate("Dialog", "select a checkpoint file .meta", None, -1))
+        self.metaButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.rawLabel.setText(QtWidgets.QApplication.translate("Dialog", "select a folder of raw tomogram (*.tif) to predict", None, -1))
+        self.rawButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
 
