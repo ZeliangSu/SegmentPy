@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
+from PySide2.QtWidgets import QApplication, QWidget
+from PySide2.QtGui import QPixmap, QImage
+from PySide2.QtCore import Qt
 
 from _taskManager.augmentationViewer_design import Ui_augViewer
 from input import coords_gen, stretching

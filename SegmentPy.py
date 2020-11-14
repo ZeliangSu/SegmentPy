@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QApplication
-from PyQt5 import QtGui
+from PySide2.QtWidgets import QApplication
+from PySide2 import QtGui
 
 from _taskManager.mainwindow_logic import mainwindow_logic
 import sys

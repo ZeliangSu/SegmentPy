@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QDialog
-from PyQt5.QtWidgets import QListWidget
+from PySide2.QtWidgets import QDialog
+from PySide2.QtWidgets import QListWidget
 
 from _taskManager.nodes_list_design import Ui_nodes_list
 

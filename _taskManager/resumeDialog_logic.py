@@ -1,9 +1,7 @@
 from _taskManager.resumeDialog_design import Ui_Dialog
 from _taskManager.file_dialog import file_dialog
 
-from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QLabel, QWidget, QProgressDialog
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QImage
-from PyQt5.QtCore import Qt, QPoint, QThreadPool, QRunnable, pyqtSlot, pyqtSignal, QObject
+from PySide2.QtWidgets import QDialog
 
 import json
 import os

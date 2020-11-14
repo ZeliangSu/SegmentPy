@@ -1,5 +1,5 @@
 from _taskManager.opening_design import Ui_Dialog
-from PyQt5.QtWidgets import QDialog
+from PySide2.QtWidgets import QDialog
 
 
 class opening_logic(QDialog, Ui_Dialog):

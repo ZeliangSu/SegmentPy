@@ -1,7 +1,7 @@
 from _taskManager.dashboard_design import Ui_dashboard
 from _taskManager.file_dialog import file_dialog
-from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QMessageBox
-from PyQt5.QtCore import QThread, QObject, pyqtSlot, pyqtSignal, Qt
+from PySide2.QtWidgets import QDialog, QApplication, QLineEdit, QMessageBox
+from PySide2.QtCore import QThread, QObject, Slot, Signal, Qt
 
 import matplotlib
 matplotlib.use('QT5Agg')
@@ -33,7 +33,7 @@ class save_path_box(QLineEdit):
 
 
 class simpleSignal(QObject):
-    launch = pyqtSignal(object)
+    launch = Signal(object)
 
 
 class sideloop(QThread):
@@ -42,7 +42,7 @@ class sideloop(QThread):
         self.toggle = True
         self.signal = signal
 
-    @pyqtSlot(name='loop')
+    @Slot(name='loop')
     def run(self):
         self.toggle = True
         while self.toggle:
@@ -50,7 +50,7 @@ class sideloop(QThread):
             self.signal.launch.emit(1)
 
 
-    @pyqtSlot(name='terminate')
+    @Slot(name='terminate')
     def stop(self):
         self.toggle = False
 

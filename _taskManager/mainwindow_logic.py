@@ -1,6 +1,6 @@
-from PyQt5.QtCore import pyqtSignal, QThreadPool, QThread, QObject, QRunnable, pyqtSlot, Qt
-from PyQt5.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
-from PyQt5 import QtCore, QtGui
+from PySide2.QtCore import Signal, QThreadPool, QThread, QObject, QRunnable, Slot, Qt
+from PySide2.QtWidgets import QMainWindow,  QApplication, QTableWidgetItem, QMessageBox
+from PySide2 import QtCore, QtGui
 
 from _taskManager.mainwindow_design import Ui_LRCSNet
 from _taskManager.dialog_logic import dialog_logic
@@ -14,6 +14,7 @@ from _taskManager.ActViewer_logic import actViewer_logic
 from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
 from _taskManager.trainableParamsList_logic import resumeNodes_logic
+from _taskManager.predictDialog_logic import predictDialog_logic
 
 from util import print_nodes_name
 from parser import string_to_hypers
@@ -49,7 +50,7 @@ class queueManager(QThread):
         self.signals = WorkerSignals()
         self.toggle = False
 
-    @pyqtSlot(name='queue1')
+    @Slot(name='queue1')
     def run(self):
         self.toggle = True
         while self.toggle:
@@ -65,11 +66,11 @@ class queueManager(QThread):
 
 
 class WorkerSignals(QObject):
-    error = pyqtSignal(tuple)
-    released_gpu = pyqtSignal(object)
-    start_proc = pyqtSignal(tuple)
-    released_proc = pyqtSignal(tuple)
-    available_gpu = pyqtSignal(int)
+    error = Signal(tuple)
+    released_gpu = Signal(object)
+    start_proc = Signal(tuple)
+    released_proc = Signal(tuple)
+    available_gpu = Signal(int)
 
 
 class predict_Worker(QRunnable):
@@ -81,7 +82,7 @@ class predict_Worker(QRunnable):
         self.device = 'cpu'
         self.signals = WorkerSignals()
 
-    @pyqtSlot(name='predict')
+    @Slot(name='predict')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())
@@ -120,7 +121,7 @@ class training_Worker(QRunnable):
         self.params = args[1]
         self.signals = WorkerSignals()
 
-    @pyqtSlot(name='train')
+    @Slot(name='train')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())
@@ -182,7 +183,7 @@ class retraining_Worker(QRunnable):
         self.params = args[1]
         self.signals = WorkerSignals()
 
-    @pyqtSlot(name='retrain')
+    @Slot(name='retrain')
     def run(self):
         thread_name = QThread.currentThread().objectName()
         thread_id = int(QThread.currentThreadId())
@@ -621,29 +622,15 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             self.setHeader()
 
     def predict(self):
-        # define data folder path
-        ckpt_dialog = file_dialog(title='select a checkpoint file .meta', type='.meta')
-        ckpt_path = ckpt_dialog.openFileNameDialog()
-        print(ckpt_path)
-
-        if ckpt_path:
-            # get to predict .tif
-            predict_dialog = file_dialog(title='select folder of raw tomograms (*.tif) to predict', type='/')
-            predict_dir = predict_dialog.openFolderDialog()
-            print(predict_dir)
-
-            # define predict folder path (can create new folder)
-            if predict_dir:
-                save_dialog = file_dialog(title='select folder to put prediction', type='/')
-                save_dir = save_dialog.openFolderDialog()
-                print(save_dir)
-
-                if save_dir:
-                    # spawn sub process
-                    _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=predict_dir, save_dir=save_dir)
-                    self.threadpool.start(_Worker)
-                    _Worker.signals.start_proc.connect(self.add_proc_surveillance)
-                    _Worker.signals.released_proc.connect(self.remove_process_from_list)
+        self.predDialog = predictDialog_logic(None)
+        self.predDialog.exec()
+        if self.predDialog.result() == 1:
+            ckpt_path, raw_folder, pred_folder = self.predDialog.get_params()
+            logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\n'.format(ckpt_path, raw_folder, pred_folder))
+            _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=raw_folder, save_dir=pred_folder)
+            self.threadpool.start(_Worker)
+            _Worker.signals.start_proc.connect(self.add_proc_surveillance)
+            _Worker.signals.released_proc.connect(self.remove_process_from_list)
 
     def start(self):
         if self.header[1] == 'nextTrain':

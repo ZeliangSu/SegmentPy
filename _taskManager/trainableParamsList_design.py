@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/trainableParamsList_design.ui'
+# Form implementation generated from reading ui file '_taskManager/trainableParamsList_design.ui',
+# licensing of '_taskManager/trainableParamsList_design.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 18:00:36 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_chooseParams(object):
     def setupUi(self, chooseParams):
@@ -21,8 +23,8 @@ class Ui_chooseParams(object):
         self.label = QtWidgets.QLabel(chooseParams)
         font = QtGui.QFont()
         font.setPointSize(20)
-        font.setBold(True)
         font.setWeight(75)
+        font.setBold(True)
         self.label.setFont(font)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setObjectName("label")
@@ -43,13 +45,12 @@ class Ui_chooseParams(object):
         self.gridLayout.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
 
         self.retranslateUi(chooseParams)
-        self.buttonBox.accepted.connect(chooseParams.accept)
-        self.buttonBox.rejected.connect(chooseParams.reject)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), chooseParams.accept)
+        QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("rejected()"), chooseParams.reject)
         QtCore.QMetaObject.connectSlotsByName(chooseParams)
 
     def retranslateUi(self, chooseParams):
-        _translate = QtCore.QCoreApplication.translate
-        chooseParams.setWindowTitle(_translate("chooseParams", "Dialog"))
-        self.label.setText(_translate("chooseParams", "Select the parameters to restore"))
-        self.label_2.setText(_translate("chooseParams", "* Not selecting = select all"))
+        chooseParams.setWindowTitle(QtWidgets.QApplication.translate("chooseParams", "Dialog", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("chooseParams", "Select the parameters to restore", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("chooseParams", "* Not selecting = select all", None, -1))
 

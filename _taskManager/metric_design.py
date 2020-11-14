@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/metric_design.ui'
+# Form implementation generated from reading ui file '_taskManager/metric_design.ui',
+# licensing of '_taskManager/metric_design.ui' applies.
 #
-# Created by: PyQt5 UI code generator 5.14.2
+# Created: Fri Nov 13 17:57:36 2020
+#      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
 
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_metricViewer(object):
     def setupUi(self, metricViewer):
@@ -248,26 +248,26 @@ class Ui_metricViewer(object):
         QtCore.QMetaObject.connectSlotsByName(metricViewer)
 
     def retranslateUi(self, metricViewer):
-        _translate = QtCore.QCoreApplication.translate
-        metricViewer.setWindowTitle(_translate("metricViewer", "Dialog"))
-        self.total_pix.setText(_translate("metricViewer", "Total pixels:"))
-        self.total_IoU.setText(_translate("metricViewer", "Accuracy:"))
-        self.total_acc.setText(_translate("metricViewer", "IoU:"))
-        self.label.setText(_translate("metricViewer", "Ref. Vol. Frac. (pixel / %):"))
-        self.label_5.setText(_translate("metricViewer", "Ref. Surface (pixel / %):"))
-        self.label_2.setText(_translate("metricViewer", "Ref. Interface (pixel / %):"))
-        self.raw_frame.setText(_translate("metricViewer", "Drop a raw tomogram here"))
-        self.diff_frame.setText(_translate("metricViewer", "Difference will be shown here"))
-        self.gt1_frame.setText(_translate("metricViewer", "Drop a (reference) segmentation here"))
-        self.gt2_frame.setText(_translate("metricViewer", "Drop a segmentation here"))
-        self.label_3.setText(_translate("metricViewer", "Vol. Frac. (pixel / %):"))
-        self.label_6.setText(_translate("metricViewer", "Surface (pixel / %):"))
-        self.label_4.setText(_translate("metricViewer", "Interface (pixel / %):"))
-        self.clean_button.setText(_translate("metricViewer", "Clean(C)"))
-        self.clean_button.setShortcut(_translate("metricViewer", "C"))
-        self.add_button.setText(_translate("metricViewer", "Add(A)"))
-        self.add_button.setShortcut(_translate("metricViewer", "A"))
-        self.previous_button.setText(_translate("metricViewer", "Previous(1)"))
-        self.previous_button.setShortcut(_translate("metricViewer", "1"))
-        self.next_button.setText(_translate("metricViewer", "Next(2)"))
-        self.next_button.setShortcut(_translate("metricViewer", "2"))
+        metricViewer.setWindowTitle(QtWidgets.QApplication.translate("metricViewer", "Dialog", None, -1))
+        self.total_pix.setText(QtWidgets.QApplication.translate("metricViewer", "Total pixels:", None, -1))
+        self.total_IoU.setText(QtWidgets.QApplication.translate("metricViewer", "Accuracy:", None, -1))
+        self.total_acc.setText(QtWidgets.QApplication.translate("metricViewer", "IoU:", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("metricViewer", "Ref. Vol. Frac. (pixel / %):", None, -1))
+        self.label_5.setText(QtWidgets.QApplication.translate("metricViewer", "Ref. Surface (pixel / %):", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("metricViewer", "Ref. Interface (pixel / %):", None, -1))
+        self.raw_frame.setText(QtWidgets.QApplication.translate("metricViewer", "Drop a raw tomogram here", None, -1))
+        self.diff_frame.setText(QtWidgets.QApplication.translate("metricViewer", "Difference will be shown here", None, -1))
+        self.gt1_frame.setText(QtWidgets.QApplication.translate("metricViewer", "Drop a (reference) segmentation here", None, -1))
+        self.gt2_frame.setText(QtWidgets.QApplication.translate("metricViewer", "Drop a segmentation here", None, -1))
+        self.label_3.setText(QtWidgets.QApplication.translate("metricViewer", "Vol. Frac. (pixel / %):", None, -1))
+        self.label_6.setText(QtWidgets.QApplication.translate("metricViewer", "Surface (pixel / %):", None, -1))
+        self.label_4.setText(QtWidgets.QApplication.translate("metricViewer", "Interface (pixel / %):", None, -1))
+        self.clean_button.setText(QtWidgets.QApplication.translate("metricViewer", "Clean(C)", None, -1))
+        self.clean_button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "C", None, -1))
+        self.add_button.setText(QtWidgets.QApplication.translate("metricViewer", "Add(A)", None, -1))
+        self.add_button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "A", None, -1))
+        self.previous_button.setText(QtWidgets.QApplication.translate("metricViewer", "Previous(1)", None, -1))
+        self.previous_button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "1", None, -1))
+        self.next_button.setText(QtWidgets.QApplication.translate("metricViewer", "Next(2)", None, -1))
+        self.next_button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "2", None, -1))
+

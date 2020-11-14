@@ -1,6 +1,6 @@
 # from _taskManager.opening_logic import opening_logic
 
-from PyQt5.QtWidgets import QApplication
+from PySide2.QtWidgets import QApplication
 from tensorflow.python.client import device_lib
 from tqdm import tqdm
 from time import sleep

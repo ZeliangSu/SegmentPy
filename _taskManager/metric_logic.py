@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QDialog, QApplication
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt
+from PySide2.QtWidgets import QDialog, QApplication
+from PySide2.QtGui import QImage, QPixmap
+from PySide2.QtCore import Qt
 
 from _taskManager.metric_design import Ui_metricViewer
 from metric import *

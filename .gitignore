@@ -20,8 +20,9 @@ device.txt
 _taskManager/latest.json
 _taskManager/latest_resume.json
 _taskManager/latest_gradView.json
-/docs/_build
-/docs/.vscode
+_taskManager/latest_pred.json
 .DS_Store
 .DS_Store?
 ._*
+docs/_build/
+docs/.vscode/
