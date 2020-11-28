@@ -12,6 +12,7 @@ Credits & Contributors
 
 License
 -----------
+Apache 2.0
 
 References
 -----------

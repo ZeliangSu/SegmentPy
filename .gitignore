@@ -21,5 +21,8 @@ _taskManager/latest.json
 _taskManager/latest_resume.json
 _taskManager/latest_gradView.json
 _taskManager/latest_pred.json
+.DS_Store
+.DS_Store?
+._*
 docs/_build/
 docs/.vscode/
