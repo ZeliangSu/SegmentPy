@@ -85,7 +85,7 @@ class predict_Worker(QRunnable):
     @Slot(name='predict')
     def run(self):
         thread_name = QThread.currentThread().objectName()
-        thread_id = int(QThread.currentThreadId())
+        thread_id = str(QThread.currentThread())
         print('On CPU')
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
@@ -124,7 +124,7 @@ class training_Worker(QRunnable):
     @Slot(name='train')
     def run(self):
         thread_name = QThread.currentThread().objectName()
-        thread_id = int(QThread.currentThreadId())
+        thread_id = str(QThread.currentThread())
         print('On GPU: {}'.format(self.using_gpu))
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
@@ -186,7 +186,7 @@ class retraining_Worker(QRunnable):
     @Slot(name='retrain')
     def run(self):
         thread_name = QThread.currentThread().objectName()
-        thread_id = int(QThread.currentThreadId())
+        thread_id = str(QThread.currentThread())
         print('On GPU: {}'.format(self.using_gpu))
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
