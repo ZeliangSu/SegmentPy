@@ -17,7 +17,7 @@ import re
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 tag_compute = 1002
 

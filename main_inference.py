@@ -13,6 +13,8 @@ if __name__ == '__main__':
     # os.system("mpiexec -n 3 python inference.py")
 
     ##################### below cannot capture the callback
+    # note: 'mpiexec' for MPICH and 'mpirun' for mpi4py
+    #  https://stackoverflow.com/a/33784179/9217178
     # subprocess.Popen([
     #     'mpiexec', '--use-hwthread-cpus', 'python', 'inference.py',
     #     '-ckpt', args.ckpt_path,
@@ -22,7 +24,7 @@ if __name__ == '__main__':
     # ])
     ##################### above cannot capture the callback
 
-    os.system("mpiexec --use-hwthread-cpus python inference.py -ckpt {} -raw {} -pred {}".format(
+    os.system("mpirun --use-hwthread-cpus python inference.py -ckpt {} -raw {} -pred {}".format(
         args.ckpt_path,
         args.raw_dir,
         args.pred_dir
