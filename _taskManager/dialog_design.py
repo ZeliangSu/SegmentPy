@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/dialog.ui',
-# licensing of '_taskManager/dialog.ui' applies.
+# Form implementation generated from reading ui file './_taskManager/dialog.ui',
+# licensing of './_taskManager/dialog.ui' applies.
 #
-# Created: Fri Nov 13 17:56:07 2020
+# Created: Fri Feb 12 21:00:13 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -15,7 +15,7 @@ class Ui_Dialog(object):
         Dialog.setObjectName("Dialog")
         Dialog.resize(566, 684)
         self.layoutWidget = QtWidgets.QWidget(Dialog)
-        self.layoutWidget.setGeometry(QtCore.QRect(11, 11, 539, 660))
+        self.layoutWidget.setGeometry(QtCore.QRect(11, 11, 574, 660))
         self.layoutWidget.setObjectName("layoutWidget")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.layoutWidget)
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
@@ -193,6 +193,18 @@ class Ui_Dialog(object):
         self.val_dir_button.setObjectName("val_dir_button")
         self.horizontalLayout_2.addWidget(self.val_dir_button)
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.label_21 = QtWidgets.QLabel(self.layoutWidget)
+        self.label_21.setObjectName("label_21")
+        self.horizontalLayout_4.addWidget(self.label_21)
+        self.test_dir_line = QtWidgets.QLineEdit(self.layoutWidget)
+        self.test_dir_line.setObjectName("test_dir_line")
+        self.horizontalLayout_4.addWidget(self.test_dir_line)
+        self.test_dir_button = QtWidgets.QPushButton(self.layoutWidget)
+        self.test_dir_button.setObjectName("test_dir_button")
+        self.horizontalLayout_4.addWidget(self.test_dir_button)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
 
         self.retranslateUi(Dialog)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), Dialog.accept)
@@ -253,4 +265,6 @@ class Ui_Dialog(object):
         self.trn_dir_button.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
         self.label_19.setText(QtWidgets.QApplication.translate("Dialog", "Val. ds. repo.:", None, -1))
         self.val_dir_button.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.label_21.setText(QtWidgets.QApplication.translate("Dialog", "Tst. ds. repo.:", None, -1))
+        self.test_dir_button.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
 

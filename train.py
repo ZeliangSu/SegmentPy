@@ -239,7 +239,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         # loader = tf.train.Saver()
                         # ckpt_saved_path = folder + 'ckpt/step{}'.format(global_step)
                         # loader.restore(sess, ckpt_saved_path)
-                        for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='test batch'):
+                        for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='val batch'):
                             _, summary, _, _ = sess.run(
                                 [
                                     test_nodes['y_pred'],
@@ -255,6 +255,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
         except (KeyboardInterrupt, SystemExit) as e:
             saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
             raise e
+
         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
 
 

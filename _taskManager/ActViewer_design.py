@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/ActViewer.ui',
-# licensing of '_taskManager/ActViewer.ui' applies.
+# Form implementation generated from reading ui file './_taskManager/ActViewer.ui',
+# licensing of './_taskManager/ActViewer.ui' applies.
 #
-# Created: Fri Nov 13 17:53:55 2020
+# Created: Fri Feb 12 20:52:26 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_actViewer(object):
     def setupUi(self, actViewer):
         actViewer.setObjectName("actViewer")
-        actViewer.resize(1279, 912)
+        actViewer.resize(1296, 929)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -52,6 +52,11 @@ class Ui_actViewer(object):
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.ListTitle = QtWidgets.QLabel(actViewer)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.ListTitle.sizePolicy().hasHeightForWidth())
+        self.ListTitle.setSizePolicy(sizePolicy)
         self.ListTitle.setMaximumSize(QtCore.QSize(300, 16777215))
         self.ListTitle.setObjectName("ListTitle")
         self.verticalLayout.addWidget(self.ListTitle)
@@ -66,6 +71,7 @@ class Ui_actViewer(object):
         self.verticalLayout.addWidget(self.actList)
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_2.setSizeConstraint(QtWidgets.QLayout.SetNoConstraint)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.ImgTitle = QtWidgets.QLabel(actViewer)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -76,12 +82,13 @@ class Ui_actViewer(object):
         self.ImgTitle.setObjectName("ImgTitle")
         self.verticalLayout_2.addWidget(self.ImgTitle)
         self.Images = QtWidgets.QLabel(actViewer)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Images.sizePolicy().hasHeightForWidth())
         self.Images.setSizePolicy(sizePolicy)
         self.Images.setText("")
+        self.Images.setScaledContents(True)
         self.Images.setObjectName("Images")
         self.verticalLayout_2.addWidget(self.Images)
         self.actSlider = QtWidgets.QSlider(actViewer)

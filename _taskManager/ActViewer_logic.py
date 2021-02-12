@@ -60,7 +60,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
             self.set_ckpt()
 
     def inputFileDialog(self):
-        tmp = file_dialog(title='choose .tif for input').openFileNameDialog()
+        tmp = file_dialog(title='choose .tif for input', type='.tif').openFileNameDialog()
         if tmp:
             self.inputPathLine.setText(tmp)
             self.set_input()

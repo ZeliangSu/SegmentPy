@@ -43,7 +43,7 @@ def _get_nodes(graph_def: tf.GraphDef, out_node: list, hyper: dict, if_numpy=Tru
         # graffe new loss/acc part
         y = customized_softmax(y)
         y = tf.argmax(y, axis=3)
-        if hyper['loss_option'] == 'DSC':
+        if hyper['loss_option'] == 'Dice':
             loss = DSC(new_label, y, name='loss_fn')
         elif hyper['loss_option'] == 'cross_entropy':
             loss = Cross_Entropy(new_label, y, name='CE')
@@ -71,7 +71,7 @@ def _get_nodes(graph_def: tf.GraphDef, out_node: list, hyper: dict, if_numpy=Tru
         }
 
 
-def testing(paths: dict, hyper: dict, numpy: bool):
+def testing_recursive(paths: dict, hyper: dict, numpy: bool):
     # evaluate in cpu to avoid the training in gpu
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -131,13 +131,64 @@ def testing(paths: dict, hyper: dict, numpy: bool):
     np.savetxt(fname='/'.join(paths['ckpt_dir'].split('/')[:-2]) + '/' + 'new_test/new_curve.csv', X=ds.transpose())
 
 
+def testing(paths: dict, hyper: dict, numpy: bool):
+    # evaluate in cpu to avoid the training in gpu
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    # prepare test labels
+    img = get_img_stack(paths['test_dir'], img_or_label='input') * hyper['norm']
+    label = get_img_stack(paths['test_dir'], img_or_label='label')
+    logger.debug('label: {} unique: {}'.format(label.shape, np.unique(label)))
+
+    # misc
+    ckpt = paths['ckpt_path']
+    mdl_name = re.search('mdl\_([A-Za-z]+\d*)', ckpt).group(1)
+    step = re.search('step(\d+)', ckpt).group(1)
+    step = int(step)
+    out_node = ['{}/decoder/logits/identity'.format(mdl_name)]
+
+    # note: here could not restore directly from the ckpt because of the pipeline, need to be frozon and optimized
+    #  or should refer to landscape
+
+    # define some paths
+    paths['save_pb_path'] = paths['save_pb_dir'] + 'frozen_step{}.pb'.format(step)
+    paths['optimized_pb_path'] = paths['save_pb_dir'] + 'optimized_step{}.pb'.format(step)
+    if not os.path.exists(paths['optimized_pb_path']):
+        # freeze to pb
+        freeze_ckpt_for_inference(paths=paths, hyper=hyper,
+                                  conserve_nodes=out_node)  # there's still some residual nodes
+        optimize_pb_for_inference(paths=paths,
+                                  conserve_nodes=out_node)
+
+    # inference and evaluate
+
+    tf.reset_default_graph()  # note: should clean the graph before reloading another pb or the params will not change
+    with tf.Session() as sess:
+        graph_def_optimized = read_pb(paths['save_pb_path'])
+
+        # get nodes
+        nodes = _get_nodes(graph_def=graph_def_optimized, out_node=out_node, hyper=hyper, if_numpy=numpy)
+
+        # load params and evaluate
+        logger.debug(step)
+        acc, lss, y, label = _evaluate(
+            sess=sess,
+            global_step=step,
+            nodes=nodes,
+            img=img,
+            label=label,
+            numpy=True
+        )
+    return acc, lss, y, label
+
+
 def _evaluate(sess: tf.Session,
-             writer: tf.summary.FileWriter,
-             global_step: int,
-             nodes: dict,
-             img: np.ndarray,
-             label: np.ndarray,
-             numpy=True,
+              global_step: int,
+              nodes: dict,
+              img: np.ndarray,
+              label: np.ndarray,
+              writer=None,
+              numpy=True,
              ):
     # init variables
     sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
@@ -148,25 +199,30 @@ def _evaluate(sess: tf.Session,
             nodes['new_input']: img.reshape((-1, *img.shape[1:], 1)),
             nodes['new_BN_phase']: True,  # note: (TF114) here should be True while testing
         }
-
+        logger.debug('label: {} {}'.format(label.shape, np.unique(label)))
         label = label.reshape((-1, *img.shape[1:], 1)).astype(np.int32)
         label = _one_hot(label)
+        logger.debug('label: {} {}'.format(label.shape, np.unique(label)))
 
         y, = sess.run([nodes['y_hat']], feed_dict=feed_dict)
         y = customized_softmax_np(y)
+
         lss = DSC_np(
             y_true=label,  # [B, W, H, 3]
             logits=y  # [B, W, H, 3]
-        )  #note: DSC should be evaluated before argmax
+        )
 
         # inverse one hot then accuracy
         y = _inverse_one_hot(y)
         label = _inverse_one_hot(label)
+        logger.debug('label: {} {}, y: {} {}'.format(label.shape, np.unique(label), y.shape, np.unique(y)))
+
         acc = len(np.where(y == label)[0]) / y.size
-        logger.debug('lss: {}, acc: {}'.format(lss, acc))
-        return acc, lss
+        logger.debug('lss: {}, acc: {} input shape: {} y shape:{}'.format(lss, acc, img.shape, y.shape))
+        return acc, lss, y, label
 
     else:
+        assert isinstance(writer, tf.summary.FileWriter)
         feed_dict = {
             nodes['new_input']: img.reshape((-1, *img.shape[1:], 1)),
             nodes['new_label']: label.reshape((-1, *img.shape[1:], 1)),

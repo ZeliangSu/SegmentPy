@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/mainwindow.ui',
-# licensing of '_taskManager/mainwindow.ui' applies.
+# Form implementation generated from reading ui file './_taskManager/mainwindow.ui',
+# licensing of './_taskManager/mainwindow.ui' applies.
 #
-# Created: Fri Nov 13 17:57:04 2020
+# Created: Fri Feb 12 21:09:59 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -114,11 +114,11 @@ class Ui_LRCSNet(object):
         self.tableWidget.setMinimumSize(QtCore.QSize(801, 601))
         self.tableWidget.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.tableWidget.setDragEnabled(False)
-        self.tableWidget.setRowCount(23)
+        self.tableWidget.setRowCount(24)
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setObjectName("tableWidget")
         self.tableWidget.setColumnCount(2)
-        self.tableWidget.setRowCount(23)
+        self.tableWidget.setRowCount(24)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setItem(0, 0, item)
         item = QtWidgets.QTableWidgetItem()
@@ -171,6 +171,8 @@ class Ui_LRCSNet(object):
         self.tableWidget.setItem(21, 0, item)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setItem(22, 0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setItem(23, 0, item)
         self.tableWidget.horizontalHeader().setDefaultSectionSize(100)
         self.tableWidget.horizontalHeader().setMinimumSectionSize(18)
         self.horizontalLayout.addWidget(self.tableWidget)
@@ -318,8 +320,9 @@ class Ui_LRCSNet(object):
         self.tableWidget.item(18, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "comment", None, -1))
         self.tableWidget.item(19, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "trn repo path", None, -1))
         self.tableWidget.item(20, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "val repo path", None, -1))
-        self.tableWidget.item(21, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "ckpt path", None, -1))
-        self.tableWidget.item(22, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "nodes", None, -1))
+        self.tableWidget.item(21, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "tst repo path", None, -1))
+        self.tableWidget.item(22, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "ckpt path", None, -1))
+        self.tableWidget.item(23, 0).setText(QtWidgets.QApplication.translate("LRCSNet", "nodes", None, -1))
         self.tableWidget.setSortingEnabled(__sortingEnabled)
         self.label.setText(QtWidgets.QApplication.translate("LRCSNet", "Available GPUs:", None, -1))
         self.label_2.setText(QtWidgets.QApplication.translate("LRCSNet", "Ongoing Process:", None, -1))

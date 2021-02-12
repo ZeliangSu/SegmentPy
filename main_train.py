@@ -4,14 +4,17 @@ import argparse
 import os
 import shutil
 import platform
+import subprocess
 
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
 from input import coords_gen, get_max_nb_cls
+from tensorboard_extractor import lr_curve_extractor, df_to_csv
 
 # logging
 import logging
 import log
+
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -57,12 +60,18 @@ if __name__ == '__main__':
     parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
                         help='save the histograms of gradients and weights for the training every X step')
     parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
-    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False, help='where to find the training dataset')
-    parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False, help='where to find the valid dataset')
-    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
-    parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False, help='indicate the step/stride with which we sample')
-    parser.add_argument('-corr', '--correction', type=float, metavar='', default=1e3, required=False, help='img * correction')
-    parser.add_argument('-stch', '--stretch', type=float, metavar='', default=2.0, required=False, help='parameter for stretching')
+    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False,
+                        help='where to find the training dataset')
+    parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False,
+                        help='where to find the valid dataset')
+    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False,
+                        help='where to find the testing dataset')
+    parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False,
+                        help='indicate the step/stride with which we sample')
+    parser.add_argument('-corr', '--correction', type=float, metavar='', default=1e3, required=False,
+                        help='img * correction')
+    parser.add_argument('-stch', '--stretch', type=float, metavar='', default=2.0, required=False,
+                        help='parameter for stretching')
 
     try:
         args = parser.parse_args()
@@ -96,7 +105,8 @@ if __name__ == '__main__':
             'device': 'cpu' if args.device == 'cpu' else args.device,
             'save_step': 500 if args.save_model_step is None else args.save_model_step,
             'save_summary_step': 50 if args.save_tb is None else args.save_tb,
-            'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
+            'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month,
+                                      datetime.datetime.now().day),
             'hour': '{}'.format(datetime.datetime.now().hour),
 
             'train_dir': args.train_dir,
@@ -104,7 +114,7 @@ if __name__ == '__main__':
             'test_dir': args.test_dir,
             'correction': 1e3,
             'stretch': 2.0
-            }
+        }
 
         # coordinations gen
         hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
@@ -134,7 +144,8 @@ if __name__ == '__main__':
                 period=args.lr_period,
             )  # float32 or np.array of programmed learning rate
         elif args.lr_decay_type == 'constant':
-            hyperparams['learning_rate'] = np.zeros(hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
+            hyperparams['learning_rate'] = np.zeros(
+                hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1)) + args.init_lr
         else:
             raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))
 
@@ -163,7 +174,8 @@ if __name__ == '__main__':
             )
 
     except Exception as e:
-        logger.warning('\n\n(main_train.py)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
+        logger.warning(
+            '\n\n(main_train.py)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
         logger.error(e)
         hyperparams = {
             ############### model ###################
@@ -183,7 +195,7 @@ if __name__ == '__main__':
 
             ############### misc #####################
             'nb_epoch': 5,
-            'device': 0,  #cpu: -1
+            'device': 0,  # cpu: -1
             'save_step': 500,
             'save_summary_step': 50,
             'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month,
@@ -191,8 +203,8 @@ if __name__ == '__main__':
             'hour': '{}'.format(datetime.datetime.now().hour),
 
             'train_dir': args.train_dir if args.train_dir is not None else './train/',
-            'val_dir': args.val_dir if args.val_dir is not None else'./valid/',
-            'test_dir': args.test_dir if args.test_dir is not None else'./test/',
+            'val_dir': args.val_dir if args.val_dir is not None else './valid/',
+            'test_dir': args.test_dir if args.test_dir is not None else './test/',
             'correction': args.correction,
             'stretch': args.stretch
         }
@@ -249,7 +261,16 @@ if __name__ == '__main__':
     hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
     main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
 
-    # except Exception as e:
-    #     logger.error(e)
-    #     with open(hyperparams['folder_name'] + 'exit_log.txt', 'w') as f:
-    #         f.write(str(e))
+    # save lr_curves
+    check_N_mkdir(hyperparams['folder_name'] + 'curves/')
+    ac_tn, _, ls_tn, _ = lr_curve_extractor(hyperparams['folder_name'] + 'train/')
+    _, ac_val, _, ls_val = lr_curve_extractor(hyperparams['folder_name'] + 'test/')
+    best_step = ac_val.step.loc[ac_val.value.argmax()]
+    df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
+
+    # testing
+    p = subprocess.Popen['python', 'main_testing.py',
+                     '-tstd', args.test_dir,
+                     '-ckpt', hyperparams['folder_name'] + '/ckpt/step{}'.format(best_step)]
+
+    o, e = p.communicate()

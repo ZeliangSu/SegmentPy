@@ -34,6 +34,8 @@ class dialog_logic(QDialog, Ui_Dialog):
             self.train_dir = params['train_dir']
             self.val_dir_line.setText(params['val_dir'])
             self.val_dir = params['val_dir']
+            self.test_dir_line.setText(params['test_dir'])
+            self.tst_dir = params['test_dir']
 
             # set QComboBox
             self.batnorm.setCurrentIndex(self.batnorm.findText(params['batch_norm']))
@@ -48,6 +50,7 @@ class dialog_logic(QDialog, Ui_Dialog):
         self.buttonBox.rejected.connect(self.reject)  # cancel button
         self.trn_dir_button.clicked.connect(self.set_train_dir)
         self.val_dir_button.clicked.connect(self.set_val_dir)
+        self.test_dir_button.clicked.connect(self.set_tst_dir)
 
     def return_params(self):
         output = {
@@ -82,6 +85,11 @@ class dialog_logic(QDialog, Ui_Dialog):
         else:
             output['val_dir'] = './valid/'
 
+        if hasattr(self, 'tst_dir'):
+            output['test_dir'] = self.test_dir_line.text()
+        else:
+            output['test_dir'] = './test/'
+
         with open('./_taskManager/latest.json', 'w') as file:
             json.dump(output, file)
 
@@ -97,3 +105,7 @@ class dialog_logic(QDialog, Ui_Dialog):
         self.val_dir = val_dir_dial.openFolderDialog()
         self.val_dir_line.setText(self.val_dir)
 
+    def set_tst_dir(self):
+        tst_dir_dial = file_dialog(title='select a folder where includes the testing dataset', type='/')
+        self.tst_dir = tst_dir_dial.openFolderDialog()
+        self.test_dir_line.setText(self.tst_dir)

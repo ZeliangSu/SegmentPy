@@ -299,11 +299,12 @@ def _one_hot(tensor, impose_nb_cls=None):
     logger.debug('impose: {}, nb_cls: {}'.format(impose_nb_cls, nb_classes))
 
     if tensor.ndim == 4:
-        #note: (Batch, H, W, C)
+        #note: (Batch, H, W, 1)
         # one hot
         out = []
         for i in range(nb_classes):
-            tmp = np.zeros(tensor.shape)
+            tmp = np.zeros_like(tensor)
+            tmp[np.where(tensor == i)] = 1
             out.append(tmp)
         # stack along the last channel
         out = np.concatenate(out, axis=3)
@@ -315,7 +316,6 @@ def _one_hot(tensor, impose_nb_cls=None):
         for i in range(nb_classes):
             tmp = np.zeros(tensor.shape)
             tmp[np.where(tensor == i)] = 1
-            # tmp[np.where(tensor == i)] = 5  # uncomment this line to do 5-hot
             out.append(tmp)
         # stack along the last channel
         out = np.concatenate(out, axis=2)
@@ -323,7 +323,7 @@ def _one_hot(tensor, impose_nb_cls=None):
         logger.warning('Oupss!')
         raise NotImplementedError('Oupss!')
 
-    # logger.debug('np.shape(out): {}, unique: {}'.format(np.shape(out), np.unique(out)))
+    logger.debug('np.shape(out): {}, unique: {}'.format(np.shape(out), np.unique(out)))
     return out
 
 

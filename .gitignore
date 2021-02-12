@@ -26,3 +26,4 @@ _taskManager/latest_pred.json
 ._*
 docs/_build/
 docs/.vscode/
+.python-version

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/augmentationViewer.ui',
-# licensing of '_taskManager/augmentationViewer.ui' applies.
+# Form implementation generated from reading ui file './_taskManager/augmentationViewer.ui',
+# licensing of './_taskManager/augmentationViewer.ui' applies.
 #
-# Created: Fri Nov 13 17:54:55 2020
+# Created: Fri Feb 12 20:54:44 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -42,13 +42,14 @@ class Ui_augViewer(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.raw = QtWidgets.QLabel(augViewer)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.raw.sizePolicy().hasHeightForWidth())
         self.raw.setSizePolicy(sizePolicy)
         self.raw.setMinimumSize(QtCore.QSize(500, 500))
         self.raw.setText("")
+        self.raw.setScaledContents(True)
         self.raw.setObjectName("raw")
         self.horizontalLayout.addWidget(self.raw)
         self.line = QtWidgets.QFrame(augViewer)
@@ -58,13 +59,14 @@ class Ui_augViewer(object):
         self.line.setObjectName("line")
         self.horizontalLayout.addWidget(self.line)
         self.aug = QtWidgets.QLabel(augViewer)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.aug.sizePolicy().hasHeightForWidth())
         self.aug.setSizePolicy(sizePolicy)
         self.aug.setMinimumSize(QtCore.QSize(500, 500))
         self.aug.setText("")
+        self.aug.setScaledContents(True)
         self.aug.setObjectName("aug")
         self.horizontalLayout.addWidget(self.aug)
         self.verticalLayout.addLayout(self.horizontalLayout)

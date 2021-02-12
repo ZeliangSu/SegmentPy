@@ -151,7 +151,8 @@ class training_Worker(QRunnable):
             '-tb', self.params['tb step'],
             '-cmt', self.params['comment'],
             '-trnd', self.params['trn repo. path'],
-            '-vald', self.params['val repo. path']
+            '-vald', self.params['val repo. path'],
+            '-tstd', self.params['tst repo. path'],
         ]
 
         print(self.params)
@@ -344,9 +345,13 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(21, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setText(_translate("LRCSNet", "tst repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(22, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(23, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "nodes"))
         item.setBackground(QtGui.QColor(128, 128, 128))
@@ -525,6 +530,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'tb_step': 'tb step',
             'train_dir': 'trn repo. path',
             'val_dir': 'val repo. path',
+            'test_dir': 'tst repo. path',
         }
         self.dialog = dialog_logic(None)
         self.dialog.exec()  #.show() won't return
