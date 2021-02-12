@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 tag_compute = 1002
 
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #todo: uncomment this line will infect the detection of GPU in SegmentPy
 
 class reconstructor_V2_reg():
     def __init__(self, image_size, patch_size, stride):

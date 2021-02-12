@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 import re
+import os
 
 from util import check_N_mkdir
 
@@ -170,6 +171,24 @@ def lr_curve_extractor(event_dir: str):
         lss_test = None
 
     return acc_train, acc_test, lss_train, lss_test
+
+
+def df_to_csv(where: str, acc_train, acc_test, lss_train, lss_test):
+    assert isinstance(acc_train, pd.DataFrame)
+    assert isinstance(acc_test, pd.DataFrame)
+    assert isinstance(lss_train, pd.DataFrame)
+    assert isinstance(lss_test, pd.DataFrame)
+    assert os.path.isdir(where)
+
+    acc_train.to_csv(where + '/acc_train.csv')
+    acc_test.to_csv(where + '/acc_test.csv')
+    lss_train.to_csv(where + '/lss_train.csv')
+    lss_test.to_csv(where + '/lss_test.csv')
+
+
+def lr_curve_extractor_wrapper():
+
+    pass
 
 
 if __name__ == '__main__':
