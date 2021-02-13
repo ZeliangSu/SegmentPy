@@ -4,7 +4,7 @@ import argparse
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir
 from input import coords_gen, get_max_nb_cls
-from parser import string_to_hypers
+from hypParser import string_to_hypers
 
 import numpy as np
 import re

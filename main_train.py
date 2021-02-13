@@ -9,7 +9,7 @@ import subprocess
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
 from input import coords_gen, get_max_nb_cls
-from tensorboard_extractor import lr_curve_extractor, df_to_csv
+from tensorboard_extractor import lr_curve_extractor, df_to_csv, get_test_score
 
 # logging
 import logging
@@ -251,6 +251,9 @@ if __name__ == '__main__':
                 hyperparams['device']
             )
 
+    ###################################################################
+
+
     # backup dataset
     check_N_mkdir(hyperparams['folder_name'] + 'copy/')
     shutil.copytree(hyperparams['train_dir'], hyperparams['folder_name'] + 'copy/train/')
@@ -274,3 +277,4 @@ if __name__ == '__main__':
                      '-ckpt', hyperparams['folder_name'] + '/ckpt/step{}'.format(best_step)]
 
     o, e = p.communicate()
+

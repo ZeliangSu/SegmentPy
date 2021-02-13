@@ -17,7 +17,7 @@ from _taskManager.trainableParamsList_logic import resumeNodes_logic
 from _taskManager.predictDialog_logic import predictDialog_logic
 
 from util import print_nodes_name
-from parser import string_to_hypers
+from hypParser import string_to_hypers
 
 import traceback, sys, os
 from queue import Queue

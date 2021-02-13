@@ -186,9 +186,22 @@ def df_to_csv(where: str, acc_train, acc_test, lss_train, lss_test):
     lss_test.to_csv(where + '/lss_test.csv')
 
 
-def lr_curve_extractor_wrapper():
 
-    pass
+def get_test_acc(log_dir: str):
+    assert os.path.isdir(log_dir)
+    acc = None
+    try:
+        if not os.path.exists(log_dir+'curves/'):
+            acc = 0
+            # todo: this way of finding score is not accurate
+            logger.warning('[SegmentPy]: could not find the test score folder')
+        else:
+            acc = pd.read_csv(log_dir+'curves/test_score.csv', header=True).acc.mean()
+
+    except Exception as e:
+        logger.error(e)
+
+    return acc
 
 
 if __name__ == '__main__':
