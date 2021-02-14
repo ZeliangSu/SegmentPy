@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # ])
     ##################### above cannot capture the callback
 
-    os.system("mpirun --use-hwthread-cpus python inference.py -ckpt {} -raw {} -pred {}".format(
+    os.system("mpirun -n 79 python inference.py -ckpt {} -raw {} -pred {}".format(  #mpirun --use-hwthread-cpus python inference.py -ckpt {} -raw {} -pred {}
         args.ckpt_path,
         args.raw_dir,
         args.pred_dir

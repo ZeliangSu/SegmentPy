@@ -9,7 +9,7 @@ import subprocess
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
 from input import coords_gen, get_max_nb_cls
-from tensorboard_extractor import lr_curve_extractor, df_to_csv, get_test_score
+from tensorboard_extractor import lr_curve_extractor, df_to_csv
 
 # logging
 import logging
@@ -65,6 +65,8 @@ if __name__ == '__main__':
     parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False,
                         help='where to find the valid dataset')
     parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False,
+                        help='where to find the testing dataset')
+    parser.add_argument('-logd', '--log_dir', type=str, metavar='', default='./logs/', required=False,
                         help='where to find the testing dataset')
     parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False,
                         help='indicate the step/stride with which we sample')
@@ -151,7 +153,8 @@ if __name__ == '__main__':
 
         # name the log directory
         hyperparams['folder_name'] = \
-            './logs/{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_{}/'.format(
+            '{}{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_{}/'.format(
+                args.log_dir,
                 hyperparams['date'],
                 hyperparams['model'],
                 hyperparams['batch_size'],
