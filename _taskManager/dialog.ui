@@ -6,449 +6,480 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>566</width>
-    <height>684</height>
+    <width>603</width>
+    <height>780</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QWidget" name="layoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>11</x>
-     <y>11</y>
-     <width>574</width>
-     <height>660</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_3">
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>model name</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="mdl">
-          <property name="placeholderText">
-           <string>(e.g. LRCS, Unet, custom...)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>kernel size</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="ksize">
-          <property name="placeholderText">
-           <string>(e.g. 3, 5, 7...)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>number of convolution minimum per layer</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="nbconv">
-          <property name="placeholderText">
-           <string>(e.g. 16, 32,...) depand on memory</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_4">
-          <property name="text">
-           <string>window size</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="winsize">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="placeholderText">
-           <string>(80, 512...) multiple of 8 if 3x MaxPool</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_5">
-          <property name="text">
-           <string>batch size</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="batsize">
-          <property name="placeholderText">
-           <string>(e.g. 8, 16...) depend on memory</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_6">
-          <property name="text">
-           <string>number of epoch</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="nbepoch">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="placeholderText">
-           <string>(e.g. 5, 10...) integer</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_7">
-          <property name="text">
-           <string>batch normalization</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="batnorm">
-          <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label">
            <property name="text">
-            <string>True</string>
+            <string>model name</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="mdl">
+           <property name="placeholderText">
+            <string>(e.g. LRCS, Unet, custom...)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
            <property name="text">
-            <string>False</string>
+            <string>kernel size</string>
            </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_8">
-          <property name="text">
-           <string>data augmentation</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="aug">
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="ksize">
+           <property name="placeholderText">
+            <string>(e.g. 3, 5, 7...)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>True</string>
+            <string>number of convolution minimum per layer</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="nbconv">
+           <property name="placeholderText">
+            <string>(e.g. 16, 32,...) depand on memory</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>False</string>
+            <string>window size</string>
            </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_9">
-          <property name="text">
-           <string>dropout probability</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="dropout">
-          <property name="placeholderText">
-           <string>(e.g. 0.1, 0.5, 1.0...) float</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="Line" name="line">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="QLabel" name="label_10">
-          <property name="text">
-           <string>learning rate decay type</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="lrtype">
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="winsize">
            <property name="text">
-            <string>ramp</string>
+            <string/>
            </property>
-          </item>
-          <item>
+           <property name="placeholderText">
+            <string>(80, 512...) multiple of 8 if 3x MaxPool</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_5">
            <property name="text">
-            <string>exp</string>
+            <string>batch size</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="batsize">
+           <property name="placeholderText">
+            <string>(e.g. 8, 16...) depend on memory</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_6">
            <property name="text">
-            <string>constant</string>
+            <string>number of epoch</string>
            </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_11">
-          <property name="text">
-           <string>initial learning rate</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="initlr">
-          <property name="placeholderText">
-           <string>(e.g. 1e-4, 0.01,...) float</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_12">
-          <property name="text">
-           <string>k parameter in decay type</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="kparam">
-          <property name="placeholderText">
-           <string>(e.g. 0.3, 0.1, 0.5) float</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_13">
-          <property name="text">
-           <string>decay periode / decay every n epoch</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="pparam">
-          <property name="placeholderText">
-           <string>(e.g. 1, 0.5, 4) float </string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_14">
-          <property name="text">
-           <string>activation function type</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="actfn">
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="nbepoch">
            <property name="text">
-            <string>leaky</string>
+            <string/>
            </property>
-          </item>
-          <item>
+           <property name="placeholderText">
+            <string>(e.g. 5, 10...) integer</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_7">
            <property name="text">
-            <string>relu</string>
+            <string>batch normalization</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="batnorm">
+           <item>
+            <property name="text">
+             <string>True</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>False</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_8">
            <property name="text">
-            <string>sigmoid</string>
+            <string>data augmentation</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="aug">
+           <item>
+            <property name="text">
+             <string>True</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>False</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_9">
            <property name="text">
-            <string>tanh</string>
+            <string>dropout probability</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="dropout">
+           <property name="placeholderText">
+            <string>(e.g. 0.1, 0.5, 1.0...) float</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QLabel" name="label_10">
            <property name="text">
-            <string>custom</string>
+            <string>learning rate decay type</string>
            </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_15">
-          <property name="text">
-           <string>loss function type</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="lossfn">
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="lrtype">
+           <item>
+            <property name="text">
+             <string>ramp</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>exp</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>constant</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_11">
            <property name="text">
-            <string>DSC</string>
+            <string>initial learning rate</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="initlr">
+           <property name="placeholderText">
+            <string>(e.g. 1e-4, 0.01,...) float</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_12">
            <property name="text">
-            <string>cross_entropy</string>
+            <string>k parameter in decay type</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="kparam">
+           <property name="placeholderText">
+            <string>(e.g. 0.3, 0.1, 0.5) float</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_13">
            <property name="text">
-            <string>MSE</string>
+            <string>decay periode / decay every n epoch</string>
            </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_16">
-          <property name="text">
-           <string>classification / regression</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="clsReg">
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="pparam">
+           <property name="placeholderText">
+            <string>(e.g. 1, 0.5, 4) float </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_14">
            <property name="text">
-            <string>classification</string>
+            <string>activation function type</string>
            </property>
-          </item>
-          <item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="actfn">
+           <item>
+            <property name="text">
+             <string>leaky</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>relu</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>sigmoid</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>tanh</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>custom</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_15">
            <property name="text">
-            <string>regression</string>
+            <string>loss function type</string>
            </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_17">
-          <property name="text">
-           <string>save model every n steps</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="svsteps">
-          <property name="placeholderText">
-           <string>(e.g. 500...) integer</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_18">
-          <property name="text">
-           <string>tb: gradients and weights every n steps</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="tbstep">
-          <property name="placeholderText">
-           <string>(e.g. 50...) integer</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QLineEdit" name="comment">
-      <property name="placeholderText">
-       <string>enter extra comment here</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QDialogButtonBox" name="buttonBox">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="standardButtons">
-       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
-      <item>
-       <widget class="QLabel" name="label_20">
-        <property name="text">
-         <string>Trn. ds. repo.:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="trn_dir_line"/>
-      </item>
-      <item>
-       <widget class="QPushButton" name="trn_dir_button">
-        <property name="text">
-         <string>...</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item>
-       <widget class="QLabel" name="label_19">
-        <property name="text">
-         <string>Val. ds. repo.:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="val_dir_line"/>
-      </item>
-      <item>
-       <widget class="QPushButton" name="val_dir_button">
-        <property name="text">
-         <string>...</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_4">
-      <item>
-       <widget class="QLabel" name="label_21">
-        <property name="text">
-         <string>Tst. ds. repo.:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="test_dir_line"/>
-      </item>
-      <item>
-       <widget class="QPushButton" name="test_dir_button">
-        <property name="text">
-         <string>...</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-   </layout>
-  </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="lossfn">
+           <item>
+            <property name="text">
+             <string>DSC</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>cross_entropy</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>MSE</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_16">
+           <property name="text">
+            <string>classification / regression</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="clsReg">
+           <item>
+            <property name="text">
+             <string>classification</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>regression</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>save model every n steps</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="svsteps">
+           <property name="placeholderText">
+            <string>(e.g. 500...) integer</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_18">
+           <property name="text">
+            <string>tb: gradients and weights every n steps</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="tbstep">
+           <property name="placeholderText">
+            <string>(e.g. 50...) integer</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="comment">
+       <property name="placeholderText">
+        <string>enter extra comment here</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QLabel" name="label_22">
+         <property name="text">
+          <string>save model to:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="log_dir_line">
+         <property name="placeholderText">
+          <string>default: &lt;SegmentPy installation folder&gt;/logs/</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="log_dir_button">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="label_20">
+         <property name="text">
+          <string>Trn. ds. repo.:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="trn_dir_line">
+         <property name="placeholderText">
+          <string>default: &lt;SegmentPy installation folder&gt;/train/</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="trn_dir_button">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLabel" name="label_19">
+         <property name="text">
+          <string>Val. ds. repo.:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="val_dir_line">
+         <property name="placeholderText">
+          <string>default: &lt;SegmentPy installation folder&gt;/valid/</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="val_dir_button">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QLabel" name="label_21">
+         <property name="text">
+          <string>Tst. ds. repo.:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="test_dir_line">
+         <property name="placeholderText">
+          <string>default: &lt;SegmentPy installation folder&gt;/test/</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="test_dir_button">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections>

@@ -15,6 +15,7 @@ from _taskManager.resumeDialog_logic import resumeDialog_logic
 from _taskManager.gradViewer_logic import gradView_logic
 from _taskManager.trainableParamsList_logic import resumeNodes_logic
 from _taskManager.predictDialog_logic import predictDialog_logic
+from _taskManager.gridSearch_dialog_logic import gS_dialog_logic
 
 from util import print_nodes_name
 from hypParser import string_to_hypers
@@ -23,7 +24,7 @@ import traceback, sys, os
 from queue import Queue
 from time import sleep
 import subprocess
-from threading import Thread
+from itertools import product
 import re
 
 # logging
@@ -53,6 +54,7 @@ class queueManager(QThread):
     @Slot(name='queue1')
     def run(self):
         self.toggle = True
+        # todo: the following pythonic loop should be replaced by inner event loop of pyside!!
         while self.toggle:
             if self.enqueueListener.empty():
                 continue  # note: don't use continu here, or saturate the CPU
@@ -349,9 +351,13 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(22, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setText(_translate("LRCSNet", "mdl. saved path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(23, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(24, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "nodes"))
         item.setBackground(QtGui.QColor(128, 128, 128))
@@ -379,6 +385,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Metrics.triggered.connect(self.metric_plugin)
         self.AugViewer.triggered.connect(self.augViewer_plugin)
         self.GradViewer.triggered.connect(self.gradViewer_plugin)
+        self.actionGrid_Search.triggered.connect(self.gSearch)
 
     ################# menubar methods
 
@@ -486,28 +493,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                         )
                         proc.wait()
 
-    def log_window(self, title: str, Msg: str):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText(Msg)
-        msg.setWindowTitle(title)
-        msg.exec_()
-
-    def loss_landscape(self):
-        self.log_window(
-            title='Ooppsss',
-            Msg="Plug-in loss landscape of Goldstein et al. is coming in the next version. \nYou can try at terminal with main_loss_landscape.py"
-        )
-
-    def random_forest(self):
-        self.log_window(
-            title='Ooppsss',
-            Msg="Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py"
-        )
-
-    ############ main button methods
-
-    def addTrain(self):
+    def gSearch(self):
+        self.gS_dialog = gS_dialog_logic(None)
         pivot_table = {
             'mdl': 'model',
             'bat_size': 'batch size',
@@ -531,34 +518,140 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'train_dir': 'trn repo. path',
             'val_dir': 'val repo. path',
             'test_dir': 'tst repo. path',
+            'log_dir': 'mdl. saved path',
         }
+        default = {
+            # 'mdl': 'model',
+            # 'bat_size': 'batch size',
+            'win_size': '512',
+            # 'conv_size': 'kernel size',
+            # 'nb_conv': 'conv nb',
+            'act_fn': 'leaky',
+            'lss_fn': 'DSC',
+            'batch_norm': 'True',
+            'aug': 'True',
+            'dropout': '0.0',
+            'lr_type': 'ramp',
+            #'lr_init': 'lr init',
+            #'lr_k': 'k param',
+            'lr_p': '1',
+            'cls_reg': 'classification',
+            # 'comment': 'comment',
+            'nb_epoch': '5',
+            'sv_step': '500',
+            'tb_step': '50',
+            # 'train_dir': 'trn repo. path',
+            # 'val_dir': 'val repo. path',
+            # 'test_dir': 'tst repo. path',
+            # 'log_dir': 'mdl. saved path',
+        }
+        try:
+            self.gS_dialog.exec()
+            if self.gS_dialog.result() == 1:
+                gS_param = self.gS_dialog.return_params()
+
+                logger.debug(gS_param['ks'])
+                logger.debug(gS_param['nc'])
+                logger.debug(gS_param['bs'])
+                logger.debug(gS_param['ilr'])
+                logger.debug(gS_param['lrdecay'])
+
+                for ks, nc, bs, ilr, decay in product(gS_param['ks'], gS_param['nc'],
+                                                      gS_param['bs'], gS_param['ilr'], gS_param['lrdecay']):
+                    default['mdl'] = gS_param['mdl']
+                    default['conv_size'] = ks
+                    default['nb_conv'] = nc
+                    default['bat_size'] = bs
+                    default['lr_init'] = ilr
+                    default['lr_k'] = decay
+                    default['train_dir'] = gS_param['train_dir']
+                    default['val_dir'] = gS_param['val_dir']
+                    default['test_dir'] = gS_param['test_dir']
+                    default['log_dir'] = gS_param['log_dir']
+                    default['comment'] = gS_param['log_dir']
+                    self.write_train_column(contents=default)
+
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
+
+    def log_window(self, title: str, Msg: str):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(Msg)
+        msg.setWindowTitle(title)
+        msg.exec_()
+
+    def loss_landscape(self):
+        self.log_window(
+            title='Ooppsss',
+            Msg="Plug-in loss landscape of Goldstein et al. is coming in the next version. \nYou can try at terminal with main_loss_landscape.py"
+        )
+
+    def random_forest(self):
+        self.log_window(
+            title='Ooppsss',
+            Msg="Plug-in randomForest of Arganda-Carreras et al. is coming in the next version. \nYou can try at terminal with randomForest.py"
+        )
+
+    ############ main button methods
+
+    def addTrain(self):
         self.dialog = dialog_logic(None)
-        self.dialog.exec()  #.show() won't return
+        self.dialog.exec()  #.show() won't return because of the Qdialog attribute
         if self.dialog.result() == 1:  #cancel: 0, ok: 1
             output = self.dialog.return_params()
-            nb_col = self.tableWidget.columnCount()
-            self.tableWidget.setColumnCount(nb_col + 1)
+            self.write_train_column(contents=output)
 
-            # write params
-            for k, v in output.items():
-                i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
-                self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(v))
+    def write_train_column(self, contents: dict):
+        pivot_table = {
+            'mdl': 'model',
+            'bat_size': 'batch size',
+            'win_size': 'window size',
+            'conv_size': 'kernel size',
+            'nb_conv': 'conv nb',
+            'act_fn': 'act fn',
+            'lss_fn': 'loss fn',
+            'batch_norm': 'batch norm',
+            'aug': 'augmentation',
+            'dropout': 'dropout',
+            'lr_type': 'lr type',
+            'lr_init': 'lr init',
+            'lr_k': 'k param',
+            'lr_p': 'period',
+            'cls_reg': 'cls/reg',
+            'comment': 'comment',
+            'nb_epoch': 'nb epoch',
+            'sv_step': 'sv step',
+            'tb_step': 'tb step',
+            'train_dir': 'trn repo. path',
+            'val_dir': 'val repo. path',
+            'test_dir': 'tst repo. path',
+            'log_dir': 'mdl. saved path',
+        }
 
-            # fill somethine on the empty cell
-            i = self.tableWidget.findItems('ckpt path', Qt.MatchFlag.MatchExactly)
-            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+        nb_col = self.tableWidget.columnCount()
+        self.tableWidget.setColumnCount(nb_col + 1)
 
-            i = self.tableWidget.findItems('nodes', Qt.MatchFlag.MatchExactly)
-            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+        # write params
+        for k, v in contents.items():
+            i = self.tableWidget.findItems(pivot_table[k], Qt.MatchFlag.MatchExactly)
+            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(v))
 
-            if nb_col > 2:
-                self.header.append('train')
-            else:
-                self.header[1] = 'nextTrain'
-            # bold first column
-            self.lock_params()
-            self.bold(column=1)
-            self.setHeader()
+        # fill somethine on the empty cell
+        i = self.tableWidget.findItems('ckpt path', Qt.MatchFlag.MatchExactly)
+        self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+
+        i = self.tableWidget.findItems('nodes', Qt.MatchFlag.MatchExactly)
+        self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+
+        if nb_col > 2:
+            self.header.append('train')
+        else:
+            self.header[1] = 'nextTrain'
+        # bold first column
+        self.lock_params()
+        self.bold(column=1)
+        self.setHeader()
 
     def addResume(self):
         pivot_table = {

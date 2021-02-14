@@ -263,17 +263,18 @@
            <bool>false</bool>
           </property>
           <property name="rowCount">
-           <number>24</number>
+           <number>25</number>
           </property>
           <property name="columnCount">
            <number>2</number>
           </property>
-          <attribute name="horizontalHeaderDefaultSectionSize">
-           <number>100</number>
-          </attribute>
           <attribute name="horizontalHeaderMinimumSectionSize">
            <number>18</number>
           </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>100</number>
+          </attribute>
+          <row/>
           <row/>
           <row/>
           <row/>
@@ -430,10 +431,15 @@
           </item>
           <item row="22" column="0">
            <property name="text">
-            <string>ckpt path</string>
+            <string>mdl. saved path</string>
            </property>
           </item>
           <item row="23" column="0">
+           <property name="text">
+            <string>ckpt path</string>
+           </property>
+          </item>
+          <item row="24" column="0">
            <property name="text">
             <string>nodes</string>
            </property>
@@ -560,9 +566,17 @@
     <addaction name="AugViewer"/>
     <addaction name="GradViewer"/>
    </widget>
+   <widget class="QMenu" name="menuHands_off">
+    <property name="title">
+     <string>Hands-off</string>
+    </property>
+    <addaction name="actionGrid_Search"/>
+    <addaction name="actionGassian_Process"/>
+   </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuVisualization"/>
    <addaction name="menuPlugin"/>
+   <addaction name="menuHands_off"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="About_us">
@@ -623,6 +637,16 @@
   <action name="Thresholding">
    <property name="text">
     <string>Threshold</string>
+   </property>
+  </action>
+  <action name="actionGrid_Search">
+   <property name="text">
+    <string>Grid Search</string>
+   </property>
+  </action>
+  <action name="actionGassian_Process">
+   <property name="text">
+    <string>Gassian Process</string>
    </property>
   </action>
  </widget>
