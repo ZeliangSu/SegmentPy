@@ -18,6 +18,7 @@ ultimate_numeric_pattern = '[-+]?(?:(?:\\d*\\.\\d+)|(?:\\d+\\.?))(?:[Ee][+-]?\\d
 
 
 class string_to_hypers:
+    # todo: this could be an object
     def __init__(self, folder_name: str):
         self.folder_name = folder_name
         if not self.folder_name.endswith('/'):
