@@ -40,7 +40,7 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
             'bs': re.split('\,|\:|\/|\ ', self.batch_size.text()),
             'ilr': re.split('\,|\:|\/|\ ', self.init_lr.text()),
             'lrdecay': re.split('\,|\:|\/|\ ', self.decay_ratio.text()),
-            'cmt': re.split('\,|\:|\/|\ ', self.comment.text()),
+            'cmt': self.comment.text(),
         }
         if hasattr(self, 'train_dir'):
             output['train_dir'] = self.trn_dir_line.text()
@@ -58,7 +58,7 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
             output['test_dir'] = './test/'
 
         if hasattr(self, 'log_dir'):
-            output['log_dir'] = self.test_dir_line.text()
+            output['log_dir'] = self.log_dir_line.text()
         else:
             output['log_dir'] = './logs/'
 

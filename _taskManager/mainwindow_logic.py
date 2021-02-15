@@ -155,6 +155,7 @@ class training_Worker(QRunnable):
             '-trnd', self.params['trn repo. path'],
             '-vald', self.params['val repo. path'],
             '-tstd', self.params['tst repo. path'],
+            '-logd', self.params['mdl. saved path'],
         ]
 
         print(self.params)
@@ -495,31 +496,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def gSearch(self):
         self.gS_dialog = gS_dialog_logic(None)
-        pivot_table = {
-            'mdl': 'model',
-            'bat_size': 'batch size',
-            'win_size': 'window size',
-            'conv_size': 'kernel size',
-            'nb_conv': 'conv nb',
-            'act_fn': 'act fn',
-            'lss_fn': 'loss fn',
-            'batch_norm': 'batch norm',
-            'aug': 'augmentation',
-            'dropout': 'dropout',
-            'lr_type': 'lr type',
-            'lr_init': 'lr init',
-            'lr_k': 'k param',
-            'lr_p': 'period',
-            'cls_reg': 'cls/reg',
-            'comment': 'comment',
-            'nb_epoch': 'nb epoch',
-            'sv_step': 'sv step',
-            'tb_step': 'tb step',
-            'train_dir': 'trn repo. path',
-            'val_dir': 'val repo. path',
-            'test_dir': 'tst repo. path',
-            'log_dir': 'mdl. saved path',
-        }
+
         default = {
             # 'mdl': 'model',
             # 'bat_size': 'batch size',
@@ -568,7 +545,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     default['val_dir'] = gS_param['val_dir']
                     default['test_dir'] = gS_param['test_dir']
                     default['log_dir'] = gS_param['log_dir']
-                    default['comment'] = gS_param['log_dir']
+                    default['comment'] = gS_param['cmt']
                     self.write_train_column(contents=default)
 
         except Exception as e:
