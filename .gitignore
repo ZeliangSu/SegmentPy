@@ -15,6 +15,7 @@ dummy.py
 train/*
 valid/*
 test/*
+val/*
 predict/*
 device.txt
 _taskManager/latest.json
