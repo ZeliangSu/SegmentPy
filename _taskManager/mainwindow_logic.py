@@ -418,7 +418,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def metric_plugin(self):
         self.metric = metric_logic()
         try:
-            self.metric.exec_()
+            self.metric.show()
         except Exception as e:
             self.log_window('Unknown error', e.args[0])
 
