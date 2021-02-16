@@ -764,11 +764,17 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def clean(self):
         column = self.tableWidget.currentColumn()
-        if column >= 1:
+        if column > 1:
             self.tableWidget.removeColumn(column)
-            if column == 1:
-                self.bold(column=1)
-                self.popHeader(column)
+
+        elif column == 1:
+            self.tableWidget.removeColumn(column)
+            nb_col = self.tableWidget.columnCount()
+            if nb_col < 2:
+                self.tableWidget.setColumnCount(nb_col + 1)
+
+        self.bold(column=1)
+        self.popHeader(column)
         self.tableWidget.repaint()
 
     def forward(self):
@@ -880,8 +886,11 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     #     # self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEnabled)  # note: make it editable
                     #     pass
                     if self.tableWidget.item(row, 0).text() in ['ckpt path', 'nodes']:
-                        self.tableWidget.item(row, column).setBackground(QtGui.QColor(230, 230, 250))
-                        self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)
+                        try:
+                            self.tableWidget.item(row, column).setBackground(QtGui.QColor(230, 230, 250))
+                            self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)
+                        except Exception as e:
+                            logger.debug(e)
 
             elif 'resume' in head.lower():
                 for row in range(self.tableWidget.rowCount()):
