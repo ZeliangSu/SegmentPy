@@ -4,6 +4,7 @@ from PySide2.QtCore import Qt
 
 from _taskManager.metric_design import Ui_metricViewer
 from _taskManager.pooling_dialog_logic import dialog_logic
+from _taskManager.file_dialog import file_dialog
 from metric import *
 from util import dimension_regulator
 from PIL import Image
@@ -66,6 +67,7 @@ class metric_logic(QWidget, Ui_metricViewer):
         self.clean_button.clicked.connect(self.clean)
         self.next_button.clicked.connect(self.next_page)
         self.previous_button.clicked.connect(self.previous_page)
+        self.save_Button.clicked.connect(self.save_diff)
 
     def dragEnterEvent(self, ev):
         path = ev.mimeData().text().replace('\r', '').replace('\n', '')
@@ -395,6 +397,13 @@ class metric_logic(QWidget, Ui_metricViewer):
         self.current_page = page
         self.pageSlider.setValue(self.current_page)
         self.refresh_page()
+
+    def save_diff(self):
+        if self.diff[self.current_page] is not None:
+            save_path = file_dialog(title='select a place to save the difference image', type='/').openFolderDialog()
+            if save_path is not None:
+                Image.fromarray(self.diff[self.current_page]).save(save_path+'/diff.tif')
+
 
 
 def test():

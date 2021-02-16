@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file '_taskManager/metric_design.ui',
 # licensing of '_taskManager/metric_design.ui' applies.
 #
-# Created: Fri Nov 13 17:57:36 2020
+# Created: Tue Feb 16 18:44:42 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_metricViewer(object):
     def setupUi(self, metricViewer):
         metricViewer.setObjectName("metricViewer")
-        metricViewer.resize(1199, 914)
+        metricViewer.resize(1199, 965)
         self.gridLayout = QtWidgets.QGridLayout(metricViewer)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
@@ -235,6 +235,9 @@ class Ui_metricViewer(object):
         self.next_button = QtWidgets.QPushButton(metricViewer)
         self.next_button.setObjectName("next_button")
         self.horizontalLayout.addWidget(self.next_button)
+        self.save_Button = QtWidgets.QPushButton(metricViewer)
+        self.save_Button.setObjectName("save_Button")
+        self.horizontalLayout.addWidget(self.save_Button)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem1)
         self.verticalLayout_4.addLayout(self.horizontalLayout)
@@ -270,4 +273,6 @@ class Ui_metricViewer(object):
         self.previous_button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "1", None, -1))
         self.next_button.setText(QtWidgets.QApplication.translate("metricViewer", "Next(2)", None, -1))
         self.next_button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "2", None, -1))
+        self.save_Button.setText(QtWidgets.QApplication.translate("metricViewer", "Save(S)", None, -1))
+        self.save_Button.setShortcut(QtWidgets.QApplication.translate("metricViewer", "S", None, -1))
 
