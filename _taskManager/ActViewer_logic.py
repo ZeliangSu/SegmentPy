@@ -1,11 +1,11 @@
-from PySide2.QtWidgets import QApplication, QWidget, QMessageBox
+from PySide2.QtWidgets import QApplication, QWidget, QMessageBox, QListWidget
 from PySide2.QtGui import QPixmap, QImage
 from PySide2.QtCore import Qt
 
 from _taskManager.ActViewer_design import Ui_actViewer
 from _taskManager.nodes_list_logic import node_list_logic
 from _taskManager.file_dialog import file_dialog
-from util import print_nodes_name
+from util import print_nodes_name, check_N_mkdir
 from analytic import partialRlt_and_diff, visualize_weights
 
 from PIL import Image
@@ -30,6 +30,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
         super().__init__()
 
         self.setupUi(self)
+        self.actList.setSelectionMode(QListWidget.MultiSelection)
 
         self.ckptButton.clicked.connect(self.ckptFileDialog)
         self.inputButton.clicked.connect(self.inputFileDialog)
@@ -177,34 +178,23 @@ class actViewer_logic(QWidget, Ui_actViewer):
             # logger.debug(self.kern_name)
 
     def save_selected_activations(self):
-        if self.input:
+        if not self.input:
             self.log_window(title='Error!', Msg='Please indicate a input image')
         else:
-            # retrive nodes of activations
-            # open nodes list dialog
-            nodes_list = node_list_logic(options=list(self.activations.keys()))
-            nodes_list.exec()
-            if nodes_list.result() == 1:
-                acts = nodes_list.return_nodes()
-                types = nodes_list.return_analysis_types()
-                if len(types) == 0:
-                    types = ['activation']
-                step = int(re.search('.+ckpt/step(\d+)\.meta', self.ckpt).group(1))
-                terminal = [
-                    'python', 'main_analytic.py',
-                    '-ckpt', self.ckpt,
-                    '-step', step,
-                    '-type', *types,
-                    '-node', *acts,
-                    '-dir', self.input,
-                ]
-
-                logger.debug(terminal)
-
-                proc = subprocess.Popen(
-                    terminal
-                )
-                proc.wait()
+            save_act_path = file_dialog(title='choose a folder to save the images', type='/').openFolderDialog()
+            selected_idx = self.actList.selectionModel().selectedIndexes()
+            for idx in selected_idx:
+                layer_name = self.actList.item(idx.row()).text()
+                rlt = np.squeeze(self.activations[layer_name])
+                if rlt.ndim == 3:
+                    for i in range(rlt.shape[-1]):
+                        check_N_mkdir(save_act_path+layer_name.replace('/','_'))
+                        Image.fromarray(rlt[:, :, i]).save(save_act_path+layer_name.replace('/','_')+'/{}.tif'.format(i))
+                elif rlt.ndim == 2:
+                    check_N_mkdir(save_act_path+layer_name.replace('/','_'))
+                    Image.fromarray(rlt[:, :]).save(save_act_path + layer_name.replace('/','_') + '/act.tif')
+                else:
+                    logger.debug('got an unexpected ndim of the activations: {}'.format(rlt.ndim))
 
     def exit(self):
         self.close()
