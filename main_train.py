@@ -123,7 +123,7 @@ if __name__ == '__main__':
                                                  valid_dir=hyperparams['val_dir'],
                                                  window_size=hyperparams['patch_size'],
                                                  train_test_ratio=0.9,
-                                                 stride=5,
+                                                 stride=args.sampling_stride,
                                                  nb_batch=None,
                                                  batch_size=hyperparams['batch_size'])
 
@@ -217,7 +217,7 @@ if __name__ == '__main__':
                                                  valid_dir=hyperparams['val_dir'],
                                                  window_size=hyperparams['patch_size'],
                                                  train_test_ratio=0.9,
-                                                 stride=5,
+                                                 stride=args.sampling_stride,
                                                  nb_batch=None,
                                                  batch_size=hyperparams['batch_size'])
 
@@ -271,10 +271,14 @@ if __name__ == '__main__':
     check_N_mkdir(hyperparams['folder_name'] + 'curves/')
     ac_tn, _, ls_tn, _ = lr_curve_extractor(hyperparams['folder_name'] + 'train/')
     _, ac_val, _, ls_val = lr_curve_extractor(hyperparams['folder_name'] + 'test/')
-    best_step = ac_val.step.loc[ac_val.value.argmax()]
-    df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
+    #best_step = ac_val.step.loc[ac_val.value.argmax()]
+    best_step=0
+    #df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
 
     # testing
+    logger.debug(best_step)
+    logger.debug(hyperparams['folder_name'])
+    logger.debug(args.test_dir)
     p = subprocess.Popen(['python', 'main_testing.py',
                      '-tstd', args.test_dir,
                      '-ckpt', hyperparams['folder_name'] + '/ckpt/step{}'.format(best_step)])

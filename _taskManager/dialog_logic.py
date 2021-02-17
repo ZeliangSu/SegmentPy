@@ -101,7 +101,7 @@ class dialog_logic(QDialog, Ui_Dialog):
             output['test_dir'] = './test/'
 
         if hasattr(self, 'log_dir'):
-            output['log_dir'] = self.test_dir_line.text()
+            output['log_dir'] = self.log_dir_line.text()
         else:
             output['log_dir'] = './logs/'
 
