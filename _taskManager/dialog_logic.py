@@ -1,6 +1,10 @@
 from _taskManager.dialog_design import Ui_Dialog
 from _taskManager.file_dialog import file_dialog
 
+import logging
+import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.INFO)  #changeHere: debug level
 from PySide2.QtWidgets import QDialog
 import json
 import os
@@ -17,27 +21,30 @@ class dialog_logic(QDialog, Ui_Dialog):
                 params = json.load(file)
 
             # set line editors
-            self.mdl.setText(params['mdl'])
-            self.ksize.setText(params['conv_size'])
-            self.nbconv.setText(params['nb_conv'])
-            self.winsize.setText(params['win_size'])
-            self.batsize.setText(params['bat_size'])
-            self.nbepoch.setText(params['nb_epoch'])
-            self.dropout.setText(params['dropout'])
-            self.initlr.setText(params['lr_init'])
-            self.kparam.setText(params['lr_k'])
-            self.pparam.setText(params['lr_p'])
-            self.svsteps.setText(params['sv_step'])
-            self.tbstep.setText(params['tb_step'])
-            self.comment.setText(params['comment'])
-            self.trn_dir_line.setText(params['train_dir'])
-            self.train_dir = params['train_dir']
-            self.val_dir_line.setText(params['val_dir'])
-            self.val_dir = params['val_dir']
-            self.test_dir_line.setText(params['test_dir'])
-            self.tst_dir = params['test_dir']
-            self.log_dir_line.setText(params['log_dir'])
-            self.log_dir = params['log_dir']
+            try:
+                self.mdl.setText(params['mdl'])
+                self.ksize.setText(params['conv_size'])
+                self.nbconv.setText(params['nb_conv'])
+                self.winsize.setText(params['win_size'])
+                self.batsize.setText(params['bat_size'])
+                self.nbepoch.setText(params['nb_epoch'])
+                self.dropout.setText(params['dropout'])
+                self.initlr.setText(params['lr_init'])
+                self.kparam.setText(params['lr_k'])
+                self.pparam.setText(params['lr_p'])
+                self.svsteps.setText(params['sv_step'])
+                self.tbstep.setText(params['tb_step'])
+                self.comment.setText(params['comment'])
+                self.trn_dir_line.setText(params['train_dir'])
+                self.train_dir = params['train_dir']
+                self.val_dir_line.setText(params['val_dir'])
+                self.val_dir = params['val_dir']
+                self.test_dir_line.setText(params['test_dir'])
+                self.tst_dir = params['test_dir']
+                self.log_dir_line.setText(params['log_dir'])
+                self.log_dir = params['log_dir']
+            except Exception as e:
+                logger.error(e)
 
             # set QComboBox
             self.batnorm.setCurrentIndex(self.batnorm.findText(params['batch_norm']))
