@@ -2,6 +2,7 @@ import tensorflow as tf
 import os
 
 from tqdm import tqdm
+import pandas as pd
 import re
 
 from model import *
@@ -149,6 +150,8 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
             # otherwise resume the whole network
             saver = tf.train.Saver()
 
+        df = pd.DataFrame({'step': 0, 'val_acc': 0})
+
         try:
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):
                 # init ops
@@ -224,7 +227,6 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         # valid session
                         #
                         ########################
-                        # note: maybe need to put this session above
                         # change feed dict
                         feed_dict = {
                             test_nodes['learning_rate']: 1.0,
@@ -234,11 +236,6 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         if hyperparams['batch_normalization']:
                             feed_dict[test_nodes['BN_phase']] = False
 
-                        # load graph in the same device
-                        # fixme: is it necessary the loader??
-                        # loader = tf.train.Saver()
-                        # ckpt_saved_path = folder + 'ckpt/step{}'.format(global_step)
-                        # loader.restore(sess, ckpt_saved_path)
                         for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='val batch'):
                             _, summary, _, _ = sess.run(
                                 [
@@ -251,12 +248,26 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                             )
                             if i_batch == hyperparams['save_step'] // 10 - 1:
                                 test_writer.add_summary(summary, global_step)
+                        val_acc = sess.run(
+                            [
+                                test_nodes['val_acc'],
+                            ],
+                            feed_dict=feed_dict
+                        )
+                        logger.info(val_acc)
+                        df.append({'step': global_step, 'val_acc': val_acc})
+
+                        if df.val_acc.max() - df.val_acc.rolling(10) <= 0.005:
+                            logger.info('early stopped')
+                            break
+
 
         except (KeyboardInterrupt, SystemExit) as e:
             saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+            df.to_csv(folder + 'curves/in_loop_val_acc.csv')
             raise e
-
         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+        df.to_csv(folder + 'curves/in_loop_val_acc.csv')
 
 
 

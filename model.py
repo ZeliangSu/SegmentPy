@@ -192,7 +192,9 @@ def classification_nodes(pipeline,
         'drop': drop_prob,
         'BN_phase': BN_phase,
         'loss_update_op': loss_up_op,
-        'acc_update_op': acc_up_op
+        'acc_update_op': acc_up_op,
+        'val_acc': m_acc,
+        'val_lss': m_loss,
     }
 
 

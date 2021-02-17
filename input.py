@@ -65,7 +65,7 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
                 batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
             elif mode == 'classification':
                 batch = batch.map(_pyfn_classification_parser_wrapper_V2, num_parallel_calls=ncores)
-            elif mode == 'weka':
+            elif mode == 'feature_extractors':
                 batch = batch.map(_pyfn_classification_parser_wrapper_weka, num_parallel_calls=ncores)
                 raise NotImplementedError
 
@@ -90,7 +90,6 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
             # get next img and label
             X_it, y_it = it.get_next()
 
-            # fixme
             # X_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, 1])
             # y_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, 1])
             # X_it = tf.reshape(X_it, [batch_size, patch_size, patch_size, -1])

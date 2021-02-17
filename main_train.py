@@ -275,9 +275,9 @@ if __name__ == '__main__':
     df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
 
     # testing
-    p = subprocess.Popen['python', 'main_testing.py',
+    p = subprocess.Popen(['python', 'main_testing.py',
                      '-tstd', args.test_dir,
-                     '-ckpt', hyperparams['folder_name'] + '/ckpt/step{}'.format(best_step)]
+                     '-ckpt', hyperparams['folder_name'] + '/ckpt/step{}'.format(best_step)])
 
     o, e = p.communicate()
 
