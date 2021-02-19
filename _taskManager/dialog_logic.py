@@ -43,6 +43,10 @@ class dialog_logic(QDialog, Ui_Dialog):
                 self.tst_dir = params['test_dir']
                 self.log_dir_line.setText(params['log_dir'])
                 self.log_dir = params['log_dir']
+                self.sampling_gap.setText(params['gap'])
+                self.gap = params['gap']
+                self.criterion.setText(params['condition'])
+                self.cond = params['condition']
             except Exception as e:
                 logger.error(e)
 
@@ -82,7 +86,9 @@ class dialog_logic(QDialog, Ui_Dialog):
             'cls_reg': str(self.clsReg.currentText()),
             'sv_step': self.svsteps.text(),
             'tb_step': self.tbstep.text(),
-            'comment': self.comment.text()
+            'comment': self.comment.text(),
+            'gap': self.sampling_gap.text(),
+            'condition': self.criterion.text(),
         }
 
         if hasattr(self, 'train_dir'):

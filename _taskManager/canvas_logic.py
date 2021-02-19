@@ -4,7 +4,7 @@ from PySide2.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
-from tensorboard_extractor import lr_curve_extractor
+from score_extractor import lr_curve_extractor
 
 import matplotlib.pyplot as plt
 import matplotlib

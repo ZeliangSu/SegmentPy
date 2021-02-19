@@ -166,6 +166,20 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QLabel" name="label_23">
+           <property name="text">
+            <string>sampling gap</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="sampling_gap">
+           <property name="placeholderText">
+            <string>(e.g. 5, 100, 200...) integer</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>
@@ -353,6 +367,20 @@
           <widget class="QLineEdit" name="tbstep">
            <property name="placeholderText">
             <string>(e.g. 50...) integer</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_24">
+           <property name="text">
+            <string>stopping criterion</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="criterion">
+           <property name="placeholderText">
+            <string>(e.g. 0.002) float</string>
            </property>
           </widget>
          </item>

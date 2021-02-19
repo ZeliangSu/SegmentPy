@@ -3,7 +3,7 @@ from PySide2.QtWidgets import QWidget, QDialog
 from _taskManager.gradViewer2_design import Ui_gradPlot
 from _taskManager.file_dialog import file_dialog
 
-from tensorboard_extractor import gradient_extractor
+from score_extractor import gradient_extractor
 
 import json
 import os

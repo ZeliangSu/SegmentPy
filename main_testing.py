@@ -7,7 +7,7 @@ from PIL import Image
 # force this to run on main
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False,
+    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=True,
                         help='where to find the testing dataset')
     parser.add_argument('-ckpt', '--ckpt_path', type=str, metavar='', required=True, help='.meta path')
     parser.add_argument('-sd', '--save_dir', type=str, metavar='', required=True, help='indicate the save path')

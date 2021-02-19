@@ -14,7 +14,7 @@ from input import inputpipeline_V2
 import logging
 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 def main_train(
@@ -144,13 +144,14 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
             for var in all_var:
                 if var.name in resume:
                     var_to_restore.append(var)
-            saver = tf.train.Saver(var_to_restore)
+            saver = tf.train.Saver(var_to_restore, max_to_keep=5)
 
         else:
             # otherwise resume the whole network
-            saver = tf.train.Saver()
+            saver = tf.train.Saver(max_to_keep=5)
 
-        df = pd.DataFrame({'step': 0, 'val_acc': 0})
+        df = pd.DataFrame({'step': [0], 'val_acc': [0]})
+        best_step = 0
 
         try:
             for ep in tqdm(range(hyperparams['nb_epoch']), desc='Epoch'):
@@ -237,35 +238,43 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                             feed_dict[test_nodes['BN_phase']] = False
 
                         for i_batch in tqdm(range(hyperparams['save_step'] // 10), desc='val batch'):
-                            _, summary, _, _ = sess.run(
+                            _, summary, _, _, val_acc = sess.run(
                                 [
                                     test_nodes['y_pred'],
                                     test_nodes['summary'],
                                     test_nodes['loss_update_op'],
-                                    test_nodes['acc_update_op']
+                                    test_nodes['acc_update_op'],
+                                    test_nodes['val_acc']
                                 ],
                                 feed_dict=feed_dict
                             )
                             if i_batch == hyperparams['save_step'] // 10 - 1:
                                 test_writer.add_summary(summary, global_step)
-                        val_acc = sess.run(
-                            [
-                                test_nodes['val_acc'],
-                            ],
-                            feed_dict=feed_dict
-                        )
+
                         logger.info(val_acc)
-                        df.append({'step': global_step, 'val_acc': val_acc})
+                        df = df.append({'step': [global_step], 'val_acc': val_acc}, ignore_index=True)
+                        logger.info(df['val_acc'])
 
-                        if df.val_acc.max() - df.val_acc.rolling(10) <= 0.005:
+                        rolling_progress = (df['val_acc'].max() - df['val_acc'].rolling(10, min_periods=1).mean().iloc[-1])
+                        logger.info(rolling_progress)
+                        argmax = df['val_acc'].argmax()
+                        if argmax != best_step:
+                            best_step = argmax
+                            check_N_mkdir(folder + 'curves/')
+                            saver.save(sess, folder + 'curves/best_model'.format(best_step))
+                        if rolling_progress <= hyperparams['condition']:
                             logger.info('early stopped')
-                            break
-
+                            check_N_mkdir(folder + 'curves/')
+                            saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+                            df.to_csv(folder + 'curves/in_loop_val_acc.csv')
+                            return
 
         except (KeyboardInterrupt, SystemExit) as e:
+            check_N_mkdir(folder + 'curves/')
             saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
             df.to_csv(folder + 'curves/in_loop_val_acc.csv')
             raise e
+        check_N_mkdir(folder + 'curves/')
         saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
         df.to_csv(folder + 'curves/in_loop_val_acc.csv')
 

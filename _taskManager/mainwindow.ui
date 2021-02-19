@@ -263,17 +263,19 @@
            <bool>false</bool>
           </property>
           <property name="rowCount">
-           <number>25</number>
+           <number>27</number>
           </property>
           <property name="columnCount">
            <number>2</number>
           </property>
-          <attribute name="horizontalHeaderMinimumSectionSize">
-           <number>18</number>
-          </attribute>
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>100</number>
           </attribute>
+          <attribute name="horizontalHeaderMinimumSectionSize">
+           <number>18</number>
+          </attribute>
+          <row/>
+          <row/>
           <row/>
           <row/>
           <row/>
@@ -416,30 +418,40 @@
           </item>
           <item row="19" column="0">
            <property name="text">
-            <string>trn repo path</string>
+            <string>sampl. gap</string>
            </property>
           </item>
           <item row="20" column="0">
            <property name="text">
-            <string>val repo path</string>
+            <string>stop. crit.</string>
            </property>
           </item>
           <item row="21" column="0">
            <property name="text">
-            <string>tst repo path</string>
+            <string>trn repo path</string>
            </property>
           </item>
           <item row="22" column="0">
            <property name="text">
-            <string>mdl. saved path</string>
+            <string>val repo path</string>
            </property>
           </item>
           <item row="23" column="0">
            <property name="text">
-            <string>ckpt path</string>
+            <string>tst repo path</string>
            </property>
           </item>
           <item row="24" column="0">
+           <property name="text">
+            <string>mdl. saved path</string>
+           </property>
+          </item>
+          <item row="25" column="0">
+           <property name="text">
+            <string>ckpt path</string>
+           </property>
+          </item>
+          <item row="26" column="0">
            <property name="text">
             <string>nodes</string>
            </property>

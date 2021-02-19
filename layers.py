@@ -573,7 +573,8 @@ def metrics(y_pred, y_true, loss_op, is_training, mode='classification'):
             acc_val_op, acc_update_op = tf.metrics.accuracy(labels=y_true, predictions=y_pred, name='acc_test')
 
     return tf.summary.merge([tf.summary.scalar("loss", loss_val_op)]), loss_update_op,\
-           tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op
+           tf.summary.merge([tf.summary.scalar('accuracy', acc_val_op)]), acc_update_op,\
+            loss_val_op, acc_update_op
 
 
 def optimizer(lr, name='AdamOptimizer'):

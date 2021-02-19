@@ -5,18 +5,19 @@ import os
 import shutil
 import platform
 import subprocess
+import json
 
 from train import main_train
 from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
 from input import coords_gen, get_max_nb_cls
-from tensorboard_extractor import lr_curve_extractor, df_to_csv
+from score_extractor import lr_curve_extractor, df_to_csv
 
 # logging
 import logging
 import log
 
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 if platform.system() == 'Darwin':
     # mpi problem: https://stackoverflow.com/questions/55714135/how-to-properly-fix-the-following-openmp-error
@@ -74,6 +75,8 @@ if __name__ == '__main__':
                         help='img * correction')
     parser.add_argument('-stch', '--stretch', type=float, metavar='', default=2.0, required=False,
                         help='parameter for stretching')
+    parser.add_argument('-cond', '--condition', type=float, metavar='', default=0.001, required=False,
+                        help='parameter for stretching')
 
     try:
         args = parser.parse_args()
@@ -115,7 +118,8 @@ if __name__ == '__main__':
             'val_dir': args.val_dir,
             'test_dir': args.test_dir,
             'correction': 1e3,
-            'stretch': 2.0
+            'stretch': 2.0,
+            'condition': args.condition,
         }
 
         # coordinations gen
@@ -175,6 +179,14 @@ if __name__ == '__main__':
                 hyperparams['hour'],
                 'gpu{}'.format(args.device) if args.device != 'cpu' else 'cpu'
             )
+
+        check_N_mkdir(hyperparams['folder_name'])
+        with open(hyperparams['folder_name']+'HPs.json', 'w') as file:
+            json.dump({'corr': hyperparams['correction'],
+                       'str': hyperparams['stretch'],
+                       'cond': hyperparams['condition'],
+                       'gap': args.sampling_stride,
+                       }, file)
 
     except Exception as e:
         logger.warning(
@@ -265,23 +277,26 @@ if __name__ == '__main__':
 
     # try:
     hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
+    start_time = datetime.datetime.now()
     main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
-
+    train_time = (datetime.datetime.now() - start_time) / 3600
     # save lr_curves
     check_N_mkdir(hyperparams['folder_name'] + 'curves/')
     ac_tn, _, ls_tn, _ = lr_curve_extractor(hyperparams['folder_name'] + 'train/')
     _, ac_val, _, ls_val = lr_curve_extractor(hyperparams['folder_name'] + 'test/')
-    #best_step = ac_val.step.loc[ac_val.value.argmax()]
-    best_step=0
-    #df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
+    best_step = ac_val.step.loc[ac_val.value.argmax()]
+    # best_step=0
+    df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
+    with open(hyperparams['folder_name'] + 'curves/train_time.csv', 'w') as f:
+        f.write('{} hours'.format(train_time.seconds/3600))
 
     # testing
     logger.debug(best_step)
     logger.debug(hyperparams['folder_name'])
     logger.debug(args.test_dir)
     p = subprocess.Popen(['python', 'main_testing.py',
-                     '-tstd', args.test_dir,
-                     '-ckpt', hyperparams['folder_name'] + '/ckpt/step{}'.format(best_step)])
-
+                          '-tstd', args.test_dir,
+                          '-ckpt', hyperparams['folder_name'] + '/curves/best_model',
+                          '-sd', hyperparams['folder_name'] + 'test_score.csv'])
     o, e = p.communicate()
 

@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 # from tensorflow.core.framework import graph_pb2
 
-from tensorboard_extractor import lr_curve_extractor, gradient_extractor
+from score_extractor import lr_curve_extractor, gradient_extractor
 
 import logging
 import log

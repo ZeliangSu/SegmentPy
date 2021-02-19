@@ -148,7 +148,7 @@ def classification_nodes(pipeline,
             train_op = opt.apply_gradients(grads, name='train_op')
 
         with tf.name_scope('train_metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(softmax,  #[B, W, H, 3]
+            m_loss, loss_up_op, m_acc, acc_up_op, lss, acc = metrics(softmax,  #[B, W, H, 3]
                                                            pipeline['label'],  #[B, W, H, 3]
                                                            loss,
                                                            is_training)
@@ -172,7 +172,7 @@ def classification_nodes(pipeline,
         with tf.name_scope('operation'):
             train_op = tf.no_op(name='no_op')
         with tf.name_scope('test_metrics'):
-            m_loss, loss_up_op, m_acc, acc_up_op = metrics(softmax, pipeline['label'], loss, is_training)
+            m_loss, loss_up_op, m_acc, acc_up_op, lss, acc = metrics(softmax, pipeline['label'], loss, is_training)
         with tf.name_scope('summary'):
             tmp = []
             for layer_param in list_params:
@@ -193,8 +193,8 @@ def classification_nodes(pipeline,
         'BN_phase': BN_phase,
         'loss_update_op': loss_up_op,
         'acc_update_op': acc_up_op,
-        'val_acc': m_acc,
-        'val_lss': m_loss,
+        'val_lss': lss,
+        'val_acc': acc,
     }
 
 

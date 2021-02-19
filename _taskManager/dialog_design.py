@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file './_taskManager/dialog.ui',
-# licensing of './_taskManager/dialog.ui' applies.
+# Form implementation generated from reading ui file '_taskManager/dialog.ui',
+# licensing of '_taskManager/dialog.ui' applies.
 #
-# Created: Mon Feb 15 14:52:48 2021
+# Created: Wed Feb 17 17:14:45 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -82,6 +82,12 @@ class Ui_Dialog(object):
         self.dropout = QtWidgets.QLineEdit(Dialog)
         self.dropout.setObjectName("dropout")
         self.verticalLayout_2.addWidget(self.dropout)
+        self.label_23 = QtWidgets.QLabel(Dialog)
+        self.label_23.setObjectName("label_23")
+        self.verticalLayout_2.addWidget(self.label_23)
+        self.sampling_gap = QtWidgets.QLineEdit(Dialog)
+        self.sampling_gap.setObjectName("sampling_gap")
+        self.verticalLayout_2.addWidget(self.sampling_gap)
         self.horizontalLayout.addLayout(self.verticalLayout_2)
         self.line = QtWidgets.QFrame(Dialog)
         self.line.setFrameShape(QtWidgets.QFrame.VLine)
@@ -157,6 +163,12 @@ class Ui_Dialog(object):
         self.tbstep = QtWidgets.QLineEdit(Dialog)
         self.tbstep.setObjectName("tbstep")
         self.verticalLayout.addWidget(self.tbstep)
+        self.label_24 = QtWidgets.QLabel(Dialog)
+        self.label_24.setObjectName("label_24")
+        self.verticalLayout.addWidget(self.label_24)
+        self.criterion = QtWidgets.QLineEdit(Dialog)
+        self.criterion.setObjectName("criterion")
+        self.verticalLayout.addWidget(self.criterion)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout_3.addLayout(self.horizontalLayout)
         self.comment = QtWidgets.QLineEdit(Dialog)
@@ -244,6 +256,8 @@ class Ui_Dialog(object):
         self.aug.setItemText(1, QtWidgets.QApplication.translate("Dialog", "False", None, -1))
         self.label_9.setText(QtWidgets.QApplication.translate("Dialog", "dropout probability", None, -1))
         self.dropout.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 0.1, 0.5, 1.0...) float", None, -1))
+        self.label_23.setText(QtWidgets.QApplication.translate("Dialog", "sampling gap", None, -1))
+        self.sampling_gap.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 5, 100, 200...) integer", None, -1))
         self.label_10.setText(QtWidgets.QApplication.translate("Dialog", "learning rate decay type", None, -1))
         self.lrtype.setItemText(0, QtWidgets.QApplication.translate("Dialog", "ramp", None, -1))
         self.lrtype.setItemText(1, QtWidgets.QApplication.translate("Dialog", "exp", None, -1))
@@ -271,6 +285,8 @@ class Ui_Dialog(object):
         self.svsteps.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 500...) integer", None, -1))
         self.label_18.setText(QtWidgets.QApplication.translate("Dialog", "tb: gradients and weights every n steps", None, -1))
         self.tbstep.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 50...) integer", None, -1))
+        self.label_24.setText(QtWidgets.QApplication.translate("Dialog", "stopping criterion", None, -1))
+        self.criterion.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 0.002) float", None, -1))
         self.comment.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "enter extra comment here", None, -1))
         self.label_22.setText(QtWidgets.QApplication.translate("Dialog", "save model to:", None, -1))
         self.log_dir_line.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "default: <SegmentPy installation folder>/logs/", None, -1))

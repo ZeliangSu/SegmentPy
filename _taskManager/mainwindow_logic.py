@@ -149,6 +149,8 @@ class training_Worker(QRunnable):
             '-mdl', self.params['model'],
             '-mode', self.params['cls/reg'],
             '-dv', self.using_gpu,
+            '-stride', self.params['sampl. gap'],
+            '-cond', self.params['stop. crit.'],
             '-st', self.params['sv step'],
             '-tb', self.params['tb step'],
             '-cmt', self.params['comment'],
@@ -340,25 +342,33 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(19, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "trn repo. path"))
+        item.setText(_translate("LRCSNet", "sampl. gap"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(20, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "val repo. path"))
+        item.setText(_translate("LRCSNet", "stop. crit."))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(21, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "tst repo. path"))
+        item.setText(_translate("LRCSNet", "trn repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(22, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "mdl. saved path"))
+        item.setText(_translate("LRCSNet", "val repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(23, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setText(_translate("LRCSNet", "tst repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(24, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "mdl. saved path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(25, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(26, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "nodes"))
         item.setBackground(QtGui.QColor(128, 128, 128))
@@ -511,12 +521,14 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'lr_type': 'ramp',
             #'lr_init': 'lr init',
             #'lr_k': 'k param',
-            'lr_p': '1',
+            'lr_p': '50',
             'cls_reg': 'classification',
             # 'comment': 'comment',
-            'nb_epoch': '5',
-            'sv_step': '500',
+            'nb_epoch': '500',
+            'sv_step': '160',
             'tb_step': '50',
+            'gap': '200',
+            'condition': '0.001',
             # 'train_dir': 'trn repo. path',
             # 'val_dir': 'val repo. path',
             # 'test_dir': 'tst repo. path',
@@ -600,6 +612,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'nb_epoch': 'nb epoch',
             'sv_step': 'sv step',
             'tb_step': 'tb step',
+            'gap': 'sampl. gap',
+            'condition': 'stop. crit.',
             'train_dir': 'trn repo. path',
             'val_dir': 'val repo. path',
             'test_dir': 'tst repo. path',

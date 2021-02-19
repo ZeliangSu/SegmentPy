@@ -186,12 +186,33 @@ def df_to_csv(where: str, acc_train, acc_test, lss_train, lss_test):
     lss_test.to_csv(where + '/lss_test.csv')
 
 
+def get_pd_lr_curves(pd_dir: str):
+    assert os.path.isdir(pd_dir)
+    acc_train = None
+    acc_test = None
+    lss_train = None
+    lss_test = None
+    try:
+        if not os.path.exists(pd_dir+'curves/acc_train.csv'):
+            # todo: this way of finding score is not accurate
+            logger.warning('[SegmentPy]: could not find the lr curves .csv file')
+        else:
+            acc_train = pd.read_csv(pd_dir + '/acc_train.csv')
+            acc_test = pd.read_csv(pd_dir + '/acc_test.csv')
+            lss_train = pd.read_csv(pd_dir + '/lss_train.csv')
+            lss_test = pd.read_csv(pd_dir + '/lss_test.csv')
+
+    except Exception as e:
+        logger.error(e)
+
+    return acc_train, acc_test, lss_train, lss_test
+
 
 def get_test_acc(log_dir: str):
     assert os.path.isdir(log_dir)
     acc = None
     try:
-        if not os.path.exists(log_dir+'curves/'):
+        if not os.path.exists(log_dir+'curves/test_score.csv'):
             acc = 0
             # todo: this way of finding score is not accurate
             logger.warning('[SegmentPy]: could not find the test score folder')
@@ -202,6 +223,25 @@ def get_test_acc(log_dir: str):
         logger.error(e)
 
     return acc
+
+
+def extractor_wrapper(parent_dir: str):
+    '''parent_dir: the training holder ends with /hour{}_gpu{}/'''
+    assert os.path.isdir(parent_dir)
+    acc_train = None
+    acc_test = None
+    lss_train = None
+    lss_test = None
+    if not os.path.exists(parent_dir):
+        logger.warning('[SegmentPy]: did not found the folder to extract the lr curves')
+    else:
+        if os.path.exists(parent_dir+'curves/'):
+            acc_train, acc_test, lss_train, lss_test = get_pd_lr_curves(parent_dir)
+        elif os.path.exists(parent_dir+'train/'):
+            acc_train, acc_test, lss_train, lss_test = lr_curve_extractor(parent_dir)
+        else:
+            logger.warning('[SegmentPy]: could not find original lr curves')
+    return acc_train, acc_test, lss_train, lss_test
 
 
 if __name__ == '__main__':
