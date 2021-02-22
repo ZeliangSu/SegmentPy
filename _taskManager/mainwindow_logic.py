@@ -57,7 +57,7 @@ class queueManager(QThread):
         # todo: the following pythonic loop should be replaced by inner event loop of pyside!!
         while self.toggle:
             if self.enqueueListener.empty():
-                continue  # note: don't use continu here, or saturate the CPU
+                continue  # note: don't use continue here, or saturate the CPU
             else:
                 _gpu = list(self.enqueueListener.queue)[0]
                 self.signals.available_gpu.emit(_gpu)
@@ -765,7 +765,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         if self.loop_button.isChecked():
             self.qManager.start()
         else:
-            self.qManager.terminate()
+            self.qManager.stop()
 
     def stop(self):
         # refers to: https://stackoverflow.com/questions/37601672/how-can-i-get-the-indices-of-qlistwidgetselecteditems
