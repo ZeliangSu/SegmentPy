@@ -486,7 +486,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
             pb_path=paths['optimized_pb_path'],
             conserve_nodes=conserve_nodes,
             hyper=hyper,
-            comm=communicator
+            comm=communicator,
+            maxp_times=hyperparams['maxp_times']
         )
 
     # ************************************************************************************************ I'm a Barrier
@@ -505,7 +506,8 @@ def _inference_recursive_V3(l_input_path: list,
                             conserve_nodes: list,
                             hyper: dict,
                             comm=None,
-                            normalization=1e-3):
+                            normalization=1e-3,
+                            maxp_times=3):
     # load graph
     tf.reset_default_graph()
     with tf.gfile.GFile(pb_path, 'rb') as f:
@@ -532,7 +534,7 @@ def _inference_recursive_V3(l_input_path: list,
                 # note: the following dimensions should be multiple of 8 if 3x Maxpooling
                 logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
                 img = load_img(l_input_path[id]) / normalization
-                img = dimension_regulator(img, maxp_times=3)
+                img = dimension_regulator(img, maxp_times=maxp_times)
 
                 batch = img.reshape((1, *img.shape, 1))
                 # inference
@@ -608,6 +610,7 @@ if __name__ == '__main__':
         'mode': 'classification',
         'nb_classes': args.nb_cls,
         'feature_map': True if mdl_name in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
+        'maxp_times': 4 if mdl_name in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3,
     }
 
     l_img_path = [paths['raw_dir'] + f for f in sorted(os.listdir(paths['raw_dir']))]
