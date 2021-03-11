@@ -104,12 +104,13 @@ class reconstructor_V2_cls():
 
 class reconstructor_V3_cls():
     '''can be used by models which has resizable input (without dense connected layer/pur convolutional net)'''
-    def __init__(self, image_size, z_len, nb_class):
+    def __init__(self, image_size, z_len, nb_class, maxp_times=3):
         self.img_size = image_size
         self.z_len = z_len
         self.nb_cls = nb_class
-        a, b = self.img_size[0] // 8, self.img_size[1] // 8
-        self.result = np.zeros((self.z_len, a * 8, b * 8), dtype=np.int8)
+        down = pow(2, maxp_times)
+        a, b = self.img_size[0] // down, self.img_size[1] // down
+        self.result = np.zeros((self.z_len, a * down, b * down), dtype=np.int8)
 
     def write_slice(self,
                     nn_output,
@@ -443,7 +444,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
         reconstructor = reconstructor_V3_cls(
             image_size=load_img(l_input_path[0]).shape,
             z_len=len(l_input_path),
-            nb_class=hyper['nb_classes']
+            nb_class=hyper['nb_classes'],
+            maxp_times=hyperparams['maxp_times']
         )
         pbar1 = tqdm(total=len(l_input_path))
 
