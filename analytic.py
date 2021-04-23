@@ -987,7 +987,8 @@ def partialRlt_and_diff(paths=None, hyperparams=None, conserve_nodes=None, plt=F
                                                  rlt_dir=paths['rlt_dir'] + 'p_inference/step{}/'.format(paths['step']) if write_rlt else None,
                                                  hyper=hyperparams,
                                                  feature_map=hyperparams['feature_map'],
-                                                 write_rlt=write_rlt)
+                                                 write_rlt=write_rlt,
+                                                 norm=1e3 if hyperparams['correction'] else hyperparams['correction'])
 
     # plt
     if plt:

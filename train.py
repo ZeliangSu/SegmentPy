@@ -29,7 +29,7 @@ def main_train(
 
     # init input pipeline
     if hyperparams['model'] in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3']:
-        print('**********************************Use weka-like input')
+        print('**********************************Use multi channels input')
         train_inputs = inputpipeline_V2(hyperparams['batch_size'], hyperparams['patch_size'], suffix='train',
                                         augmentation=hyperparams['augmentation'], mode='weka')
         test_inputs = inputpipeline_V2(hyperparams['batch_size'], hyperparams['patch_size'],

@@ -154,6 +154,7 @@ class training_Worker(QRunnable):
             '-st', self.params['sv step'],
             '-tb', self.params['tb step'],
             '-cmt', self.params['comment'],
+            '-corr', self.params['correction'],
             '-trnd', self.params['trn repo. path'],
             '-vald', self.params['val repo. path'],
             '-tstd', self.params['tst repo. path'],
@@ -212,6 +213,7 @@ class retraining_Worker(QRunnable):
             '-tb', self.params['tb step'],
             '-stride', self.params['sampl. gap'],
             '-cond', self.params['stop. crit.'],
+            '-corr', self.params['correction'],
             ######## paths
             '-trnd', self.params['trn repo. path'],
             '-vald', self.params['val repo. path'],
@@ -360,25 +362,29 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(21, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "trn repo. path"))
+        item.setText(_translate("LRCSNet", "correction"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(22, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "val repo. path"))
+        item.setText(_translate("LRCSNet", "trn repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(23, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "tst repo. path"))
+        item.setText(_translate("LRCSNet", "val repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(24, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "mdl. saved path"))
+        item.setText(_translate("LRCSNet", "tst repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(25, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setText(_translate("LRCSNet", "mdl. saved path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(26, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(27, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "nodes"))
         item.setBackground(QtGui.QColor(128, 128, 128))
@@ -537,7 +543,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'nb_epoch': '500',
             'sv_step': '160',
             'tb_step': '50',
-            'gap': '200',
+            'gap': '50',
             'condition': '0.001',
             # 'train_dir': 'trn repo. path',
             # 'val_dir': 'val repo. path',
@@ -624,6 +630,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'tb_step': 'tb step',
             'gap': 'sampl. gap',
             'condition': 'stop. crit.',
+            'correction': 'correction',
             'train_dir': 'trn repo. path',
             'val_dir': 'val repo. path',
             'test_dir': 'tst repo. path',
@@ -679,6 +686,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'sampl. gap': 'sampl. gap',
             'condition': 'stop. crit.',
             'mode': 'cls/reg',
+            'correction': 'correction',
             'trn repo.path': 'trn repo. path',
             'val repo.path': 'val repo. path',
             'tst repo.path': 'tst repo. path',
@@ -941,7 +949,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 for row in range(self.tableWidget.rowCount()):
                     if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
                                                                     'ckpt path', 'comment', 'nb epoch', 'nodes',
-                                                                    'mdl. saved path', 'sampl. gap', 'stop. crit.']:
+                                                                    'mdl. saved path', 'sampl. gap', 'stop. crit.', 'correction']:
                         if self.tableWidget.item(row, column) is not None:
                             self.tableWidget.item(row, column).setBackground(QtGui.QColor(230, 230, 250))
                             self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it read only
