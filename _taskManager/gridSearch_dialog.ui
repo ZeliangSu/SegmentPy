@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>714</width>
-    <height>518</height>
+    <height>598</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -121,6 +121,60 @@
           <widget class="QLineEdit" name="decay_ratio">
            <property name="placeholderText">
             <string>e.g. 0.1, 0.5... (between 0-1; seperated by , or ; or /)</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_11">
+         <item>
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>correction</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="correction">
+           <property name="placeholderText">
+            <string>e.g., 1e-2 for input image ranging 0-100</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_12">
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>sample gap</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="sample_gap">
+           <property name="placeholderText">
+            <string>e.g., gap of sampling 5, 50, 100 depending on the dataset size</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_13">
+         <item>
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>stop. crit.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="stop_criterion">
+           <property name="placeholderText">
+            <string>e.g., 0.01, 1e-3</string>
            </property>
           </widget>
          </item>

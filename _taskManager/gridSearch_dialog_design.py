@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file './_taskManager/gridSearch_dialog.ui',
-# licensing of './_taskManager/gridSearch_dialog.ui' applies.
+# Form implementation generated from reading ui file '_taskManager/gridSearch_dialog.ui',
+# licensing of '_taskManager/gridSearch_dialog.ui' applies.
 #
-# Created: Thu Mar 11 16:56:40 2021
+# Created: Tue Apr 27 16:41:17 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_gridSearch_dialog(object):
     def setupUi(self, gridSearch_dialog):
         gridSearch_dialog.setObjectName("gridSearch_dialog")
-        gridSearch_dialog.resize(714, 518)
+        gridSearch_dialog.resize(714, 598)
         self.gridLayout = QtWidgets.QGridLayout(gridSearch_dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
@@ -74,6 +74,33 @@ class Ui_gridSearch_dialog(object):
         self.decay_ratio.setObjectName("decay_ratio")
         self.horizontalLayout_5.addWidget(self.decay_ratio)
         self.verticalLayout.addLayout(self.horizontalLayout_5)
+        self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_11.setObjectName("horizontalLayout_11")
+        self.label_7 = QtWidgets.QLabel(gridSearch_dialog)
+        self.label_7.setObjectName("label_7")
+        self.horizontalLayout_11.addWidget(self.label_7)
+        self.correction = QtWidgets.QLineEdit(gridSearch_dialog)
+        self.correction.setObjectName("correction")
+        self.horizontalLayout_11.addWidget(self.correction)
+        self.verticalLayout.addLayout(self.horizontalLayout_11)
+        self.horizontalLayout_12 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_12.setObjectName("horizontalLayout_12")
+        self.label_8 = QtWidgets.QLabel(gridSearch_dialog)
+        self.label_8.setObjectName("label_8")
+        self.horizontalLayout_12.addWidget(self.label_8)
+        self.sample_gap = QtWidgets.QLineEdit(gridSearch_dialog)
+        self.sample_gap.setObjectName("sample_gap")
+        self.horizontalLayout_12.addWidget(self.sample_gap)
+        self.verticalLayout.addLayout(self.horizontalLayout_12)
+        self.horizontalLayout_13 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
+        self.label_9 = QtWidgets.QLabel(gridSearch_dialog)
+        self.label_9.setObjectName("label_9")
+        self.horizontalLayout_13.addWidget(self.label_9)
+        self.stop_criterion = QtWidgets.QLineEdit(gridSearch_dialog)
+        self.stop_criterion.setObjectName("stop_criterion")
+        self.horizontalLayout_13.addWidget(self.stop_criterion)
+        self.verticalLayout.addLayout(self.horizontalLayout_13)
         self.verticalLayout_2.addLayout(self.verticalLayout)
         self.line = QtWidgets.QFrame(gridSearch_dialog)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
@@ -162,6 +189,12 @@ class Ui_gridSearch_dialog(object):
         self.init_lr.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "e.g. 1e-3, 1e-5... (depanding on your device\'s memory; seperated by , or ; or /)", None, -1))
         self.label_5.setText(QtWidgets.QApplication.translate("gridSearch_dialog", "learning rate decay ratio", None, -1))
         self.decay_ratio.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "e.g. 0.1, 0.5... (between 0-1; seperated by , or ; or /)", None, -1))
+        self.label_7.setText(QtWidgets.QApplication.translate("gridSearch_dialog", "correction", None, -1))
+        self.correction.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "e.g., 1e-2 for input image ranging 0-100", None, -1))
+        self.label_8.setText(QtWidgets.QApplication.translate("gridSearch_dialog", "sample gap", None, -1))
+        self.sample_gap.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "e.g., gap of sampling 5, 50, 100 depending on the dataset size", None, -1))
+        self.label_9.setText(QtWidgets.QApplication.translate("gridSearch_dialog", "stop. crit.", None, -1))
+        self.stop_criterion.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "e.g., 0.01, 1e-3", None, -1))
         self.comment.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "enter extra comment here", None, -1))
         self.label_20.setText(QtWidgets.QApplication.translate("gridSearch_dialog", "Trn. ds. repo.:", None, -1))
         self.trn_dir_line.setPlaceholderText(QtWidgets.QApplication.translate("gridSearch_dialog", "default: <SegmentPy installation folder>/train/", None, -1))

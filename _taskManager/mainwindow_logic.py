@@ -543,8 +543,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'nb_epoch': '500',
             'sv_step': '160',
             'tb_step': '50',
-            'gap': '50',
-            'condition': '0.001',
+            # 'gap': '50',
+            # 'condition': '0.001',
+            # 'correction': '1e-2',
             # 'train_dir': 'trn repo. path',
             # 'val_dir': 'val repo. path',
             # 'test_dir': 'tst repo. path',
@@ -574,6 +575,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     default['test_dir'] = gS_param['test_dir']
                     default['log_dir'] = gS_param['log_dir']
                     default['comment'] = gS_param['cmt']
+                    default['correction'] = gS_param['correction']
+                    default['gap'] = gS_param['sample gap']
+                    default['condition'] = gS_param['criterion']
                     self.write_train_column(contents=default)
 
         except Exception as e:
