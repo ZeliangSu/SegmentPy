@@ -1,0 +1,10 @@
+tensorflow==1.14
+pandas
+Pillow
+mpi4py
+PySide2
+matplotlib
+scikit-learn
+scipy
+tqdm
+opencv

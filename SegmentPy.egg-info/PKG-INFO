@@ -1,0 +1,11 @@
+Metadata-Version: 1.2
+Name: SegmentPy
+Version: 0.1
+Summary: Deep Learning Software for Tomography Segmentation
+Home-page: https://github.com/ZeliangSu
+Author: Zeliang Su
+Author-email: zeliang.su@u-picardie.fr
+License: Apache 2.0
+Description: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.6

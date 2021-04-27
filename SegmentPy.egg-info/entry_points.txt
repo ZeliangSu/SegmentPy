@@ -1,0 +1,3 @@
+[console_scripts]
+SegmentPy = src.SegmentPy:main
+

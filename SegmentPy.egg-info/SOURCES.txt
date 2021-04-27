@@ -1,0 +1,7 @@
+setup.py
+SegmentPy.egg-info/PKG-INFO
+SegmentPy.egg-info/SOURCES.txt
+SegmentPy.egg-info/dependency_links.txt
+SegmentPy.egg-info/entry_points.txt
+SegmentPy.egg-info/requires.txt
+SegmentPy.egg-info/top_level.txt

@@ -1,0 +1,31 @@
+package:
+  name: segmentpy
+  version: 0.1
+
+source:
+#  git_rev: v0.1
+#  git_url: https://github.com/ZeliangSu/SegmentPy.git
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - tensorflow
+    - pandas
+    - Pillow
+    - mpi4py
+#    - PySide2
+    - matplotlib
+    - scikit-learn
+    - scipy
+    - tqdm
+    - opencv
+
+  run:
+    - python
+
+about:
+  home: https://segmentpy.readthedoc.com/
+  license: Apache 2.0
+  license_family: Apache
+  summary: A graphical interface for CT image segmentation
