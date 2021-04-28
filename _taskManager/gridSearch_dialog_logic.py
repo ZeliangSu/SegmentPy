@@ -16,14 +16,21 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
         if os.path.exists('./_taskManager/latest_gS.json'):
             with open('./_taskManager/latest_gS.json', 'r') as file:
                 params = json.load(file)
-                self.trn_dir_line.setText(params['train_dir'])
-                self.train_dir = params['train_dir']
-                self.val_dir_line.setText(params['val_dir'])
-                self.val_dir = params['val_dir']
-                self.test_dir_line.setText(params['test_dir'])
-                self.tst_dir = params['test_dir']
-                self.log_dir_line.setText(params['log_dir'])
-                self.log_dir = params['log_dir']
+                try:
+                    self.trn_dir_line.setText(params['train_dir'])
+                    self.train_dir = params['train_dir']
+                    self.val_dir_line.setText(params['val_dir'])
+                    self.val_dir = params['val_dir']
+                    self.test_dir_line.setText(params['test_dir'])
+                    self.tst_dir = params['test_dir']
+                    self.log_dir_line.setText(params['log_dir'])
+                    self.log_dir = params['log_dir']
+                    self.correction = params['correction']
+                    self.sample_gap = params['sample gap']
+                    self.stop_criterion = params['criterion']
+                except KeyError as e:
+                    print(e)
+                    pass
 
         self.buttonBox.accepted.connect(self.accept)  # ok button
         self.buttonBox.rejected.connect(self.reject)  # cancel button
@@ -41,6 +48,9 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
             'ilr': re.split('\,|\:|\/|\ ', self.init_lr.text()),
             'lrdecay': re.split('\,|\:|\/|\ ', self.decay_ratio.text()),
             'cmt': self.comment.text(),
+            'correction': str(self.correction),
+            'sample gap': str(self.sample_gap),
+            'criterion': str(self.correction),
         }
         if hasattr(self, 'train_dir'):
             output['train_dir'] = self.trn_dir_line.text()

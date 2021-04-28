@@ -104,12 +104,13 @@ class reconstructor_V2_cls():
 
 class reconstructor_V3_cls():
     '''can be used by models which has resizable input (without dense connected layer/pur convolutional net)'''
-    def __init__(self, image_size, z_len, nb_class):
+    def __init__(self, image_size, z_len, nb_class, maxp_times=3):
         self.img_size = image_size
         self.z_len = z_len
         self.nb_cls = nb_class
-        a, b = self.img_size[0] // 8, self.img_size[1] // 8
-        self.result = np.zeros((self.z_len, a * 8, b * 8), dtype=np.int8)
+        down = pow(2, maxp_times)
+        a, b = self.img_size[0] // down, self.img_size[1] // down
+        self.result = np.zeros((self.z_len, a * down, b * down), dtype=np.int8)
 
     def write_slice(self,
                     nn_output,
@@ -443,7 +444,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
         reconstructor = reconstructor_V3_cls(
             image_size=load_img(l_input_path[0]).shape,
             z_len=len(l_input_path),
-            nb_class=hyper['nb_classes']
+            nb_class=hyper['nb_classes'],
+            maxp_times=hyperparams['maxp_times']
         )
         pbar1 = tqdm(total=len(l_input_path))
 
@@ -486,7 +488,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
             pb_path=paths['optimized_pb_path'],
             conserve_nodes=conserve_nodes,
             hyper=hyper,
-            comm=communicator
+            comm=communicator,
+            maxp_times=hyperparams['maxp_times']
         )
 
     # ************************************************************************************************ I'm a Barrier
@@ -505,7 +508,8 @@ def _inference_recursive_V3(l_input_path: list,
                             conserve_nodes: list,
                             hyper: dict,
                             comm=None,
-                            normalization=1e-3):
+                            normalization=1e-3,
+                            maxp_times=3):
     # load graph
     tf.reset_default_graph()
     with tf.gfile.GFile(pb_path, 'rb') as f:
@@ -532,7 +536,7 @@ def _inference_recursive_V3(l_input_path: list,
                 # note: the following dimensions should be multiple of 8 if 3x Maxpooling
                 logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
                 img = load_img(l_input_path[id]) / normalization
-                img = dimension_regulator(img, maxp_times=3)
+                img = dimension_regulator(img, maxp_times=maxp_times)
 
                 batch = img.reshape((1, *img.shape, 1))
                 # inference
@@ -608,6 +612,7 @@ if __name__ == '__main__':
         'mode': 'classification',
         'nb_classes': args.nb_cls,
         'feature_map': True if mdl_name in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
+        'maxp_times': 4 if mdl_name in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3,
     }
 
     l_img_path = [paths['raw_dir'] + f for f in sorted(os.listdir(paths['raw_dir']))]

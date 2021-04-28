@@ -47,6 +47,8 @@ class dialog_logic(QDialog, Ui_Dialog):
                 self.gap = params['gap']
                 self.criterion.setText(params['condition'])
                 self.cond = params['condition']
+                self.correction.setText(params['correction'])
+                self.corr = params['correction']
             except Exception as e:
                 logger.error(e)
 
@@ -89,6 +91,7 @@ class dialog_logic(QDialog, Ui_Dialog):
             'comment': self.comment.text(),
             'gap': self.sampling_gap.text(),
             'condition': self.criterion.text(),
+            'correction': self.correction.text(),
         }
 
         if hasattr(self, 'train_dir'):

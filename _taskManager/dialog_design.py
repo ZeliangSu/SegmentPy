@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file '_taskManager/dialog.ui',
 # licensing of '_taskManager/dialog.ui' applies.
 #
-# Created: Wed Feb 17 17:14:45 2021
+# Created: Fri Apr 23 11:01:14 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(603, 780)
+        Dialog.resize(884, 811)
         self.gridLayout = QtWidgets.QGridLayout(Dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -88,6 +88,12 @@ class Ui_Dialog(object):
         self.sampling_gap = QtWidgets.QLineEdit(Dialog)
         self.sampling_gap.setObjectName("sampling_gap")
         self.verticalLayout_2.addWidget(self.sampling_gap)
+        self.label_25 = QtWidgets.QLabel(Dialog)
+        self.label_25.setObjectName("label_25")
+        self.verticalLayout_2.addWidget(self.label_25)
+        self.correction = QtWidgets.QLineEdit(Dialog)
+        self.correction.setObjectName("correction")
+        self.verticalLayout_2.addWidget(self.correction)
         self.horizontalLayout.addLayout(self.verticalLayout_2)
         self.line = QtWidgets.QFrame(Dialog)
         self.line.setFrameShape(QtWidgets.QFrame.VLine)
@@ -258,6 +264,8 @@ class Ui_Dialog(object):
         self.dropout.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 0.1, 0.5, 1.0...) float", None, -1))
         self.label_23.setText(QtWidgets.QApplication.translate("Dialog", "sampling gap", None, -1))
         self.sampling_gap.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 5, 100, 200...) integer", None, -1))
+        self.label_25.setText(QtWidgets.QApplication.translate("Dialog", "input image correction (beamline dependant)", None, -1))
+        self.correction.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "(e.g. 1e3 if input image ranges at 1e-3; 0.0039 for 0-255) float", None, -1))
         self.label_10.setText(QtWidgets.QApplication.translate("Dialog", "learning rate decay type", None, -1))
         self.lrtype.setItemText(0, QtWidgets.QApplication.translate("Dialog", "ramp", None, -1))
         self.lrtype.setItemText(1, QtWidgets.QApplication.translate("Dialog", "exp", None, -1))

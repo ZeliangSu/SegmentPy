@@ -35,6 +35,8 @@ if __name__ == '__main__':
     parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False, help='where to find the training dataset')
     parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False, help='where to find the valid dataset')
     parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False, help='where to find the testing dataset')
+    parser.add_argument('-logd', '--log_dir', type=str, metavar='', default='./logs/', required=False,
+                        help='where to find the testing dataset')
 
     # other changeable params
     parser.add_argument('-lr', '--lr_decay_type', type=str, metavar='', required=False,
@@ -47,6 +49,10 @@ if __name__ == '__main__':
     parser.add_argument('-nodes', '--restore_nodes', type=str, default='', nargs='+', required=False, help='restrict nodes to restore')
     parser.add_argument('-corr', '--correction', type=float, metavar='', default=1e3, required=False, help='img * correction')
     parser.add_argument('-stch', '--stretch', type=float, metavar='', default=2.0, required=False, help='parameter for stretching')
+    parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False,
+                        help='indicate the step/stride with which we sample')
+    parser.add_argument('-cond', '--condition', type=float, metavar='', default=0.001, required=False,
+                        help='parameter for stretching')
 
     args = parser.parse_args()
 
@@ -83,15 +89,17 @@ if __name__ == '__main__':
         'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day),
         'hour': '{}'.format(datetime.datetime.now().hour),
 
-        'train_dir': './train/',
-        'val_dir': './valid/',
-        'test_dir': './test/',
+        'train_dir': args.train_dir,
+        'val_dir': args.val_dir,
+        'test_dir': args.test_dir,
 
         'restore_nodes': args.restore_nodes,
         'correction': args.correction,
-        'stretch': args.stretch
+        'stretch': args.stretch,
+        'condition': args.condition,
     }
 
+    logger.info(hyperparams)
     logger.warn('new folder name format will be change and adapted in the next version')
     try:
         # old folder name format
@@ -106,7 +114,7 @@ if __name__ == '__main__':
                                              valid_dir=hyperparams['val_dir'],
                                              window_size=hyperparams['patch_size'],
                                              train_test_ratio=0.9,
-                                             stride=5,
+                                             stride=args.sampling_stride,
                                              nb_batch=None,
                                              batch_size=hyperparams['batch_size'])
 
@@ -134,20 +142,21 @@ if __name__ == '__main__':
         raise NotImplementedError('Not implemented learning rate schedule: {}'.format(hyperparams['lr_decay_type']))
 
     # coordinations gen
-    hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                             valid_dir=hyperparams['val_dir'],
-                                             window_size=hyperparams['patch_size'],
-                                             train_test_ratio=0.9,
-                                             stride=5,
-                                             nb_batch=None,
-                                             batch_size=hyperparams['batch_size'])
+    # hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
+    #                                          valid_dir=hyperparams['val_dir'],
+    #                                          window_size=hyperparams['patch_size'],
+    #                                          train_test_ratio=0.9,
+    #                                          stride=args.sampling_stride,
+    #                                          nb_batch=None,
+    #                                          batch_size=hyperparams['batch_size'])
 
     # calculate nb_batch
-    hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
+    # hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
 
     # name the log directory
     hyperparams['folder_name'] = \
-        './logs/{}_RESUME_stp_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lFn_{}_lrtype{}_i{}_k{}_p{}_newi_{}_newk_{}_newp_{}_cmt_{}/hour{}_{}/'.format(
+        '{}{}_RESUME_stp_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lFn_{}_lrtype{}_i{}_k{}_p{}_newi_{}_newk_{}_newp_{}_cmt_{}/hour{}_{}/'.format(
+            args.log_dir,
             hyperparams['date'],
             string_to_hypers(hyperparams['from_ckpt']).get_step(),
             hyperparams['model'],

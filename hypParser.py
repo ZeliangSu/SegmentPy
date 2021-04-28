@@ -29,6 +29,7 @@ class string_to_hypers:
         _param_list = {}
         _param_list['model'] = self.get_model()
         if _param_list['model'] is None:
+            logger.debug(self.folder_name)
             raise ValueError('Failed to parse the folder name')
         _param_list['batch_size'] = self.get_batch_size()
         _param_list['window_size'] = self.get_window_size()
@@ -155,7 +156,7 @@ class string_to_hypers:
             logger.debug('detected a level 2 folder name')
             return 2
         elif re.search('\/.+comment\_\w+\/', self.folder_name) is not None:
-            # level 1: e.g. ...comment_None/hour13_gpu2/
+            # level 1: e.g. ...comment_None/
             logger.debug('detected a level 1 folder name')
             return 1
         else:
@@ -279,11 +280,13 @@ class graph_to_tensor_name:
 
 if __name__ == '__main__':
     pd_df = pd.DataFrame()
-    for folder in os.listdir('./logs/'):
+    path = '/media/tomoserver/DATA3/zeliang/github/paper_ML/broader_gSearch_LRCS/'
+    for folder in os.listdir(path):
         if not folder.startswith('.'):  # MacOS: avoid './.DS_Store/'
-            hypers = string_to_hypers('./logs/' + folder)
+            hypers = string_to_hypers(path + folder)
             tmp = hypers.hyper_to_DataFrame()
             # pd_df.columns = tmp.columns
             pd_df = pd_df.append(tmp, ignore_index=True)
+    pd_df.to_csv(path+'broader_gSearch_LRCS11_summary.csv')
     print('finished')
 

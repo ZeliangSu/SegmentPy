@@ -263,7 +263,7 @@
            <bool>false</bool>
           </property>
           <property name="rowCount">
-           <number>27</number>
+           <number>28</number>
           </property>
           <property name="columnCount">
            <number>2</number>
@@ -274,6 +274,7 @@
           <attribute name="horizontalHeaderMinimumSectionSize">
            <number>18</number>
           </attribute>
+          <row/>
           <row/>
           <row/>
           <row/>
@@ -428,30 +429,35 @@
           </item>
           <item row="21" column="0">
            <property name="text">
-            <string>trn repo path</string>
+            <string>correction</string>
            </property>
           </item>
           <item row="22" column="0">
            <property name="text">
-            <string>val repo path</string>
+            <string>trn repo path</string>
            </property>
           </item>
           <item row="23" column="0">
            <property name="text">
-            <string>tst repo path</string>
+            <string>val repo path</string>
            </property>
           </item>
           <item row="24" column="0">
            <property name="text">
-            <string>mdl. saved path</string>
+            <string>tst repo path</string>
            </property>
           </item>
           <item row="25" column="0">
            <property name="text">
-            <string>ckpt path</string>
+            <string>mdl. saved path</string>
            </property>
           </item>
           <item row="26" column="0">
+           <property name="text">
+            <string>ckpt path</string>
+           </property>
+          </item>
+          <item row="27" column="0">
            <property name="text">
             <string>nodes</string>
            </property>

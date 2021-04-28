@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>603</width>
-    <height>780</height>
+    <width>884</width>
+    <height>811</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -177,6 +177,20 @@
           <widget class="QLineEdit" name="sampling_gap">
            <property name="placeholderText">
             <string>(e.g. 5, 100, 200...) integer</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_25">
+           <property name="text">
+            <string>input image correction (beamline dependant)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="correction">
+           <property name="placeholderText">
+            <string>(e.g. 1e3 if input image ranges at 1e-3; 0.0039 for 0-255) float</string>
            </property>
           </widget>
          </item>

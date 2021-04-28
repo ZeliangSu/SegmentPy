@@ -155,6 +155,7 @@ class training_Worker(QRunnable):
             '-st', self.params['sv step'],
             '-tb', self.params['tb step'],
             '-cmt', self.params['comment'],
+            '-corr', self.params['correction'],
             '-trnd', self.params['trn repo. path'],
             '-vald', self.params['val repo. path'],
             '-tstd', self.params['tst repo. path'],
@@ -207,7 +208,18 @@ class retraining_Worker(QRunnable):
             '-plr', self.params['period'],
             '-dv', self.using_gpu,
             '-cmt', self.params['comment'],
-            '-nodes', *self.params['nodes'].split(', ')  # params['nodes'] is a str so need split
+            '-nodes', *self.params['nodes'].split(', '),  # params['nodes'] is a str so need split
+            ######## misc
+            '-st', self.params['sv step'],
+            '-tb', self.params['tb step'],
+            '-stride', self.params['sampl. gap'],
+            '-cond', self.params['stop. crit.'],
+            '-corr', self.params['correction'],
+            ######## paths
+            '-trnd', self.params['trn repo. path'],
+            '-vald', self.params['val repo. path'],
+            '-tstd', self.params['tst repo. path'],
+            '-logd', self.params['mdl. saved path'],
         ]
 
 
@@ -351,25 +363,29 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(21, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "trn repo. path"))
+        item.setText(_translate("LRCSNet", "correction"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(22, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "val repo. path"))
+        item.setText(_translate("LRCSNet", "trn repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(23, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "tst repo. path"))
+        item.setText(_translate("LRCSNet", "val repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(24, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "mdl. saved path"))
+        item.setText(_translate("LRCSNet", "tst repo. path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(25, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
-        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setText(_translate("LRCSNet", "mdl. saved path"))
         item.setBackground(QtGui.QColor(128, 128, 128))
         item = self.tableWidget.item(26, 0)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setText(_translate("LRCSNet", "ckpt path"))
+        item.setBackground(QtGui.QColor(128, 128, 128))
+        item = self.tableWidget.item(27, 0)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         item.setText(_translate("LRCSNet", "nodes"))
         item.setBackground(QtGui.QColor(128, 128, 128))
@@ -528,8 +544,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'nb_epoch': '500',
             'sv_step': '160',
             'tb_step': '50',
-            'gap': '200',
-            'condition': '0.001',
+            # 'gap': '50',
+            # 'condition': '0.001',
+            # 'correction': '1e-2',
             # 'train_dir': 'trn repo. path',
             # 'val_dir': 'val repo. path',
             # 'test_dir': 'tst repo. path',
@@ -559,6 +576,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                     default['test_dir'] = gS_param['test_dir']
                     default['log_dir'] = gS_param['log_dir']
                     default['comment'] = gS_param['cmt']
+                    default['correction'] = gS_param['correction']
+                    default['gap'] = gS_param['sample gap']
+                    default['condition'] = gS_param['criterion']
                     self.write_train_column(contents=default)
 
         except Exception as e:
@@ -615,6 +635,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'tb_step': 'tb step',
             'gap': 'sampl. gap',
             'condition': 'stop. crit.',
+            'correction': 'correction',
             'train_dir': 'trn repo. path',
             'val_dir': 'val repo. path',
             'test_dir': 'tst repo. path',
@@ -647,6 +668,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def addResume(self):
         pivot_table = {
+            # output dict key --> SegmentPy column name
             'model': 'model',
             'batch_size': 'batch size',
             'window_size': 'window size',
@@ -664,9 +686,16 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             'comment': 'comment',
             'ckpt_path': 'ckpt path',
             'nb_epoch': 'nb epoch',
+            'sv_step': 'sv step',
+            'tb_step': 'tb step',
+            'sampl. gap': 'sampl. gap',
+            'condition': 'stop. crit.',
             'mode': 'cls/reg',
+            'correction': 'correction',
             'trn repo.path': 'trn repo. path',
             'val repo.path': 'val repo. path',
+            'tst repo.path': 'tst repo. path',
+            'mdl. saved path': 'mdl. saved path',
         }
         self.Rdialog = resumeDialog_logic(None)
         self.Rdialog.exec()
@@ -676,12 +705,26 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             nb_col = self.tableWidget.columnCount()
             self.tableWidget.setColumnCount(nb_col + 1)
 
-            # retrieve old params
+            # overwrite old params
             old_hypers = string_to_hypers(output['ckpt_path']).parse()
             old_hypers['ckpt_path'] = output['ckpt_path']
             old_hypers['nb_epoch'] = int(output['extra_ep'])
             old_hypers['trn repo.path'] = output['trn repo. path']
             old_hypers['val repo.path'] = output['val repo. path']
+            old_hypers['tst repo.path'] = output['tst repo. path']
+            old_hypers['mdl. saved path'] = output['mdl. saved path']
+
+            # new lr
+            old_hypers['lr_init'] = output['lr_init']
+            old_hypers['lr_decay'] = output['lr_decay']
+            old_hypers['lr_period'] = output['lr_period']
+
+            # new sampling/stop condition
+            old_hypers['sampl. gap'] = output['gap']
+            old_hypers['condition'] = output['condition']
+
+            old_hypers['sv_step'] = output['sv step']
+            old_hypers['tb_step'] = output['tb step']
 
             # todo: add restricted node to restore
             self.Rnodes = resumeNodes_logic(ckpt_path=old_hypers['ckpt_path'])
@@ -697,10 +740,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem(str(v)))
 
             # fill the empty or might throw NoneType error elsewhere
-            i = self.tableWidget.findItems('sv step', Qt.MatchFlag.MatchExactly)
-            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
-            i = self.tableWidget.findItems('tb step', Qt.MatchFlag.MatchExactly)
-            self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+            # i = self.tableWidget.findItems('sv step', Qt.MatchFlag.MatchExactly)
+            # self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
+            # i = self.tableWidget.findItems('tb step', Qt.MatchFlag.MatchExactly)
+            # self.tableWidget.setItem(i[0].row(), nb_col - 1, QTableWidgetItem('None'))
 
             # handle the headers
             if nb_col > 2:
@@ -910,7 +953,8 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             elif 'resume' in head.lower():
                 for row in range(self.tableWidget.rowCount()):
                     if self.tableWidget.item(row, 0).text() not in ['lr type', 'lr init', 'k param', 'period',
-                                                                    'ckpt path', 'comment', 'nb epoch', 'nodes']:
+                                                                    'ckpt path', 'comment', 'nb epoch', 'nodes',
+                                                                    'mdl. saved path', 'sampl. gap', 'stop. crit.', 'correction']:
                         if self.tableWidget.item(row, column) is not None:
                             self.tableWidget.item(row, column).setBackground(QtGui.QColor(230, 230, 250))
                             self.tableWidget.item(row, column).setFlags(QtCore.Qt.ItemIsEditable)  # note: make it read only
