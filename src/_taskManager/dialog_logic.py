@@ -16,8 +16,8 @@ class dialog_logic(QDialog, Ui_Dialog):
         # dialog UI
         self.setupUi(self)
 
-        if os.path.exists('./_taskManager/latest.json'):
-            with open('./_taskManager/latest.json', 'r') as file:
+        if os.path.exists(os.path.join(os.path.dirname(__file__), 'latest.json')):
+            with open(os.path.join(os.path.dirname(__file__), 'latest.json'), 'r') as file:
                 params = json.load(file)
 
             # set line editors

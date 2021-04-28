@@ -1,9 +1,10 @@
 import logging
+import os
 
 
 def setup_custom_logger(name, level=logging.WARNING):
     formatter = logging.Formatter(fmt='%(asctime)s, %(levelname)s \n[%(filename)s:%(lineno)d] %(message)s')
-    logging.basicConfig(filename='./debug.log',
+    logging.basicConfig(filename=os.path.join(os.path.dirname(os.path.dirname((__file__))), 'logs', 'debug.log'),
                         level=level,
                         format='%(asctime)s, %(levelname)s \n[%(filename)s:%(lineno)d] %(message)s')
 
