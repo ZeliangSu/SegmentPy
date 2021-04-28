@@ -13,11 +13,11 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     install_requires=[
-        "tensorflow==1.14",
+        "tensorflow-gpu==1.14",
         "pandas",
         "Pillow",
         "openmpi",
-        "mpi4py",
+        "mpi4py==3.0.3",
         "PySide2",
         "matplotlib",
         "scikit-learn",
@@ -26,7 +26,7 @@ setup(
         "opencv",
     ],
     keywords=['segmentation', 'CNN', 'XCT-image', 'battery'],
-    # python_requires=">=3.6",
+    python_requires="==3.6",
     zip_safe=False,
     entry_points={
         'console_scripts': [
