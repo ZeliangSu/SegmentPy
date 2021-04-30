@@ -37,9 +37,9 @@ logger.setLevel(logging.DEBUG)  #changeHere: debug level
 def get_available_gpus_wrapper():
     """this threading wrapper can get rid of residus tensorflow in gpus"""
 
-    proc = subprocess.Popen(['python', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'segmentpy/device.py')])
+    proc = subprocess.Popen(['python', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'segmentpy', 'device.py')])
     proc.wait()
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'segmentpy/device.txt'), 'r') as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'device.txt'), 'r') as f:
         gpu_list = [line.rstrip() for line in f.readlines()]
     return gpu_list
 
