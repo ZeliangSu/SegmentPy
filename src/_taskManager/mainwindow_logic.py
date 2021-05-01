@@ -33,13 +33,18 @@ from segmentpy import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
+loggerDir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log')
+imgDir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'img')
+segmentpyDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'segmentpy')
+parentDir = os.path.dirname(__file__)
+
 
 def get_available_gpus_wrapper():
     """this threading wrapper can get rid of residus tensorflow in gpus"""
 
-    proc = subprocess.Popen(['python', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'segmentpy', 'device.py')])
+    proc = subprocess.Popen(['python', os.path.join(segmentpyDir, 'device.py')])
     proc.wait()
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'device.txt'), 'r') as f:
+    with open(os.path.join(loggerDir, 'device.txt'), 'r') as f:
         gpu_list = [line.rstrip() for line in f.readlines()]
     return gpu_list
 
@@ -76,11 +81,12 @@ class WorkerSignals(QObject):
 
 
 class predict_Worker(QRunnable):
-    def __init__(self, ckpt_path: str, pred_dir: list, save_dir: str, *args, **kwargs):
+    def __init__(self, ckpt_path: str, pred_dir: list, save_dir: str, correction: float, *args, **kwargs):
         super(predict_Worker, self).__init__()
         self.ckpt_path = ckpt_path
         self.pred_dir = pred_dir
         self.save_dir = save_dir
+        self.correction = correction
         self.device = 'cpu'
         self.signals = WorkerSignals()
 
@@ -92,10 +98,11 @@ class predict_Worker(QRunnable):
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
         terminal = [
-            'python', 'main_inference.py',
+            'python', os.path.join(parentDir, 'main_inference.py'),
             '--ckpt', self.ckpt_path,
             '--raw', self.pred_dir,
-            '--pred', self.save_dir
+            '--pred', self.save_dir,
+            '--corr', self.correction,
         ]
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
@@ -131,7 +138,7 @@ class training_Worker(QRunnable):
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
         terminal = [
-            'python', 'main_train.py',
+            'python', os.path.join(parentDir, 'main_train.py'),
             '-nc', self.params['conv nb'],
             '-bs', self.params['batch size'],
             '-ws', self.params['window size'],
@@ -198,7 +205,7 @@ class retraining_Worker(QRunnable):
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
         terminal = [
-            'python', 'main_retrain.py',
+            'python', os.path.join(parentDir, 'main_retrain.py'),
             '-ckpt', self.params['ckpt path'],
             '-ep', self.params['nb epoch'],
             '-lr', self.params['lr type'],
@@ -220,8 +227,6 @@ class retraining_Worker(QRunnable):
             '-tstd', self.params['tst repo. path'],
             '-logd', self.params['mdl. saved path'],
         ]
-
-
 
         print(self.params)
         print('\n', terminal)
@@ -505,7 +510,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                             types = ['activation']
 
                         terminal = [
-                            'python', 'main_analytic.py',
+                            'python', os.path.join(parentDir, 'main_analytic.py'),
                             '-ckpt', *ckpt_paths,
                             '-step', *steps,
                             '-type', *types,
@@ -758,9 +763,12 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.predDialog = predictDialog_logic(None)
         self.predDialog.exec()
         if self.predDialog.result() == 1:
-            ckpt_path, raw_folder, pred_folder = self.predDialog.get_params()
+            ckpt_path, raw_folder, pred_folder, correction = self.predDialog.get_params()
             logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\n'.format(ckpt_path, raw_folder, pred_folder))
-            _Worker = predict_Worker(ckpt_path=ckpt_path, pred_dir=raw_folder, save_dir=pred_folder)
+            _Worker = predict_Worker(ckpt_path=ckpt_path,
+                                     pred_dir=raw_folder,
+                                     save_dir=pred_folder,
+                                     correction=correction)
             self.threadpool.start(_Worker)
             _Worker.signals.start_proc.connect(self.add_proc_surveillance)
             _Worker.signals.released_proc.connect(self.remove_process_from_list)
@@ -996,7 +1004,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon('./img/logo.png'))
+    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img', 'logo.png')))
 
     # set ui
     ui = mainwindow_logic()

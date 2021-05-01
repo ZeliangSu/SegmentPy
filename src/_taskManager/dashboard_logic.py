@@ -15,6 +15,7 @@ import re
 # logging
 import logging
 from segmentpy import log
+from segmentpy.hypParser import string_to_hypers
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
@@ -147,7 +148,8 @@ class dashboard_logic(QDialog, Ui_dashboard):
                 self.curves_list.clear()
                 for k, v in self.mplwidget.paths.items():
                     self.curves_list.addItem(str(k))
-                    self.curves_list.item(k - 1).setToolTip(v)
+                    hypers = str(string_to_hypers(v).parse()).replace(',', '\n')
+                    self.curves_list.item(k - 1).setToolTip('path: {}\n{}'.format(v, hypers))
 
                 self.setCursor(Qt.ArrowCursor)
                 self.setAcceptDrops(True)

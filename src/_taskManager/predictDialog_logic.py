@@ -15,9 +15,11 @@ class predictDialog_logic(QDialog, Ui_Dialog):
         self.meta_path = None
         self.raw_folder = None
         self.pred_folder = None
+        self.corrector = None
+        self.latestPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log', 'latest_pred.json')
 
-        if os.path.exists('./_taskManager/latest_pred.json'):
-            with open('./_taskManager/latest_pred.json', 'r') as f:
+        if os.path.exists(self.latestPath):
+            with open(self.latestPath, 'r') as f:
                 tmp = json.load(f)
             try:
                 self.meta_path = tmp['meta_path']
@@ -61,15 +63,18 @@ class predictDialog_logic(QDialog, Ui_Dialog):
             self.logWindow(Msg='please select a raw folder')
         elif self.pred_folder is None:
             self.logWindow(Msg='please select a prediction folder')
+        elif self.corrector is None:
+            self.logWindow(Msg='please set a corrector')
         else:
-            with open('./_taskManager/latest_pred.json', 'w') as f:
+            with open(self.latestPath, 'w') as f:
                 json.dump({
                     'meta_path': self.meta_path,
                     'raw_folder': self.raw_folder,
                     'pred_folder': self.pred_folder,
+                    'corrector': self.corrector,
                 }, f)
             self.accept()
 
     def get_params(self):
-        return self.meta_path, self.raw_folder, self.pred_folder
+        return self.meta_path, self.raw_folder, self.pred_folder, self.corrector
 

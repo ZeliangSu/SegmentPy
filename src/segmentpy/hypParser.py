@@ -162,6 +162,11 @@ class string_to_hypers:
         else:
             return 0
 
+
+class string_to_data(string_to_hypers):
+    def __init__(self, folder_name: str):
+        super().__init__(folder_name=folder_name)
+
     def extract_learning_curves(self):
         self.acc_tns = []
         self.acc_tts = []
@@ -283,7 +288,7 @@ if __name__ == '__main__':
     path = '/media/tomoserver/DATA3/zeliang/github/paper_ML/broader_gSearch_LRCS/'
     for folder in os.listdir(path):
         if not folder.startswith('.'):  # MacOS: avoid './.DS_Store/'
-            hypers = string_to_hypers(path + folder)
+            hypers = string_to_data(path + folder)
             tmp = hypers.hyper_to_DataFrame()
             # pd_df.columns = tmp.columns
             pd_df = pd_df.append(tmp, ignore_index=True)

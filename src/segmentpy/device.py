@@ -7,10 +7,10 @@ from time import sleep
 import sys, os
 
 # logging
-import logging
-from segmentpy import log
-logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)  #changeHere: debug level
+# import logging
+# from segmentpy import log
+# logger = log.setup_custom_logger(__name__)
+# logger.setLevel(logging.INFO)  #changeHere: debug level
 
 
 def get_available_gpus():
@@ -24,7 +24,7 @@ def get_available_gpus():
 
     #
     local_devices = device_lib.list_local_devices()
-    logger.info(local_devices)
+    # logger.info(local_devices)
     # for dv in local_devices:
     #     if dv.device_type == 'CPU':
     #         ui.log.setText('Cannot find available GPUs, use CPU instead...')
@@ -41,7 +41,7 @@ def get_available_gpus():
             # CPU
             pass
 
-    with open(os.path.join(os.path.dirname(__file__), 'device.txt'), 'w') as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log', 'device.txt'), 'w') as f:
         for dv in l:
             f.write('{}\n'.format(dv))
 

@@ -259,7 +259,7 @@ def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, h
     for i, path in enumerate(l_input_path):
         # ************************************************************************************************ I'm a Barrier
         communicator.Barrier()
-        img = np.asarray(Image.open(path)) / normalization
+        img = np.asarray(Image.open(path)) * normalization
         n_h = (img.shape[0] - hyper['patch_size']) // hyper['stride'] + 1
         n_w = (img.shape[1] - hyper['patch_size']) // hyper['stride'] + 1
         remaining = n_h * n_w
@@ -489,7 +489,8 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
             conserve_nodes=conserve_nodes,
             hyper=hyper,
             comm=communicator,
-            maxp_times=hyperparams['maxp_times']
+            maxp_times=hyperparams['maxp_times'],
+            normalization=norm
         )
 
     # ************************************************************************************************ I'm a Barrier
@@ -567,6 +568,7 @@ if __name__ == '__main__':
     parser.add_argument('-raw', '--raw_dir', type=str, metavar='', required=True, help='raw tomograms folder path')
     parser.add_argument('-pred', '--pred_dir', type=str, metavar='', required=True,
                         help='where to put the segmentation')
+    parser.add_argument('-corr', '--correction', type=float, metavar='', required=True, help='manually correct the input image by a coefficient')
     # todo:
     parser.add_argument('-cls', '--nb_cls', type=int, metavar='', required=False, default=3, help='nb of classes in the vol (automatic in the future version)')
     parser.add_argument('-bs', '--batch_size', type=int, metavar='', required=False, default=8,
@@ -613,8 +615,13 @@ if __name__ == '__main__':
         'nb_classes': args.nb_cls,
         'feature_map': True if mdl_name in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
         'maxp_times': 4 if mdl_name in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3,
+        'correction': args.correction,
     }
 
     l_img_path = [paths['raw_dir'] + f for f in sorted(os.listdir(paths['raw_dir']))]
-    inference_recursive_V3(l_input_path=l_img_path, conserve_nodes=c_nodes, paths=paths, hyper=hyperparams)
+    inference_recursive_V3(l_input_path=l_img_path,
+                           conserve_nodes=c_nodes,
+                           paths=paths,
+                           hyper=hyperparams,
+                           norm=args.correction)
     print('ha')

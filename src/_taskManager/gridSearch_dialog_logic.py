@@ -13,8 +13,9 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
         # dialog UI
         self.setupUi(self)
 
-        if os.path.exists('./_taskManager/latest_gS.json'):
-            with open('./_taskManager/latest_gS.json', 'r') as file:
+        self.loggerPath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log', 'latest_gS.json')
+        if os.path.exists(self.loggerPath):
+            with open(self.loggerPath, 'r') as file:
                 params = json.load(file)
                 try:
                     self.trn_dir_line.setText(params['train_dir'])
@@ -72,7 +73,7 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
         else:
             output['log_dir'] = './logs/'
 
-        with open('./_taskManager/latest_gS.json', 'w') as file:
+        with open(self.loggerPath, 'w') as file:
             json.dump(output, file)
 
         return output

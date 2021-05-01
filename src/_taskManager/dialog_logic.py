@@ -15,9 +15,10 @@ class dialog_logic(QDialog, Ui_Dialog):
         QDialog.__init__(self, *args, **kwargs)
         # dialog UI
         self.setupUi(self)
+        self.latestPath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log', 'latest.json')
 
-        if os.path.exists(os.path.join(os.path.dirname(__file__), 'latest.json')):
-            with open(os.path.join(os.path.dirname(__file__), 'latest.json'), 'r') as file:
+        if os.path.exists(self.latestPath):
+            with open(self.latestPath, 'r') as file:
                 params = json.load(file)
 
             # set line editors
@@ -114,7 +115,7 @@ class dialog_logic(QDialog, Ui_Dialog):
         else:
             output['log_dir'] = './logs/'
 
-        with open('./_taskManager/latest.json', 'w') as file:
+        with open(self.latestPath, 'w') as file:
             json.dump(output, file)
 
         return output

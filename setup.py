@@ -1,4 +1,6 @@
 from setuptools import setup
+from glob import glob
+from setuptools import find_namespace_packages
 
 setup(
     name="SegmentPy",
@@ -12,25 +14,30 @@ setup(
         'License :: OSI Approved :: Apache Software License v2.0',
         'Programming Language :: Python :: 3.6',
     ],
+    packages=find_namespace_packages('src'),
+    package_data={
+        'img': glob('img/*.png'),
+    },
     install_requires=[
+        "numpy==1.19.1",
         "tensorflow-gpu==1.14",
-        "pandas",
+        "pandas==1.1.1",
         "Pillow",
-        "openmpi",
+        # "openmpi",
         "mpi4py==3.0.3",
         "PySide2",
-        "matplotlib",
-        "scikit-learn",
-        "scipy",
+        "matplotlib==3.3.1",
+        "scikit-learn==0.23.2",
+        "scipy==1.5.2",
         "tqdm",
-        "opencv",
+        "opencv-python==3.4.2.*",
+        "h5py==2.8.0",
     ],
     keywords=['segmentation', 'CNN', 'XCT-image', 'battery'],
     python_requires="==3.6",
-    zip_safe=False,
     entry_points={
         'console_scripts': [
-            'SegmentPy = src.SegmentPy:main'
+            'segmentpy = SegmentPy:main'
         ]
 
     }

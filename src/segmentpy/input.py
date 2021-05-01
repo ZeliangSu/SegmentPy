@@ -1,5 +1,4 @@
 import numpy as np
-import h5py
 import tensorflow as tf
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.interpolate import interp2d
@@ -60,7 +59,7 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
 
             # read data
             if mode == 'regression':
-                batch = batch.map(_pyfn_regression_parser_wrapper, num_parallel_calls=ncores)
+                raise NotImplementedError('The regression is no more supported')
             elif mode == 'classification':
                 batch = batch.map(_pyfn_classification_parser_wrapper_V2, num_parallel_calls=ncores)
             elif mode == 'feature_extractors':
@@ -110,22 +109,6 @@ def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
         raise NotImplementedError('Inference input need to be debugged')
 
     return inputs
-
-
-def _pyfn_regression_parser_wrapper(fname, patch_size):
-    """
-    input:
-    -------
-        filename: (tf.data.Dataset)  Tensors of strings
-
-    output:
-    -------
-        function: (function) tensorflow's pythonic function with its arguements
-    """
-    return tf.py_func(parse_h5,  #wrapped pythonic function
-                      [fname, patch_size],
-                      [tf.float32, tf.int32]  #[output, output] dtype
-                      )
 
 
 def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord,
@@ -242,27 +225,6 @@ def parse_h5_one_hot_V3(fname, window_size, x_coord, y_coord):
     y = _one_hot(y)
     # logger.debug('y shape: {}, nb_class: {}'.format(y.shape, y.shape[-1]))  # B, H, W, C
     return X, y.astype(np.int32)
-
-
-def parse_h5(fname, patch_size):
-    """
-    parser that return the input images and  output labels
-
-    input:
-    -------
-        name: (bytes literal) file name
-
-    output:
-    -------
-        X: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
-        y: (numpy ndarray) normalized and reshaped array as dataformat 'NHWC'
-    """
-
-    with h5py.File(fname.decode('utf-8'), 'r') as f:
-        X = f['X'][:].reshape(patch_size, patch_size, 1)
-        y = f['y'][:].reshape(patch_size, patch_size, 1)
-        return _minmaxscalar(X), y.astype(np.int32)  #can't do minmaxscalar for y
-        # return X, y.astype(np.int32)  #can't do minmaxscalar for y
 
 
 def _minmaxscalar(ndarray, dtype=np.float32):

@@ -6,7 +6,7 @@ from _taskManager.file_dialog import file_dialog
 from segmentpy.score_extractor import gradient_extractor
 
 import json
-import os
+from os.path import join, exists, dirname
 
 
 class gradView_logic(QDialog, Ui_gradPlot):
@@ -17,8 +17,9 @@ class gradView_logic(QDialog, Ui_gradPlot):
         self.setupUi(self)
         self.folderButton.clicked.connect(self.set_grad_path)
 
-        if os.path.exists('./_taskManager/latest_gradView.json'):
-            with open('./_taskManager/latest_gradView.json', 'r') as f:
+        self.loggerPath = join(dirname(dirname(dirname(__file__))), 'log', 'latest_gradView.json')
+        if exists(self.loggerPath):
+            with open(self.loggerPath, 'r') as f:
                 tmp = json.load(f)['path']
                 self.lineEdit.setText(tmp)
                 self.path = tmp
@@ -43,15 +44,16 @@ class gradView_logic(QDialog, Ui_gradPlot):
             self.extract_gradient()
 
     def extract_gradient(self):
-        _, _, gamma, betaOrBias, w, step = gradient_extractor(self.path)
-        with open('./_taskManager/latest_gradView.json', 'w') as f:
-            json.dump({"path": self.path}, f)
+        if self.path is not None:
+            _, _, gamma, betaOrBias, w, step = gradient_extractor(self.path)
+            with open(self.loggerPath, 'w') as f:
+                json.dump({"path": self.path}, f)
 
-        self.plotWidget.gamma = gamma
-        self.plotWidget.betaOrBias = betaOrBias
-        self.plotWidget.w = w
-        self.plotWidget.step = step
-        self.plotWidget.plot()
+            self.plotWidget.gamma = gamma
+            self.plotWidget.betaOrBias = betaOrBias
+            self.plotWidget.w = w
+            self.plotWidget.step = step
+            self.plotWidget.plot()
 
 
 

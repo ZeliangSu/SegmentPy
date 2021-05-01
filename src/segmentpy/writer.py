@@ -1,11 +1,6 @@
-import tensorflow as tf
-import h5py
 import numpy as np
-import multiprocessing as mp
 from PIL import Image
 from segmentpy.util import check_N_mkdir, clean, auto_contrast
-from itertools import repeat
-from segmentpy.input import _inverse_one_hot
 
 import logging
 from segmentpy import log

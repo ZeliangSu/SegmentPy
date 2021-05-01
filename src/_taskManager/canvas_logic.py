@@ -117,9 +117,13 @@ class MPL(QWidget):
             self.load_event(k)
             try:
                 ac_tn_ax.plot(self.curves[k][0].step, self.curves[k][0].value, label=k)
+                ac_tn_ax.set_ylabel('accuracy')
                 ls_tn_ax.plot(self.curves[k][2].step, self.curves[k][2].value, label=k)
+                ls_tn_ax.set_ylabel('loss')
                 ac_val_ax.plot(self.curves[k][1].step, self.curves[k][1].value, label=k)
+                ac_val_ax.set_ylabel('accuracy')
                 ls_val_ax.plot(self.curves[k][3].step, self.curves[k][3].value, label=k)
+                ls_val_ax.set_ylabel('loss')
             except Exception as e:
                 logger.debug(e)
 

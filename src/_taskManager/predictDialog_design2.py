@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/predictDialog_design2.ui',
-# licensing of '_taskManager/predictDialog_design2.ui' applies.
+# Form implementation generated from reading ui file 'src/_taskManager/predictDialog_design2.ui',
+# licensing of 'src/_taskManager/predictDialog_design2.ui' applies.
 #
-# Created: Fri Nov 13 17:59:27 2020
+# Created: Sat May  1 19:26:01 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,13 +13,16 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(394, 272)
+        Dialog.resize(441, 272)
         self.gridLayout_2 = QtWidgets.QGridLayout(Dialog)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
+        self.corrector = QtWidgets.QLineEdit(Dialog)
+        self.corrector.setObjectName("corrector")
+        self.gridLayout.addWidget(self.corrector, 4, 0, 1, 1)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -65,6 +68,9 @@ class Ui_Dialog(object):
         self.rawButton.setObjectName("rawButton")
         self.horizontalLayout_2.addWidget(self.rawButton)
         self.gridLayout.addLayout(self.horizontalLayout_2, 1, 0, 1, 1)
+        self.label = QtWidgets.QLabel(Dialog)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 3, 0, 1, 1)
         self.verticalLayout_4.addLayout(self.gridLayout)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
@@ -80,10 +86,12 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QtWidgets.QApplication.translate("Dialog", "Dialog", None, -1))
+        self.corrector.setPlaceholderText(QtWidgets.QApplication.translate("Dialog", "keep identical as the one of the training e.g, 1e-3", None, -1))
         self.predLabel.setText(QtWidgets.QApplication.translate("Dialog", "select a folder to put your predictions", None, -1))
         self.predButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
         self.metaLabel.setText(QtWidgets.QApplication.translate("Dialog", "select a checkpoint file .meta", None, -1))
         self.metaButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
         self.rawLabel.setText(QtWidgets.QApplication.translate("Dialog", "select a folder of raw tomogram (*.tif) to predict", None, -1))
         self.rawButton.setText(QtWidgets.QApplication.translate("Dialog", "...", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("Dialog", "Manually apply the following corrector on the raw tomogram", None, -1))
 
