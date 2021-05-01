@@ -31,3 +31,5 @@ docs/.vscode/
 .python-version
 log/
 SegmentPy.egg-info/
+build/
+dist/
