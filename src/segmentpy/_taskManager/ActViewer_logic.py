@@ -15,13 +15,14 @@ import os
 import numpy as np
 import subprocess
 import tensorflow as tf
+import matplotlib.pyplot as plt
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 # logging
 import logging
 from segmentpy.tf114 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class actViewer_logic(QWidget, Ui_actViewer):
@@ -42,10 +43,12 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.corrector.editingFinished.connect(self.setCorrector)
         self.actList.doubleClicked.connect(self.set_focused_layer)
         self.actSlider.valueChanged.connect(self.display)
+        self.weightSlider.valueChanged.connect(self.displayWeight)
 
         # variables
         self.ckpt = None
         self.input = None
+        self.layer_name = None
         self.layer = None
         self.correction = None
 
@@ -135,30 +138,38 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.actList.addItems([n for n in options])
 
     def set_focused_layer(self, list_number=None):
-        self.layer = self.actList.item(list_number.row()).text()
+        self.layer_name = self.actList.item(list_number.row()).text()
+        self.layer = list_number.row()
         self.display()
 
     def display(self, nth=0):
+        logger.debug(self.layer_name)
         logger.debug(self.layer)
         if not hasattr(self, 'activations'):
             self.get_nodes()
             self.load_activations()
         else:
-            act = self.activations[self.layer][0]
+            act = self.activations[self.layer_name][0]
+            weight = self.kernels[self.layer]
+            logger.debug('weight matrix shape: {}'.format(weight.shape))
+            logger.debug('activations list len: {}'.format(len(self.activations[self.layer_name])))
             self.actSlider.setMaximum(act.shape[-1] - 1) # -1 as starts with 0
 
             # 1D dnn output
-            if 'dnn' in self.layer:
+            if 'dnn' in self.layer_name:
                 ceiling = int(np.ceil(np.sqrt(act.size)))
                 tmp = np.zeros((ceiling ** 2), np.float32).ravel()
                 tmp[:act.size] = act
                 act = tmp.reshape(ceiling, ceiling)
             else:
+                logger.debug('act shape: {}'.format(act.shape))
+                logger.debug('weight shape: {}'.format(weight.shape))
                 act = act[:, :, nth]
             act = (act - np.min(act)) / (np.max(act) - np.min(act)) * 255
             act = np.asarray(Image.fromarray(act).convert('RGB'))
             act = act.copy()
 
+            # imshow
             self.q = QImage(act,
                                  act.shape[1],
                                  act.shape[0],
@@ -169,6 +180,38 @@ class actViewer_logic(QWidget, Ui_actViewer):
             self.Images.setPixmap(self.p)
             self.Images.update()
             self.Images.repaint()
+
+            # get weight
+            weight = weight[:, :, :, nth]
+            logger.debug('weightSlide maxi: {}'.format(weight.shape[2]))
+            self.weightSlider.setMaximum(weight.shape[2] - 1)
+            weight = (weight - np.min(weight)) / (np.max(weight) - np.min(weight)) * 255
+            self.weight = weight.copy()
+
+    def displayWeight(self, slide=None):
+        # get weight
+        fig_weight = plt.figure(figsize=(1, 1))
+        fig_weight.clear()
+        ax = fig_weight.add_subplot(111)
+        img = np.squeeze(self.weight[:, :, slide])
+        ax.imshow(img, interpolation='none', aspect='auto')
+        for (y, x), z in np.ndenumerate(np.squeeze(img)):
+            ax.text(x, y, z, ha='center', va='center')
+        fig_weight.canvas.draw()
+        data = np.fromstring(fig_weight.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        data = data.reshape(fig_weight.canvas.get_width_height()[::-1] + (3,))
+
+        # plot weight
+        self.wt = QImage(data,
+                        data.shape[1],
+                        data.shape[0],
+                        data.shape[1] * 3, QImage.Format_RGB888)
+        self.pw = QPixmap(self.wt)
+        self.pw.scaled(self.width(), self.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.weightLabel.setScaledContents(True)
+        self.weightLabel.setPixmap(self.pw)
+        self.weightLabel.update()
+        self.weightLabel.repaint()
 
     def load_activations(self):
         if not self.input:
@@ -184,8 +227,8 @@ class actViewer_logic(QWidget, Ui_actViewer):
             logger.debug(self.activations)
 
             # todo: display the weight the input and output too
-            # self.kern_name, self.kernels = visualize_weights(params=self.paths, write_rlt=False)
-            # logger.debug(self.kern_name)
+            self.kern_name, self.kernels = visualize_weights(params=self.paths, write_rlt=False)
+            logger.debug(self.kern_name)
 
     def save_selected_activations(self):
         if not self.input:

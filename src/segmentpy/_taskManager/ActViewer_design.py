@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'src/segmentpy/_taskManager/ActViewer.ui',
 # licensing of 'src/segmentpy/_taskManager/ActViewer.ui' applies.
 #
-# Created: Sun May  2 18:10:42 2021
+# Created: Mon May  3 01:44:44 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_actViewer(object):
     def setupUi(self, actViewer):
         actViewer.setObjectName("actViewer")
-        actViewer.resize(1296, 929)
+        actViewer.resize(1280, 711)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -72,15 +72,24 @@ class Ui_actViewer(object):
         self.label_2 = QtWidgets.QLabel(actViewer)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
-        self.weight = QtWidgets.QLabel(actViewer)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.weightLabel = QtWidgets.QLabel(actViewer)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.weight.sizePolicy().hasHeightForWidth())
-        self.weight.setSizePolicy(sizePolicy)
-        self.weight.setAlignment(QtCore.Qt.AlignCenter)
-        self.weight.setObjectName("weight")
-        self.verticalLayout.addWidget(self.weight)
+        sizePolicy.setHeightForWidth(self.weightLabel.sizePolicy().hasHeightForWidth())
+        self.weightLabel.setSizePolicy(sizePolicy)
+        self.weightLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.weightLabel.setObjectName("weightLabel")
+        self.verticalLayout.addWidget(self.weightLabel)
+        self.weightSlider = QtWidgets.QSlider(actViewer)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.weightSlider.sizePolicy().hasHeightForWidth())
+        self.weightSlider.setSizePolicy(sizePolicy)
+        self.weightSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.weightSlider.setObjectName("weightSlider")
+        self.verticalLayout.addWidget(self.weightSlider)
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setSizeConstraint(QtWidgets.QLayout.SetNoConstraint)
@@ -142,7 +151,7 @@ class Ui_actViewer(object):
         self.inputButton.setText(QtWidgets.QApplication.translate("actViewer", "...", None, -1))
         self.ListTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation list:", None, -1))
         self.label_2.setText(QtWidgets.QApplication.translate("actViewer", "Weight:", None, -1))
-        self.weight.setText(QtWidgets.QApplication.translate("actViewer", "Weight will display here", None, -1))
+        self.weightLabel.setText(QtWidgets.QApplication.translate("actViewer", "Weight will display here", None, -1))
         self.ImgTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation:", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("actViewer", "Correction:", None, -1))
         self.corrector.setPlaceholderText(QtWidgets.QApplication.translate("actViewer", "Enter here the corrector (keep it same as the training)", None, -1))

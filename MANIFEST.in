@@ -1,0 +1,6 @@
+include LICENSE
+include meta.yaml
+include build.sh
+include conda_build.bat
+include requirements.txt
+include requirements.yml

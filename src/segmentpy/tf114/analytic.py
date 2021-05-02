@@ -457,7 +457,7 @@ def inference_and_save_partial_res(g_main, ops_dict, conserve_nodes, hyper=None,
     return activations
 
 
-def visualize_weights(params=None, plt=False, mode='copy', write_rlt=True):
+def visualize_weights(params=None, mode='copy', write_rlt=True):
     assert isinstance(params, dict)
     if write_rlt:
         dir = params['rlt_dir'] + 'weights/step{}/'.format(params['step'])

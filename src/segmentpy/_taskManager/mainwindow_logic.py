@@ -460,7 +460,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.Metrics.triggered.connect(self.metric_plugin)
         self.AugViewer.triggered.connect(self.augViewer_plugin)
         self.GradViewer.triggered.connect(self.gradViewer_plugin)
-        self.actionGrid_Search.triggered.connect(self.gSearch)
+        # self.actionGrid_Search.triggered.connect(self.gSearch)
 
     ################# menubar methods
 
@@ -568,68 +568,6 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                         )
                         proc.wait()
 
-    def gSearch(self):
-        self.gS_dialog = gS_dialog_logic(None)
-
-        default = {
-            # 'mdl': 'model',
-            # 'bat_size': 'batch size',
-            'win_size': '512',
-            # 'conv_size': 'kernel size',
-            # 'nb_conv': 'conv nb',
-            'act_fn': 'leaky',
-            'lss_fn': 'DSC',
-            'batch_norm': 'True',
-            'aug': 'True',
-            'dropout': '0.0',
-            'lr_type': 'ramp',
-            #'lr_init': 'lr init',
-            #'lr_k': 'k param',
-            'lr_p': '50',
-            'cls_reg': 'classification',
-            # 'comment': 'comment',
-            'nb_epoch': '500',
-            'sv_step': '160',
-            'tb_step': '50',
-            # 'gap': '50',
-            # 'condition': '0.001',
-            # 'correction': '1e-2',
-            # 'train_dir': 'trn repo. path',
-            # 'val_dir': 'val repo. path',
-            # 'test_dir': 'tst repo. path',
-            # 'log_dir': 'mdl. saved path',
-        }
-        try:
-            self.gS_dialog.exec()
-            if self.gS_dialog.result() == 1:
-                gS_param = self.gS_dialog.return_params()
-
-                logger.debug(gS_param['ks'])
-                logger.debug(gS_param['nc'])
-                logger.debug(gS_param['bs'])
-                logger.debug(gS_param['ilr'])
-                logger.debug(gS_param['lrdecay'])
-
-                for ks, nc, bs, ilr, decay in product(gS_param['ks'], gS_param['nc'],
-                                                      gS_param['bs'], gS_param['ilr'], gS_param['lrdecay']):
-                    default['mdl'] = gS_param['mdl']
-                    default['conv_size'] = ks
-                    default['nb_conv'] = nc
-                    default['bat_size'] = bs
-                    default['lr_init'] = ilr
-                    default['lr_k'] = decay
-                    default['train_dir'] = gS_param['train_dir']
-                    default['val_dir'] = gS_param['val_dir']
-                    default['test_dir'] = gS_param['test_dir']
-                    default['log_dir'] = gS_param['log_dir']
-                    default['comment'] = gS_param['cmt']
-                    default['correction'] = gS_param['correction']
-                    default['gap'] = gS_param['sample gap']
-                    default['condition'] = gS_param['criterion']
-                    self.write_train_column(contents=default)
-
-        except Exception as e:
-            self.log_window('Unknown error', e.args[0])
 
     def log_window(self, title: str, Msg: str):
         msg = QMessageBox()
@@ -653,11 +591,75 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     ############ main button methods
 
     def addTrain(self):
+        default = {
+            # 'mdl': 'model',
+            # 'bat_size': 'batch size',
+            # 'win_size': '512',
+            # 'conv_size': 'kernel size',
+            # 'nb_conv': 'conv nb',
+            'act_fn': 'leaky',
+            'lss_fn': 'DSC',
+            'batch_norm': 'True',
+            'aug': 'True',
+            # 'dropout': '0.0',
+            'lr_type': 'ramp',
+            # 'lr_init': 'lr init',
+            # 'lr_k': 'k param',
+            # 'lr_p': '50',
+            'cls_reg': 'classification',
+            # 'comment': 'comment',
+            'nb_epoch': '500',
+            'sv_step': '160',
+            'tb_step': '50',
+            # 'gap': '50',
+            # 'condition': '0.001',
+            # 'correction': '1e-2',
+            # 'train_dir': 'trn repo. path',
+            # 'val_dir': 'val repo. path',
+            # 'test_dir': 'tst repo. path',
+            # 'log_dir': 'mdl. saved path',
+        }
         self.dialog = dialog_logic(None)
         self.dialog.exec()  #.show() won't return because of the Qdialog attribute
         if self.dialog.result() == 1:  #cancel: 0, ok: 1
             output = self.dialog.return_params()
-            self.write_train_column(contents=output)
+            # convert strings to list then loop
+            new = {}
+            for k, v in output.items():
+                new[k] = v.replace(';', ',').split(',')
+            for ks, ws, nc, bs, ilr, decay, period, dp, af, lf in product(new['conv_size'],
+                                                                          new['win_size'],
+                                                                          new['nb_conv'],
+                                                                          new['bat_size'],
+                                                                          new['lr_init'],
+                                                                          new['lr_k'],
+                                                                          new['lr_p'],
+                                                                          new['dropout'],
+                                                                          new['act_fn'],
+                                                                          new['lss_fn']):
+                # HPs
+                default['mdl'] = new['mdl'][0]
+                default['conv_size'] = ks
+                default['nb_conv'] = nc
+                default['win_size'] = ws
+                default['bat_size'] = bs
+                default['lr_init'] = ilr
+                default['lr_k'] = decay
+                default['lr_p'] = period
+                default['dropout'] = dp
+                default['act_fn'] = af
+                default['lss_fn'] = lf
+                default['correction'] = new['correction'][0]
+                default['gap'] = new['gap'][0]
+                default['condition'] = new['condition'][0]
+                # others
+                default['train_dir'] = new['train_dir'][0]
+                default['val_dir'] = new['val_dir'][0]
+                default['test_dir'] = new['test_dir'][0]
+                default['log_dir'] = new['log_dir'][0]
+                default['comment'] = new['comment'][0]
+                logger.debug(default)
+                self.write_train_column(contents=default)
 
     def write_train_column(self, contents: dict):
         pivot_table = {

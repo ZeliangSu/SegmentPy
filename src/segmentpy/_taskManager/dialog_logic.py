@@ -5,9 +5,10 @@ import logging
 from segmentpy.tf114 import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)  #changeHere: debug level
-from PySide2.QtWidgets import QDialog
+from PySide2.QtWidgets import QDialog, QMessageBox
 import json
 import os
+import re
 
 
 class dialog_logic(QDialog, Ui_Dialog):
@@ -69,6 +70,31 @@ class dialog_logic(QDialog, Ui_Dialog):
         self.test_dir_button.clicked.connect(self.set_tst_dir)
         self.log_dir_button.clicked.connect(self.set_log_dir)
 
+        # remove automatically the space
+        self.mdl.editingFinished.connect(lambda: self.removeSpace(self.mdl))
+        self.ksize.editingFinished.connect(lambda: self.removeSpace(self.ksize))
+        self.nbconv.editingFinished.connect(lambda: self.removeSpace(self.nbconv))
+        self.batsize.editingFinished.connect(lambda: self.removeSpace(self.batsize))
+        self.nbepoch.editingFinished.connect(lambda: self.removeSpace(self.nbepoch))
+        self.dropout.editingFinished.connect(lambda: self.removeSpace(self.dropout))
+        self.initlr.editingFinished.connect(lambda: self.removeSpace(self.initlr))
+        self.kparam.editingFinished.connect(lambda: self.removeSpace(self.kparam))
+        self.pparam.editingFinished.connect(lambda: self.removeSpace(self.pparam))
+        self.sampling_gap.editingFinished.connect(lambda: self.removeSpace(self.sampling_gap))
+        self.criterion.editingFinished.connect(lambda: self.removeSpace(self.criterion))
+        self.correction.editingFinished.connect(lambda: self.removeSpace(self.correction))
+
+    @staticmethod
+    def removeSpace(qline):
+        qline.setText(qline.text().replace(" ", ""))
+
+    def log_window(self, title: str, Msg: str):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(Msg)
+        msg.setWindowTitle(title)
+        msg.exec_()
+
     def return_params(self):
         output = {
             'mdl': self.mdl.text(),
@@ -94,6 +120,16 @@ class dialog_logic(QDialog, Ui_Dialog):
             'condition': self.criterion.text(),
             'correction': self.correction.text(),
         }
+
+        if ',' in output['gap'] or ';' in output['gap']:
+            self.log_window(title='Not supported',
+                            Msg='Do not support multiple gap yet')
+        if ',' in output['condition'] or ';' in output['condition']:
+            self.log_window(title='Not supported',
+                            Msg='Do not support multiple condition yet')
+        if ',' in output['correction'] or ';' in output['correction']:
+            self.log_window(title='Not supported',
+                            Msg='Do not support multiple correction yet')
 
         if hasattr(self, 'train_dir'):
             output['train_dir'] = self.trn_dir_line.text()

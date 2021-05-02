@@ -328,3 +328,29 @@ class gradient_plot(QWidget):
         fig.tight_layout()
         self.canvas_w.draw()
 
+
+class MPLweight(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        figure = plt.figure(figsize=(5, 5))
+        self.canvas_w = canvas(figure)
+        ax = self.canvas_w.figure.add_subplot(111)
+        ax.imshow(np.ones((3, 3)))
+        self.canvas_w.draw()
+        self.grid = None
+
+    def plot(self, slide):
+        # clear
+        fig_weight = self.canvas_w.figure
+        fig_weight.clear()
+
+        # plot
+        ax = fig_weight.add_subplot(111)
+        logger.debug(self.grid.shape)
+        img = np.squeeze(self.grid[:, :, slide])
+        logger.debug(img)
+        ax.imshow(img, interpolation='none', aspect='auto')
+        for (y, x), z in np.ndenumerate(np.squeeze(img)):
+            ax.text(x, y, z, ha='center', va='center')
+        self.canvas_w.draw()
+
