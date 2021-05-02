@@ -29,3 +29,9 @@ _taskManager/latest_gS.json
 docs/_build/
 docs/.vscode/
 .python-version
+log/
+SegmentPy.egg-info/
+segmentpy.egg-info/
+build/
+dist/
+src/segmentpy.egg-info

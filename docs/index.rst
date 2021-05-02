@@ -6,7 +6,7 @@
 =====================================
 Welcome to SegmentPy's homepage!
 =====================================
-SegmentPy (Pronunciation: Segment Pie) is a open-source graphical interface which facilitates training machine learning models for CT-image segmentation.
+SegmentPy BETA 0.1 (Pronunciation: Segment Pie) is a open-source graphical interface which facilitates training machine learning models for CT-image segmentation.
 This package includes also analytic tools.
 
 .. toctree::

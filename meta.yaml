@@ -1,0 +1,47 @@
+package:
+  name: segmentpy
+  version: 0.1
+
+source:
+  git_rev: v0.1
+#  git_url: https://github.com/ZeliangSu/SegmentPy.git
+
+requirements:
+  build:
+    - python 3.6
+    - conda-verify
+    - numpy
+
+  host:
+    # https://github.com/conda/conda-build/issues/532
+    # conda build [pakagename] -c chName_1 -c chName_2
+    # conda build [pakagename] -c anaconda -c conda-forge
+    # https://conda-forge.org/docs/maintainer/adding_pkgs.html#build-host-and-run
+    - python 3.6
+    - setuptools
+    - numpy
+
+  run:
+    - python 3.6
+    - tensorflow-gpu 1.14.0
+    - pandas
+    - Pillow
+    - mpi4py 3.0.3
+    - PySide2
+    - matplotlib
+    - scikit-learn
+    - scipy
+    - tqdm
+    - opencv
+    - numpy
+
+build:
+  scripts: python setup.py install
+#  entry_points:
+#    - segmentpy = src.SegmentPy:main
+
+about:
+  home: https://segmentpy.readthedoc.com/
+  license: Apache 2.0
+  license_family: Apache
+  summary: A graphical interface for CT image segmentation
