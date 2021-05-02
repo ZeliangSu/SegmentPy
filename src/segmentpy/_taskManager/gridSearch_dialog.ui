@@ -136,7 +136,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="correction">
+          <widget class="QLineEdit" name="correctionLine">
            <property name="placeholderText">
             <string>e.g., 1e-2 for input image ranging 0-100</string>
            </property>
@@ -154,7 +154,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="sample_gap">
+          <widget class="QLineEdit" name="sample_gapLine">
            <property name="placeholderText">
             <string>e.g., gap of sampling 5, 50, 100 depending on the dataset size</string>
            </property>
@@ -172,7 +172,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="stop_criterion">
+          <widget class="QLineEdit" name="stop_criterionLine">
            <property name="placeholderText">
             <string>e.g., 0.01, 1e-3</string>
            </property>

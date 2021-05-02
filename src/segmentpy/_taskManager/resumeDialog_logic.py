@@ -20,8 +20,10 @@ class resumeDialog_logic(QDialog, Ui_Dialog):
         self.tstPath = None
         self.wherePath = None
 
-        if os.path.exists('./_taskManager/latest_resume.json'):
-            with open('./_taskManager/latest_resume.json', 'r') as f:
+        self.loggerDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log', 'latest_resume.json')
+
+        if os.path.exists(self.loggerDir):
+            with open(self.loggerDir, 'r') as f:
                 tmp = json.load(f)
             try:
                 # set attribute
@@ -117,7 +119,7 @@ class resumeDialog_logic(QDialog, Ui_Dialog):
             'tb step': self.tbstepLine.text(),
 
         }
-        with open('./_taskManager/latest_resume.json', 'w') as f:
+        with open(self.loggerDir, 'w') as f:
             json.dump(output, f)
         return output
 

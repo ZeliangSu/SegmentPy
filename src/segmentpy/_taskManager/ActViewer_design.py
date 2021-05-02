@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file './_taskManager/ActViewer.ui',
-# licensing of './_taskManager/ActViewer.ui' applies.
+# Form implementation generated from reading ui file 'src/segmentpy/_taskManager/ActViewer.ui',
+# licensing of 'src/segmentpy/_taskManager/ActViewer.ui' applies.
 #
-# Created: Fri Feb 12 20:52:26 2021
+# Created: Sun May  2 18:10:42 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -69,6 +69,18 @@ class Ui_actViewer(object):
         self.actList.setMaximumSize(QtCore.QSize(300, 16777215))
         self.actList.setObjectName("actList")
         self.verticalLayout.addWidget(self.actList)
+        self.label_2 = QtWidgets.QLabel(actViewer)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.weight = QtWidgets.QLabel(actViewer)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.weight.sizePolicy().hasHeightForWidth())
+        self.weight.setSizePolicy(sizePolicy)
+        self.weight.setAlignment(QtCore.Qt.AlignCenter)
+        self.weight.setObjectName("weight")
+        self.verticalLayout.addWidget(self.weight)
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setSizeConstraint(QtWidgets.QLayout.SetNoConstraint)
@@ -99,6 +111,12 @@ class Ui_actViewer(object):
         self.gridLayout.addLayout(self.horizontalLayout_2, 2, 0, 1, 1)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
+        self.label = QtWidgets.QLabel(actViewer)
+        self.label.setObjectName("label")
+        self.horizontalLayout.addWidget(self.label)
+        self.corrector = QtWidgets.QLineEdit(actViewer)
+        self.corrector.setObjectName("corrector")
+        self.horizontalLayout.addWidget(self.corrector)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.load = QtWidgets.QPushButton(actViewer)
@@ -123,7 +141,11 @@ class Ui_actViewer(object):
         self.inputPathLabel.setText(QtWidgets.QApplication.translate("actViewer", "Input path:", None, -1))
         self.inputButton.setText(QtWidgets.QApplication.translate("actViewer", "...", None, -1))
         self.ListTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation list:", None, -1))
+        self.label_2.setText(QtWidgets.QApplication.translate("actViewer", "Weight:", None, -1))
+        self.weight.setText(QtWidgets.QApplication.translate("actViewer", "Weight will display here", None, -1))
         self.ImgTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation:", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("actViewer", "Correction:", None, -1))
+        self.corrector.setPlaceholderText(QtWidgets.QApplication.translate("actViewer", "Enter here the corrector (keep it same as the training)", None, -1))
         self.load.setText(QtWidgets.QApplication.translate("actViewer", "Load model(A)", None, -1))
         self.load.setShortcut(QtWidgets.QApplication.translate("actViewer", "A", None, -1))
         self.saveButton.setText(QtWidgets.QApplication.translate("actViewer", "Save activations(S)", None, -1))

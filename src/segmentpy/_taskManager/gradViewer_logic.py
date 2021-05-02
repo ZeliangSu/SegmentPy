@@ -17,7 +17,7 @@ class gradView_logic(QDialog, Ui_gradPlot):
         self.setupUi(self)
         self.folderButton.clicked.connect(self.set_grad_path)
 
-        self.loggerPath = join(dirname(dirname(dirname(__file__))), 'log', 'latest_gradView.json')
+        self.loggerPath = join(dirname(dirname(__file__)), 'log', 'latest_gradView.json')
         if exists(self.loggerPath):
             with open(self.loggerPath, 'r') as f:
                 tmp = json.load(f)['path']

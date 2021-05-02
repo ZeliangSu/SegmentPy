@@ -13,7 +13,7 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
         # dialog UI
         self.setupUi(self)
 
-        self.loggerPath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log', 'latest_gS.json')
+        self.loggerPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log', 'latest_gS.json')
         if os.path.exists(self.loggerPath):
             with open(self.loggerPath, 'r') as file:
                 params = json.load(file)
@@ -49,9 +49,9 @@ class gS_dialog_logic(QDialog, Ui_gridSearch_dialog):
             'ilr': re.split('\,|\:|\/|\ ', self.init_lr.text()),
             'lrdecay': re.split('\,|\:|\/|\ ', self.decay_ratio.text()),
             'cmt': self.comment.text(),
-            'correction': str(self.correction),
-            'sample gap': str(self.sample_gap),
-            'criterion': str(self.correction),
+            'correction': str(self.correctionLine.text()),
+            'sample gap': str(self.sample_gapLine.text()),
+            'criterion': str(self.correctionLine.text()),
         }
         if hasattr(self, 'train_dir'):
             output['train_dir'] = self.trn_dir_line.text()

@@ -39,8 +39,10 @@ def get_available_gpus():
         else:
             # CPU
             pass
-
-    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log', 'device.txt'), 'w') as f:
+    loggerDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log')
+    if not os.path.exists(loggerDir):
+        os.makedirs(loggerDir)
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log', 'device.txt'), 'w') as f:
         for dv in l:
             f.write('{}\n'.format(dv))
 

@@ -18,7 +18,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def main_train(
-        hyperparams: dict,  # can be a class
+        hyperparams: dict,  # can be an object
         grad_view=False,
         nb_classes=3,
         resume=None,
@@ -145,10 +145,12 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                 if var.name in resume:
                     var_to_restore.append(var)
             saver = tf.train.Saver(var_to_restore, max_to_keep=5)
+            best_saver = tf.train.Saver(var_to_restore, max_to_keep=1)
 
         else:
             # otherwise resume the whole network
             saver = tf.train.Saver(max_to_keep=5)
+            best_saver = tf.train.Saver(max_to_keep=1)
 
         df = pd.DataFrame({'step': [0], 'val_acc': [0]})
         best_step = 0
@@ -261,7 +263,7 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         if argmax != best_step:
                             best_step = argmax
                             check_N_mkdir(folder + 'curves/')
-                            saver.save(sess, folder + 'curves/best_model'.format(best_step))
+                            best_saver.save(sess, folder + 'curves/best_model'.format(best_step))
                         if rolling_progress <= hyperparams['condition']:
                             logger.info('early stopped')
                             check_N_mkdir(folder + 'curves/')

@@ -33,15 +33,19 @@ from segmentpy.tf114 import log
 logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.DEBUG)  #changeHere: debug level
 
-loggerDir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log')
-imgDir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'img')
-segmentpyDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'segmentpy')
+loggerDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log')
+imgDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img')
+segmentpyDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tf114')
 parentDir = os.path.dirname(__file__)
+
+if not os.path.exists(loggerDir):
+    os.makedirs(loggerDir)
 
 
 def get_available_gpus_wrapper():
     """this threading wrapper can get rid of residus tensorflow in gpus"""
 
+    logger.info('detecting GPUs with {}'.format(os.path.join(segmentpyDir, 'device.py')))
     proc = subprocess.Popen(['python', os.path.join(segmentpyDir, 'device.py')])
     proc.wait()
     with open(os.path.join(loggerDir, 'device.txt'), 'r') as f:
@@ -98,11 +102,12 @@ class predict_Worker(QRunnable):
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
         terminal = [
-            'python', os.path.join(parentDir, 'main_inference.py'),
+            'mpirun', '--use-hwthread-cpus',
+            'python', os.path.join(segmentpyDir, 'inference.py'),
             '--ckpt', self.ckpt_path,
             '--raw', self.pred_dir,
             '--pred', self.save_dir,
-            '--corr', self.correction,
+            '--corr', str(self.correction),
         ]
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
@@ -138,7 +143,7 @@ class training_Worker(QRunnable):
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
         terminal = [
-            'python', os.path.join(parentDir, 'main_train.py'),
+            'python', os.path.join(segmentpyDir, 'main_train.py'),
             '-nc', self.params['conv nb'],
             '-bs', self.params['batch size'],
             '-ws', self.params['window size'],
@@ -205,7 +210,7 @@ class retraining_Worker(QRunnable):
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
         terminal = [
-            'python', os.path.join(parentDir, 'main_retrain.py'),
+            'python', os.path.join(segmentpyDir, 'main_retrain.py'),
             '-ckpt', self.params['ckpt path'],
             '-ep', self.params['nb epoch'],
             '-lr', self.params['lr type'],
@@ -801,7 +806,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.predDialog.exec()
         if self.predDialog.result() == 1:
             ckpt_path, raw_folder, pred_folder, correction = self.predDialog.get_params()
-            logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\n'.format(ckpt_path, raw_folder, pred_folder))
+            logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\ncorr:{}'.format(ckpt_path, raw_folder, pred_folder, correction))
             _Worker = predict_Worker(ckpt_path=ckpt_path,
                                      pred_dir=raw_folder,
                                      save_dir=pred_folder,
@@ -1041,7 +1046,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img', 'logo.png')))
+    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), 'img', 'logo.png')))
 
     # set ui
     ui = mainwindow_logic()

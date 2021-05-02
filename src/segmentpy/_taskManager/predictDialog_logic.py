@@ -1,6 +1,11 @@
 from segmentpy._taskManager.predictDialog_design2 import Ui_Dialog
 from segmentpy._taskManager.file_dialog import file_dialog
 
+import logging
+from segmentpy.tf114 import log
+logger = log.setup_custom_logger(__name__)
+logger.setLevel(logging.DEBUG)
+
 from PySide2.QtWidgets import QDialog, QMessageBox
 
 import json
@@ -15,7 +20,7 @@ class predictDialog_logic(QDialog, Ui_Dialog):
         self.meta_path = None
         self.raw_folder = None
         self.pred_folder = None
-        self.corrector = None
+        self.correction = None
         self.latestPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log', 'latest_pred.json')
 
         if os.path.exists(self.latestPath):
@@ -34,6 +39,7 @@ class predictDialog_logic(QDialog, Ui_Dialog):
         self.metaButton.clicked.connect(self.selectMeta)
         self.rawButton.clicked.connect(self.selectRaw)
         self.predButton.clicked.connect(self.selectPred)
+        self.corrector.editingFinished.connect(self.setCorrector)
         self.buttonBox.accepted.connect(self.get_returns)
         self.buttonBox.rejected.connect(self.reject)
 
@@ -48,6 +54,10 @@ class predictDialog_logic(QDialog, Ui_Dialog):
     def selectPred(self):
         self.pred_folder = file_dialog(title='choose a folder to put the segmentation').openFolderDialog()
         self.predLine.setText(self.pred_folder)
+
+    def setCorrector(self):
+        self.correction = self.corrector.text()
+        logger.debug('the corrector is modified to {}'.format(self.correction))
 
     def logWindow(self, Msg='Error', title='Error'):
         msg = QMessageBox()
@@ -71,10 +81,10 @@ class predictDialog_logic(QDialog, Ui_Dialog):
                     'meta_path': self.meta_path,
                     'raw_folder': self.raw_folder,
                     'pred_folder': self.pred_folder,
-                    'corrector': self.corrector,
+                    'corrector': self.correction,
                 }, f)
             self.accept()
 
     def get_params(self):
-        return self.meta_path, self.raw_folder, self.pred_folder, self.corrector
+        return self.meta_path, self.raw_folder, self.pred_folder, self.correction
 

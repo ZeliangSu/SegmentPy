@@ -1,5 +1,5 @@
 from setuptools import setup
-from glob import glob
+import os
 from setuptools import find_namespace_packages
 
 setup(
@@ -13,8 +13,10 @@ setup(
     packages=find_namespace_packages(where='src'),
     package_dir={'': "src"},
     package_data={
-        'img': glob('img/*.png'),
+        'segmentpy': ['img/*.png'],
+        '.': ['LICENSE', 'meta.yaml', 'build.sh', 'conda_build.bat'],
     },
+    include_package_data=True,
     install_requires=[
         "numpy==1.19.1",
         "tensorflow-gpu==1.14",

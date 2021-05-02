@@ -37,8 +37,9 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.load.clicked.connect(self.load_activations)
         self.saveButton.clicked.connect(self.save_selected_activations)
         self.cancelButton.clicked.connect(self.exit)
-        self.ckptPathLine.returnPressed.connect(self.set_ckpt)
-        self.inputPathLine.returnPressed.connect(self.set_input)
+        self.ckptPathLine.editingFinished.connect(self.set_ckpt)
+        self.inputPathLine.editingFinished.connect(self.set_input)
+        self.corrector.editingFinished.connect(self.setCorrector)
         self.actList.doubleClicked.connect(self.set_focused_layer)
         self.actSlider.valueChanged.connect(self.display)
 
@@ -46,6 +47,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
         self.ckpt = None
         self.input = None
         self.layer = None
+        self.correction = None
 
     def log_window(self, title: str, Msg: str):
         msg = QMessageBox()
@@ -65,6 +67,10 @@ class actViewer_logic(QWidget, Ui_actViewer):
         if tmp:
             self.inputPathLine.setText(tmp)
             self.set_input()
+
+    def setCorrector(self):
+        self.correction = float(self.corrector.text())
+        self.hyperparams['normalization'] = self.correction
 
     def set_ckpt(self):
         self.ckpt = self.ckptPathLine.text()
@@ -96,6 +102,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
                 'mode': 'classification',  # todo:
                 'batch_normalization': False,
                 'feature_map': True if model in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
+                'correction': self.correction
             }
 
             # get node and set the listViewWidget
@@ -166,6 +173,9 @@ class actViewer_logic(QWidget, Ui_actViewer):
     def load_activations(self):
         if not self.input:
             self.log_window(title='Error!', Msg='Please indicate a input image')
+
+        elif not self.correction:
+            self.log_window(title='Error!', Msg='You forgot to put the corrector')
 
         else:
             self.activations = partialRlt_and_diff(paths=self.paths, hyperparams=self.hyperparams,
