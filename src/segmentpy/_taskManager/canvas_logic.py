@@ -329,7 +329,7 @@ class gradient_plot(QWidget):
         self.canvas_w.draw()
 
 
-class MPLweight(QWidget):
+class sortResult(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         figure = plt.figure(figsize=(5, 5))

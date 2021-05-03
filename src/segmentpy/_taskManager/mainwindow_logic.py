@@ -16,6 +16,7 @@ from segmentpy._taskManager.gradViewer_logic import gradView_logic
 from segmentpy._taskManager.trainableParamsList_logic import resumeNodes_logic
 from segmentpy._taskManager.predictDialog_logic import predictDialog_logic
 from segmentpy._taskManager.gridSearch_dialog_logic import gS_dialog_logic
+from segmentpy._taskManager.resultExtractor_logic import rltExtractor_logic
 
 from segmentpy.tf114.util import print_nodes_name
 from segmentpy.tf114.hypParser import string_to_hypers
@@ -461,8 +462,15 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.AugViewer.triggered.connect(self.augViewer_plugin)
         self.GradViewer.triggered.connect(self.gradViewer_plugin)
         # self.actionGrid_Search.triggered.connect(self.gSearch)
+        self.actionExtract_Result.triggered.connect(self.resultsExtractor)
 
     ################# menubar methods
+    def resultsExtractor(self):
+        self.rltE = rltExtractor_logic()
+        try:
+            self.rltE.show()
+        except Exception as e:
+            self.log_window('Unknown error', e.args[0])
 
     def gradViewer_plugin(self):
         i = self.gradVs.__len__()

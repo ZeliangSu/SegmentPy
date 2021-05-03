@@ -15,8 +15,9 @@ logger.setLevel(logging.DEBUG)
 
 
 def gradient_extractor(event_dir: str, write_rlt=True):
+
     if not event_dir.endswith('train/'):
-        _dir = event_dir + 'train/'
+        _dir = os.path.join(event_dir, 'train/')
     else:
         _dir = event_dir
     accumulator = event_accumulator.EventAccumulator(_dir,
@@ -139,36 +140,44 @@ def get_sum(accumulator, param_name):
 
 
 def lr_curve_extractor(event_dir: str):
-    accumulator = event_accumulator.EventAccumulator(event_dir,
-                                               size_guidance={
-                                                   event_accumulator.SCALARS: 0,
-                                                   event_accumulator.HISTOGRAMS: 0,
-                                               })
-    accumulator.Reload()
+    if os.path.exists(os.path.join(event_dir, 'curves', 'acc_test.csv')):
+        curvesDir = os.path.join(event_dir, 'curves')
+        return pd.read_csv(os.path.join(curvesDir, 'acc_train.csv')), \
+               pd.read_csv(os.path.join(curvesDir, 'acc_test.csv')), \
+               pd.read_csv(os.path.join(curvesDir, 'lss_train.csv')), \
+               pd.read_csv(os.path.join(curvesDir, 'lss_test.csv')),
 
-    try:
-        acc_train = pd.DataFrame(accumulator.Scalars('train_metrics/accuracy')).drop(columns=['wall_time'])
-    except Exception as e:
-        logger.debug(e)
-        acc_train = None
+    else:
+        accumulator = event_accumulator.EventAccumulator(event_dir,
+                                                   size_guidance={
+                                                       event_accumulator.SCALARS: 0,
+                                                       event_accumulator.HISTOGRAMS: 0,
+                                                   })
+        accumulator.Reload()
 
-    try:
-        acc_test = pd.DataFrame(accumulator.Scalars('test_metrics/accuracy')).drop(columns=['wall_time'])
-    except Exception as e:
-        logger.debug(e)
-        acc_test = None
+        try:
+            acc_train = pd.DataFrame(accumulator.Scalars('train_metrics/accuracy')).drop(columns=['wall_time'])
+        except Exception as e:
+            logger.debug(e)
+            acc_train = None
 
-    try:
-        lss_train = pd.DataFrame(accumulator.Scalars('train_metrics/loss')).drop(columns=['wall_time'])
-    except Exception as e:
-        logger.debug(e)
-        lss_train = None
+        try:
+            acc_test = pd.DataFrame(accumulator.Scalars('test_metrics/accuracy')).drop(columns=['wall_time'])
+        except Exception as e:
+            logger.debug(e)
+            acc_test = None
 
-    try:
-        lss_test = pd.DataFrame(accumulator.Scalars('test_metrics/loss')).drop(columns=['wall_time'])
-    except Exception as e:
-        logger.debug(e)
-        lss_test = None
+        try:
+            lss_train = pd.DataFrame(accumulator.Scalars('train_metrics/loss')).drop(columns=['wall_time'])
+        except Exception as e:
+            logger.debug(e)
+            lss_train = None
+
+        try:
+            lss_test = pd.DataFrame(accumulator.Scalars('test_metrics/loss')).drop(columns=['wall_time'])
+        except Exception as e:
+            logger.debug(e)
+            lss_test = None
 
     return acc_train, acc_test, lss_train, lss_test
 

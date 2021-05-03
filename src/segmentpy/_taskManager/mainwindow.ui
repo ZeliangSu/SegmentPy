@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1178</width>
-    <height>724</height>
+    <height>718</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -574,6 +574,7 @@
     <addaction name="Random_Forest"/>
     <addaction name="Metrics"/>
     <addaction name="Thresholding"/>
+    <addaction name="actionExtract_Result"/>
    </widget>
    <widget class="QMenu" name="menuVisualization">
     <property name="title">
@@ -665,6 +666,11 @@
   <action name="actionGassian_Process">
    <property name="text">
     <string>Gassian Process</string>
+   </property>
+  </action>
+  <action name="actionExtract_Result">
+   <property name="text">
+    <string>Extract Result</string>
    </property>
   </action>
  </widget>

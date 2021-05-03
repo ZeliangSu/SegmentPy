@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '_taskManager/mainwindow.ui',
-# licensing of '_taskManager/mainwindow.ui' applies.
+# Form implementation generated from reading ui file 'src/segmentpy/_taskManager/mainwindow.ui',
+# licensing of 'src/segmentpy/_taskManager/mainwindow.ui' applies.
 #
-# Created: Fri Apr 23 10:52:29 2021
+# Created: Mon May  3 17:12:47 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_LRCSNet(object):
     def setupUi(self, LRCSNet):
         LRCSNet.setObjectName("LRCSNet")
-        LRCSNet.resize(1178, 724)
+        LRCSNet.resize(1178, 718)
         self.centralwidget = QtWidgets.QWidget(LRCSNet)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -226,7 +226,7 @@ class Ui_LRCSNet(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout)
         self.gridLayout.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
         LRCSNet.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(LRCSNet)
+        self.menubar = QtWidgets.QMenuBar()
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1178, 22))
         self.menubar.setObjectName("menubar")
         self.menuMenu = QtWidgets.QMenu(self.menubar)
@@ -270,6 +270,8 @@ class Ui_LRCSNet(object):
         self.actionGrid_Search.setObjectName("actionGrid_Search")
         self.actionGassian_Process = QtWidgets.QAction(LRCSNet)
         self.actionGassian_Process.setObjectName("actionGassian_Process")
+        self.actionExtract_Result = QtWidgets.QAction(LRCSNet)
+        self.actionExtract_Result.setObjectName("actionExtract_Result")
         self.menuMenu.addAction(self.About_us)
         self.menuMenu.addSeparator()
         self.menuMenu.addAction(self.Preferences)
@@ -279,6 +281,7 @@ class Ui_LRCSNet(object):
         self.menuPlugin.addAction(self.Random_Forest)
         self.menuPlugin.addAction(self.Metrics)
         self.menuPlugin.addAction(self.Thresholding)
+        self.menuPlugin.addAction(self.actionExtract_Result)
         self.menuVisualization.addAction(self.ActViewer)
         self.menuVisualization.addAction(self.Volumes_Viewer)
         self.menuVisualization.addAction(self.AugViewer)
@@ -365,4 +368,5 @@ class Ui_LRCSNet(object):
         self.Thresholding.setText(QtWidgets.QApplication.translate("LRCSNet", "Threshold", None, -1))
         self.actionGrid_Search.setText(QtWidgets.QApplication.translate("LRCSNet", "Grid Search", None, -1))
         self.actionGassian_Process.setText(QtWidgets.QApplication.translate("LRCSNet", "Gassian Process", None, -1))
+        self.actionExtract_Result.setText(QtWidgets.QApplication.translate("LRCSNet", "Extract Result", None, -1))
 
