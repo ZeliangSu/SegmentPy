@@ -17,6 +17,7 @@ import subprocess
 import tensorflow as tf
 import matplotlib.pyplot as plt
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+from operator import add
 
 # logging
 import logging
@@ -140,7 +141,7 @@ class actViewer_logic(QWidget, Ui_actViewer):
     def set_focused_layer(self, list_number=None):
         self.layer_name = self.actList.item(list_number.row()).text()
         self.layer = list_number.row()
-        self.display()
+        self.display(0)
 
     def display(self, nth=0):
         logger.debug(self.layer_name)
@@ -187,28 +188,42 @@ class actViewer_logic(QWidget, Ui_actViewer):
             self.weightSlider.setMaximum(weight.shape[2] - 1)
             weight = (weight - np.min(weight)) / (np.max(weight) - np.min(weight)) * 255
             self.weight = weight.copy()
+            self.displayWeight(0)
 
     def displayWeight(self, slide=None):
         # get weight
-        fig_weight = plt.figure(figsize=(1, 1))
+        fig_weight = plt.figure(figsize=(1.2, 1.2))
         fig_weight.clear()
         ax = fig_weight.add_subplot(111)
         img = np.squeeze(self.weight[:, :, slide])
         ax.imshow(img, interpolation='none', aspect='auto')
         for (y, x), z in np.ndenumerate(np.squeeze(img)):
-            ax.text(x, y, z, ha='center', va='center')
+            ax.text(x, y, '%.2f' % z, fontsize=5, ha='center', va='center',)
+        ax.axis('off')
         fig_weight.canvas.draw()
-        data = np.fromstring(fig_weight.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-        data = data.reshape(fig_weight.canvas.get_width_height()[::-1] + (3,))
+        data = np.fromstring(fig_weight.canvas.tostring_rgb(), dtype=np.uint8)
+        logger.debug('img shape: {}'.format(data.shape))
+        logger.debug(fig_weight.canvas.get_width_height())
+        logger.debug(fig_weight.canvas.get_width_height()[::-1])
+        data = data.reshape(tuple(map(add, fig_weight.canvas.get_width_height(), fig_weight.canvas.get_width_height()))+(3,))
+        # plt.imshow(data)
+        # plt.show()
+        logger.debug('img shape: {}'.format(data.shape))
+        del fig_weight
 
+
+        logger.debug(slide)
         # plot weight
         self.wt = QImage(data,
                         data.shape[1],
                         data.shape[0],
                         data.shape[1] * 3, QImage.Format_RGB888)
         self.pw = QPixmap(self.wt)
-        self.pw.scaled(self.width(), self.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.weightLabel.setScaledContents(True)
+        self.pw.scaled(self.width(), self.height(),
+                       Qt.KeepAspectRatio,
+                       Qt.SmoothTransformation
+                       )
+        self.weightLabel.setScaledContents(False)
         self.weightLabel.setPixmap(self.pw)
         self.weightLabel.update()
         self.weightLabel.repaint()
