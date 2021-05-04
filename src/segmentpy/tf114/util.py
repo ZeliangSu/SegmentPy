@@ -339,3 +339,14 @@ def check_raw_gt_pair(dir_path: str):
             missing_gt.append(dir_path + rw)
     return list_raw, list_gt, missing_gt
 
+
+def get_latest_training_number(dir_path: str):
+    assert os.path.isdir(dir_path), 'need a string of directory path'
+    l_fn = os.listdir(dir_path)
+    latest = 0
+    if len(l_fn) > 0:
+        for fn in l_fn:
+            tmp = int(re.search('^(\d+)\_', fn).group(1))
+            latest = max(tmp, latest)
+    return latest
+

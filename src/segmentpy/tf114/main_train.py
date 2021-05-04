@@ -8,7 +8,7 @@ import subprocess
 import json
 
 from train import main_train
-from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string
+from util import exponential_decay, ramp_decay, check_N_mkdir, boolean_string, get_latest_training_number
 from input import coords_gen, get_max_nb_cls
 from score_extractor import lr_curve_extractor, df_to_csv
 
@@ -155,10 +155,13 @@ if __name__ == '__main__':
         else:
             raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))
 
+        # get last training number
+        latest_number = get_latest_training_number(args.log_dir)
         # name the log directory
         hyperparams['folder_name'] = \
-            '{}{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_{}/'.format(
+            '{}{}_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_{}/'.format(
                 args.log_dir,
+                latest_number,
                 hyperparams['date'],
                 hyperparams['model'],
                 hyperparams['batch_size'],
@@ -192,80 +195,6 @@ if __name__ == '__main__':
         logger.warning(
             '\n\n(main_train.py)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
         logger.error(e)
-        hyperparams = {
-            ############### model ###################
-            'model': 'Unet4',
-            'mode': 'classification',
-            'dropout': '0.0',
-            'augmentation': True,
-            'batch_normalization': 'True',
-            'activation': 'leaky',
-            'loss_option': 'DSC',
-
-            ############### hyper-paras ##############
-            'patch_size': 512,
-            'batch_size': 8,
-            'conv_size': 3,
-            'nb_conv': 32,
-
-            ############### misc #####################
-            'nb_epoch': 5,
-            'device': 0,  # cpu: -1
-            'save_step': 500,
-            'save_summary_step': 50,
-            'date': '{}_{}_{}'.format(datetime.datetime.now().year, datetime.datetime.now().month,
-                                      datetime.datetime.now().day),
-            'hour': '{}'.format(datetime.datetime.now().hour),
-
-            'train_dir': args.train_dir if args.train_dir is not None else './train/',
-            'val_dir': args.val_dir if args.val_dir is not None else './valid/',
-            'test_dir': args.test_dir if args.test_dir is not None else './test/',
-            'correction': args.correction,
-            'stretch': args.stretch
-        }
-
-        # coordinations gen
-        hyperparams['input_coords'] = coords_gen(train_dir=hyperparams['train_dir'],
-                                                 valid_dir=hyperparams['val_dir'],
-                                                 window_size=hyperparams['patch_size'],
-                                                 train_test_ratio=0.9,
-                                                 stride=args.sampling_stride,
-                                                 nb_batch=None,
-                                                 batch_size=hyperparams['batch_size'])
-
-        # calculate nb_batch
-        hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
-        ############### generated #################
-        hyperparams['learning_rate'] = ramp_decay(
-            hyperparams['nb_epoch'] * (hyperparams['nb_batch'] + 1),
-            hyperparams['nb_batch'],
-            1e-5,
-            k=0.3,
-            period=1,
-        )
-        hyperparams['folder_name'] = \
-            './logs/DEBUG{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_gpu{}/'.format(
-                hyperparams['date'],
-                hyperparams['model'],
-                hyperparams['batch_size'],
-                hyperparams['patch_size'],
-                hyperparams['conv_size'],
-                hyperparams['nb_conv'],
-                hyperparams['dropout'],
-                hyperparams['activation'],
-                str(hyperparams['augmentation']),
-                str(hyperparams['batch_normalization']),
-                hyperparams['mode'],
-                hyperparams['loss_option'],
-                'ramp',
-                1e-4,
-                0.3,
-                1,
-                'DEBUG',
-                hyperparams['hour'],
-                hyperparams['device']
-            )
-
     ###################################################################
 
 
