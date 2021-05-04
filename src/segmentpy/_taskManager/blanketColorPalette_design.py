@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'src/segmentpy/_taskManager/blanketColorPalette.ui',
 # licensing of 'src/segmentpy/_taskManager/blanketColorPalette.ui' applies.
 #
-# Created: Tue May  4 00:56:46 2021
+# Created: Tue May  4 10:18:09 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,9 +13,11 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_Blanket(object):
     def setupUi(self, Blanket):
         Blanket.setObjectName("Blanket")
-        Blanket.resize(630, 156)
+        Blanket.resize(632, 200)
         self.gridLayout = QtWidgets.QGridLayout(Blanket)
         self.gridLayout.setObjectName("gridLayout")
+        self.verticalLayout = QtWidgets.QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_global = QtWidgets.QVBoxLayout()
         self.verticalLayout_global.setObjectName("verticalLayout_global")
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
@@ -140,7 +142,17 @@ class Ui_Blanket(object):
         self.verticalLayout236.addLayout(self.horizontalLayout236)
         self.horizontalLayout_7.addLayout(self.verticalLayout236)
         self.verticalLayout_global.addLayout(self.horizontalLayout_7)
-        self.gridLayout.addLayout(self.verticalLayout_global, 0, 0, 1, 1)
+        self.verticalLayout.addLayout(self.verticalLayout_global)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
+        self.buttonBox = QtWidgets.QDialogButtonBox(Blanket)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.horizontalLayout.addWidget(self.buttonBox)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(Blanket)
         QtCore.QMetaObject.connectSlotsByName(Blanket)

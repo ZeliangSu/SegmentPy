@@ -332,25 +332,22 @@ class gradient_plot(QWidget):
 class sortResult(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
-        figure = plt.figure(figsize=(5, 5))
-        self.canvas_w = canvas(figure)
-        ax = self.canvas_w.figure.add_subplot(111)
-        ax.imshow(np.ones((3, 3)))
-        self.canvas_w.draw()
-        self.grid = None
+        self.df = None
+        fig1 = plt.figure(figsize=(4, 2))
+        self.canvas_acc = canvas(fig1)
+        self.canvas_acc.setParent(parent)
 
-    def plot(self, slide):
+    def plot(self):
         # clear
-        fig_weight = self.canvas_w.figure
-        fig_weight.clear()
+        fig1 = self.canvas_acc.figure
+        fig1.clear()
 
         # plot
-        ax = fig_weight.add_subplot(111)
-        logger.debug(self.grid.shape)
-        img = np.squeeze(self.grid[:, :, slide])
-        logger.debug(img)
-        ax.imshow(img, interpolation='none', aspect='auto')
-        for (y, x), z in np.ndenumerate(np.squeeze(img)):
-            ax.text(x, y, z, ha='center', va='center')
-        self.canvas_w.draw()
+        ax = fig1.add_subplot(111)
+        ax.scatter(x=np.arange(len(self.df.acc_tts_max)), y=self.df.acc_tts_max)
+        ax_min, ax_max = ax.get_xlim()
+        ax.set_xlim(ax_min, ax_max)
+        ax.set_xticks([])
+        ax.set_xticks([], minor=True)
+        self.canvas_acc.draw()
 

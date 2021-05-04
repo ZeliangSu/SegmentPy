@@ -205,7 +205,8 @@ class actViewer_logic(QWidget, Ui_actViewer):
         logger.debug('img shape: {}'.format(data.shape))
         logger.debug(fig_weight.canvas.get_width_height())
         logger.debug(fig_weight.canvas.get_width_height()[::-1])
-        data = data.reshape(tuple(map(add, fig_weight.canvas.get_width_height(), fig_weight.canvas.get_width_height()))+(3,))
+        data = data.reshape(tuple(map(add, fig_weight.canvas.get_width_height()[::-1],
+                                      fig_weight.canvas.get_width_height())[::-1]) + (3,))
         # plt.imshow(data)
         # plt.show()
         logger.debug('img shape: {}'.format(data.shape))

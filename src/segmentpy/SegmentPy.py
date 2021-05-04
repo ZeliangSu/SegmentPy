@@ -2,7 +2,7 @@ from PySide2.QtWidgets import QApplication
 from PySide2 import QtGui
 
 from segmentpy._taskManager.mainwindow_logic import mainwindow_logic
-import sys, os
+import sys, os, signal
 
 # logging
 import logging
@@ -19,9 +19,10 @@ def main():
     ui = mainwindow_logic()
     try:
         ui.show()
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         sys.exit(app.exec_())
     except Exception as e:
-        print(e)
+        logger.warn(e)
         for p in ui.proc_list:
             p[2].kill()
 
