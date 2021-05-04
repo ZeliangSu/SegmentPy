@@ -37,7 +37,7 @@
        <item>
         <widget class="QToolButton" name="ckptButton">
          <property name="text">
-          <string>...</string>
+          <string>(step 1)...</string>
          </property>
         </widget>
        </item>
@@ -58,7 +58,7 @@
        <item>
         <widget class="QToolButton" name="inputButton">
          <property name="text">
-          <string>...</string>
+          <string>(step 2)...</string>
          </property>
         </widget>
        </item>
@@ -83,7 +83,7 @@
             </size>
            </property>
            <property name="text">
-            <string>Activation list:</string>
+            <string>(step 4) Activation list:</string>
            </property>
           </widget>
          </item>
@@ -198,7 +198,7 @@
        <item>
         <widget class="QLineEdit" name="corrector">
          <property name="placeholderText">
-          <string>Enter here the corrector (keep it same as the training)</string>
+          <string>s3: Enter here the corrector (keep it same as the training)</string>
          </property>
         </widget>
        </item>

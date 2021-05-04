@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'src/segmentpy/_taskManager/resultExtractor.ui',
 # licensing of 'src/segmentpy/_taskManager/resultExtractor.ui' applies.
 #
-# Created: Tue May  4 00:56:39 2021
+# Created: Tue May  4 18:22:17 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,21 +13,27 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_Extractor(object):
     def setupUi(self, Extractor):
         Extractor.setObjectName("Extractor")
-        Extractor.resize(545, 402)
+        Extractor.resize(367, 265)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Extractor.sizePolicy().hasHeightForWidth())
+        Extractor.setSizePolicy(sizePolicy)
         self.gridLayout = QtWidgets.QGridLayout(Extractor)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.MPLwidget = sortResult(Extractor)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.MPLwidget.sizePolicy().hasHeightForWidth())
         self.MPLwidget.setSizePolicy(sizePolicy)
+        self.MPLwidget.setMinimumSize(QtCore.QSize(300, 150))
         self.MPLwidget.setObjectName("MPLwidget")
         self.verticalLayout.addWidget(self.MPLwidget)
         self.legendLabel = QtWidgets.QLabel(Extractor)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.legendLabel.sizePolicy().hasHeightForWidth())
@@ -36,14 +42,21 @@ class Ui_Extractor(object):
         self.legendLabel.setObjectName("legendLabel")
         self.verticalLayout.addWidget(self.legendLabel)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setSizeConstraint(QtWidgets.QLayout.SetNoConstraint)
         self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout_4 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.folderButton = QtWidgets.QPushButton(Extractor)
+        self.folderButton.setObjectName("folderButton")
+        self.verticalLayout_4.addWidget(self.folderButton)
         self.extractButton = QtWidgets.QPushButton(Extractor)
         self.extractButton.setObjectName("extractButton")
-        self.horizontalLayout.addWidget(self.extractButton)
+        self.verticalLayout_4.addWidget(self.extractButton)
+        self.horizontalLayout.addLayout(self.verticalLayout_4)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.barLabel = QtWidgets.QLabel(Extractor)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.barLabel.sizePolicy().hasHeightForWidth())
@@ -74,9 +87,10 @@ class Ui_Extractor(object):
     def retranslateUi(self, Extractor):
         Extractor.setWindowTitle(QtWidgets.QApplication.translate("Extractor", "Form", None, -1))
         self.legendLabel.setText(QtWidgets.QApplication.translate("Extractor", "Legend", None, -1))
-        self.extractButton.setText(QtWidgets.QApplication.translate("Extractor", "Extract", None, -1))
+        self.folderButton.setText(QtWidgets.QApplication.translate("Extractor", "1.folder...", None, -1))
+        self.extractButton.setText(QtWidgets.QApplication.translate("Extractor", "2.Extract", None, -1))
         self.barLabel.setText(QtWidgets.QApplication.translate("Extractor", "0%", None, -1))
-        self.colorButton.setText(QtWidgets.QApplication.translate("Extractor", "colors", None, -1))
-        self.saveButton.setText(QtWidgets.QApplication.translate("Extractor", "Save as img and csv", None, -1))
+        self.colorButton.setText(QtWidgets.QApplication.translate("Extractor", "3.colors", None, -1))
+        self.saveButton.setText(QtWidgets.QApplication.translate("Extractor", "4.Save as img and csv", None, -1))
 
 from segmentpy._taskManager.canvas_logic import sortResult

@@ -140,14 +140,17 @@ def get_sum(accumulator, param_name):
 
 
 def lr_curve_extractor(event_dir: str):
-    if os.path.exists(os.path.join(event_dir, 'curves', 'acc_test.csv')):
-        curvesDir = os.path.join(event_dir, 'curves')
+    logger.info(event_dir)
+    if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(event_dir)), 'curves', 'acc_test.csv')):
+        logger.debug('found the accuracy summary .csv file')
+        curvesDir = os.path.join(os.path.dirname(os.path.dirname(event_dir)), 'curves')
         return pd.read_csv(os.path.join(curvesDir, 'acc_train.csv')), \
                pd.read_csv(os.path.join(curvesDir, 'acc_test.csv')), \
                pd.read_csv(os.path.join(curvesDir, 'lss_train.csv')), \
                pd.read_csv(os.path.join(curvesDir, 'lss_test.csv')),
 
     else:
+        logger.debug('cannot found the accuracy summary .csv file')
         accumulator = event_accumulator.EventAccumulator(event_dir,
                                                    size_guidance={
                                                        event_accumulator.SCALARS: 0,

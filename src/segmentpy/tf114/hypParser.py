@@ -178,8 +178,8 @@ class string_to_data(string_to_hypers):
             for tfev_folder in tqdm(os.listdir(self.folder_name)):
                 if not tfev_folder.startswith('.'):
                     tfev_folder += '/'
-                    acc_tn, _, lss_tn, _ = lr_curve_extractor(self.folder_name + tfev_folder + 'train/')
-                    _, acc_tt, _, lss_tt = lr_curve_extractor(self.folder_name + tfev_folder + 'test/')
+                    acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, tfev_folder, 'train/'))
+                    _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, tfev_folder, 'test/'))
 
                     self.acc_tns.append(acc_tn)
                     self.acc_tts.append(acc_tt)
@@ -187,8 +187,8 @@ class string_to_data(string_to_hypers):
                     self.lss_tts.append(lss_tt)
 
         elif folder_level == 2:
-            acc_tn, _, lss_tn, _ = lr_curve_extractor(self.folder_name + 'train/')
-            _, acc_tt, _, lss_tt = lr_curve_extractor(self.folder_name + 'test/')
+            acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, 'train/'))
+            _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, 'test/'))
 
             self.acc_tns.append(acc_tn)
             self.acc_tts.append(acc_tt)

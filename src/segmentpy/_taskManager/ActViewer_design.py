@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'src/segmentpy/_taskManager/ActViewer.ui',
 # licensing of 'src/segmentpy/_taskManager/ActViewer.ui' applies.
 #
-# Created: Mon May  3 01:44:44 2021
+# Created: Tue May  4 18:22:15 2021
 #      by: pyside2-uic  running on PySide2 5.9.0~a1
 #
 # WARNING! All changes made in this file will be lost!
@@ -146,15 +146,15 @@ class Ui_actViewer(object):
     def retranslateUi(self, actViewer):
         actViewer.setWindowTitle(QtWidgets.QApplication.translate("actViewer", "Form", None, -1))
         self.ckptPathLabel.setText(QtWidgets.QApplication.translate("actViewer", "Model Checkpoint path:", None, -1))
-        self.ckptButton.setText(QtWidgets.QApplication.translate("actViewer", "...", None, -1))
+        self.ckptButton.setText(QtWidgets.QApplication.translate("actViewer", "(step 1)...", None, -1))
         self.inputPathLabel.setText(QtWidgets.QApplication.translate("actViewer", "Input path:", None, -1))
-        self.inputButton.setText(QtWidgets.QApplication.translate("actViewer", "...", None, -1))
-        self.ListTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation list:", None, -1))
+        self.inputButton.setText(QtWidgets.QApplication.translate("actViewer", "(step 2)...", None, -1))
+        self.ListTitle.setText(QtWidgets.QApplication.translate("actViewer", "(step 4) Activation list:", None, -1))
         self.label_2.setText(QtWidgets.QApplication.translate("actViewer", "Weight:", None, -1))
         self.weightLabel.setText(QtWidgets.QApplication.translate("actViewer", "Weight will display here", None, -1))
         self.ImgTitle.setText(QtWidgets.QApplication.translate("actViewer", "Activation:", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("actViewer", "Correction:", None, -1))
-        self.corrector.setPlaceholderText(QtWidgets.QApplication.translate("actViewer", "Enter here the corrector (keep it same as the training)", None, -1))
+        self.corrector.setPlaceholderText(QtWidgets.QApplication.translate("actViewer", "s3: Enter here the corrector (keep it same as the training)", None, -1))
         self.load.setText(QtWidgets.QApplication.translate("actViewer", "Load model(A)", None, -1))
         self.load.setShortcut(QtWidgets.QApplication.translate("actViewer", "A", None, -1))
         self.saveButton.setText(QtWidgets.QApplication.translate("actViewer", "Save activations(S)", None, -1))

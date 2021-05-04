@@ -333,13 +333,19 @@ class sortResult(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.df = None
-        fig1 = plt.figure(figsize=(4, 2))
-        self.canvas_acc = canvas(fig1)
-        self.canvas_acc.setParent(parent)
+        fig1 = plt.figure()
+        self.canvas1 = canvas(fig1)
+        self.canvas1.setParent(parent)
+        ########## the following code is mandatory despite the layout being added in QtDesigner, or the MPLwidget sticks on the cornor
+        self.QHBL = QtWidgets.QHBoxLayout()
+        self.QHBL.addWidget(self.canvas1)
+        self.setLayout(self.QHBL)
+        ########## the above code is mandatory despite the layout being added  in QtDesigner, or the MPLwidget sticks on the cornor
+        self.canvas1.draw()
 
     def plot(self):
         # clear
-        fig1 = self.canvas_acc.figure
+        fig1 = self.canvas1.figure
         fig1.clear()
 
         # plot
@@ -349,5 +355,6 @@ class sortResult(QWidget):
         ax.set_xlim(ax_min, ax_max)
         ax.set_xticks([])
         ax.set_xticks([], minor=True)
-        self.canvas_acc.draw()
+        fig1.tight_layout()
+        self.canvas1.draw()
 
