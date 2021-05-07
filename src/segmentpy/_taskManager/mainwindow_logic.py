@@ -605,20 +605,20 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
             # 'win_size': '512',
             # 'conv_size': 'kernel size',
             # 'nb_conv': 'conv nb',
-            'act_fn': 'leaky',
-            'lss_fn': 'DSC',
-            'batch_norm': 'True',
-            'aug': 'True',
+            # 'act_fn': 'leaky',
+            # 'lss_fn': 'DSC',
+            # 'batch_norm': 'True',
+            # 'aug': 'True',
             # 'dropout': '0.0',
-            'lr_type': 'ramp',
+            # 'lr_type': 'ramp',
             # 'lr_init': 'lr init',
             # 'lr_k': 'k param',
             # 'lr_p': '50',
-            'cls_reg': 'classification',
+            # 'cls_reg': 'classification',
             # 'comment': 'comment',
-            'nb_epoch': '500',
-            'sv_step': '160',
-            'tb_step': '50',
+            # 'nb_epoch': '500',
+            # 'sv_step': '160',
+            # 'tb_step': '50',
             # 'gap': '50',
             # 'condition': '0.001',
             # 'correction': '1e-2',
@@ -666,6 +666,14 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 default['test_dir'] = new['test_dir'][0]
                 default['log_dir'] = new['log_dir'][0]
                 default['comment'] = new['comment'][0]
+                default['batch_norm'] = new['batch_norm'][0]
+                default['aug'] = new['aug'][0]
+                default['nb_epoch'] = new['nb_epoch'][0]
+                default['win_size'] = new['win_size'][0]
+                default['lr_type'] = new['lr_type'][0]
+                default['cls_reg'] = new['cls_reg'][0]
+                default['sv_step'] = new['sv_step'][0]
+                default['tb_step'] = new['tb_step'][0]
                 logger.debug(default)
                 self.write_train_column(contents=default)
 

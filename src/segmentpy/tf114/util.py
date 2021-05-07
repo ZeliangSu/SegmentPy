@@ -346,7 +346,9 @@ def get_latest_training_number(dir_path: str):
     latest = 0
     if len(l_fn) > 0:
         for fn in l_fn:
-            tmp = int(re.search('^(\d+)\_', fn).group(1))
-            latest = max(tmp, latest)
+            tmp = re.search('^(\d+)\_', fn)
+            if tmp is not None:
+                tmp = int(tmp.group(1))
+                latest = max(tmp, latest)
     return latest
 

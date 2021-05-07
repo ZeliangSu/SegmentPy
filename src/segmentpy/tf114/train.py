@@ -89,7 +89,7 @@ def main_train(
     print('number of params: {}'.format(np.sum([np.prod(v.shape) for v in tf.trainable_variables()])))
 
     # create logs folder
-    check_N_mkdir('./logs/')
+    check_N_mkdir(os.path.join(os.path.dirname(__file__), 'logs'))
 
     # start training/resume training
     if resume:
@@ -122,17 +122,17 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
 
     # init list
     with tf.Session() as sess:
-        tf.summary.FileWriter('./dummy/debug/', sess.graph)
+        # tf.summary.FileWriter('./dummy/debug/', sess.graph)
         # init params
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
         # init summary
         folder = hyperparams['folder_name']
-        train_writer = tf.summary.FileWriter(folder + 'train/', sess.graph)
-        test_writer = tf.summary.FileWriter(folder + 'test/', sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(folder, 'train'), sess.graph)
+        test_writer = tf.summary.FileWriter(os.path.join(folder, 'test'), sess.graph)
 
-        if not os.path.exists(folder + 'ckpt/'):
-            os.mkdir(folder + 'ckpt/')
+        if not os.path.exists(os.path.join(folder, 'ckpt')):
+            os.mkdir(os.path.join(folder, 'ckpt'))
 
         if resume:
             logger.info('The nodes to be restored: {}'.format(resume))
@@ -218,13 +218,13 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                                 feed_dict=feed_dict)
 
                     except tf.errors.OutOfRangeError as e:
-                        saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+                        saver.save(sess, os.path.join(folder, 'ckpt', 'step{}'.format(global_step)))
                         print(e)
                         break
 
                     #save model
                     if global_step % hyperparams['save_step'] == 0:
-                        saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
+                        saver.save(sess, os.path.join(folder, 'ckpt', 'step{}'.format(global_step)))
                         ########################
                         #
                         # valid session
@@ -262,23 +262,23 @@ def _train_eval(train_nodes, test_nodes, train_inputs, test_inputs, hyperparams,
                         argmax = df['val_acc'].argmax()
                         if argmax != best_step:
                             best_step = argmax
-                            check_N_mkdir(folder + 'curves/')
-                            best_saver.save(sess, folder + 'curves/best_model'.format(best_step))
+                            check_N_mkdir(os.path.join(folder, 'curves'))
+                            best_saver.save(sess, os.path.join(folder, 'curves', 'best_model'))
                         if rolling_progress <= hyperparams['condition']:
                             logger.info('early stopped')
-                            check_N_mkdir(folder + 'curves/')
-                            saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
-                            df.to_csv(folder + 'curves/in_loop_val_acc.csv')
+                            check_N_mkdir(os.path.join(folder, 'curves'))
+                            saver.save(sess, os.path.join(folder, 'ckpt', 'step{}'.format(global_step)))
+                            df.to_csv(os.path.join(folder, 'curves', 'in_loop_val_acc.csv'))
                             return
 
         except (KeyboardInterrupt, SystemExit) as e:
-            check_N_mkdir(folder + 'curves/')
-            saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
-            df.to_csv(folder + 'curves/in_loop_val_acc.csv')
+            check_N_mkdir(os.path.join(folder, 'curves'))
+            saver.save(sess, os.path.join(folder, 'ckpt', 'step{}'.format(global_step)))
+            df.to_csv(os.path.join(folder, 'curves', 'in_loop_val_acc.csv'))
             raise e
-        check_N_mkdir(folder + 'curves/')
-        saver.save(sess, folder + 'ckpt/step{}'.format(global_step))
-        df.to_csv(folder + 'curves/in_loop_val_acc.csv')
+        check_N_mkdir(os.path.join(folder, 'curves'))
+        saver.save(sess, os.path.join(folder, 'ckpt', 'step{}'.format(global_step)))
+        df.to_csv(os.path.join(folder, 'curves', 'in_loop_val_acc.csv'))
 
 
 

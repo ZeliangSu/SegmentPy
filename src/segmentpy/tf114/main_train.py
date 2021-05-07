@@ -61,13 +61,13 @@ if __name__ == '__main__':
     parser.add_argument('-tb', '--save_tb', type=int, metavar='', required=False,
                         help='save the histograms of gradients and weights for the training every X step')
     parser.add_argument('-cmt', '--comment', type=str, metavar='', required=False, help='extra comment')
-    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default='./train/', required=False,
+    parser.add_argument('-trnd', '--train_dir', type=str, metavar='', default=os.path.join(os.path.dirname(__file__), 'train'), required=False,
                         help='where to find the training dataset')
-    parser.add_argument('-vald', '--val_dir', type=str, metavar='', default='./valid/', required=False,
+    parser.add_argument('-vald', '--val_dir', type=str, metavar='', default=os.path.join(os.path.dirname(__file__), 'valid'), required=False,
                         help='where to find the valid dataset')
-    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default='./test/', required=False,
+    parser.add_argument('-tstd', '--test_dir', type=str, metavar='', default=os.path.join(os.path.dirname(__file__), 'test'), required=False,
                         help='where to find the testing dataset')
-    parser.add_argument('-logd', '--log_dir', type=str, metavar='', default='./logs/', required=False,
+    parser.add_argument('-logd', '--log_dir', type=str, metavar='', default=os.path.join(os.path.dirname(__file__), 'log'), required=False,
                         help='where to find the testing dataset')
     parser.add_argument('-stride', '--sampling_stride', type=int, metavar='', default=5, required=False,
                         help='indicate the step/stride with which we sample')
@@ -156,10 +156,10 @@ if __name__ == '__main__':
             raise NotImplementedError('Not implemented learning rate schedule: {}'.format(args.lr_decay_type))
 
         # get last training number
-        latest_number = get_latest_training_number(args.log_dir)
+        latest_number = get_latest_training_number(args.log_dir) + 1
         # name the log directory
-        hyperparams['folder_name'] = \
-            '{}{}_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}/hour{}_{}/'.format(
+        hyperparams['folder_name'] = os.path.join(
+            '{}{}_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}'.format(
                 args.log_dir,
                 latest_number,
                 hyperparams['date'],
@@ -179,12 +179,11 @@ if __name__ == '__main__':
                 args.lr_decay_ratio,
                 args.lr_period,
                 args.comment.replace(' ', '_'),
-                hyperparams['hour'],
-                'gpu{}'.format(args.device) if args.device != 'cpu' else 'cpu'
-            )
+                'hour{}_{}'.format(hyperparams['hour'],
+                'gpu{}'.format(args.device) if args.device != 'cpu' else 'cpu')))
 
         check_N_mkdir(hyperparams['folder_name'])
-        with open(hyperparams['folder_name']+'HPs.json', 'w') as file:
+        with open(os.path.join(hyperparams['folder_name'], 'HPs.json'), 'w') as file:
             json.dump({'corr': hyperparams['correction'],
                        'str': hyperparams['stretch'],
                        'cond': hyperparams['condition'],
@@ -199,10 +198,10 @@ if __name__ == '__main__':
 
 
     # backup dataset
-    check_N_mkdir(hyperparams['folder_name'] + 'copy/')
-    shutil.copytree(hyperparams['train_dir'], hyperparams['folder_name'] + 'copy/train/')
-    shutil.copytree(hyperparams['val_dir'], hyperparams['folder_name'] + 'copy/val/')
-    shutil.copytree(hyperparams['test_dir'], hyperparams['folder_name'] + 'copy/test/')
+    check_N_mkdir(os.path.join(hyperparams['folder_name'], 'copy'))
+    shutil.copytree(hyperparams['train_dir'], os.path.join(hyperparams['folder_name'], 'copy','train'))
+    shutil.copytree(hyperparams['val_dir'], os.path.join(hyperparams['folder_name'], 'copy', 'val'))
+    shutil.copytree(hyperparams['test_dir'], os.path.join(hyperparams['folder_name'], 'copy', 'test'))
 
     # try:
     hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
@@ -210,13 +209,13 @@ if __name__ == '__main__':
     main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
     train_time = (datetime.datetime.now() - start_time) / 3600
     # save lr_curves
-    check_N_mkdir(hyperparams['folder_name'] + 'curves/')
-    ac_tn, _, ls_tn, _ = lr_curve_extractor(hyperparams['folder_name'] + 'train/')
-    _, ac_val, _, ls_val = lr_curve_extractor(hyperparams['folder_name'] + 'test/')
+    check_N_mkdir(hyperparams['folder_name'] + 'curves')
+    ac_tn, _, ls_tn, _ = lr_curve_extractor(os.path.join(hyperparams['folder_name'], 'train'))
+    _, ac_val, _, ls_val = lr_curve_extractor(os.path.join(hyperparams['folder_name'], 'test'))
     best_step = ac_val.step.loc[ac_val.value.argmax()]
     # best_step=0
-    df_to_csv(hyperparams['folder_name'] + 'curves/', ac_tn, ac_val, ls_tn, ls_val)
-    with open(hyperparams['folder_name'] + 'curves/train_time.csv', 'w') as f:
+    df_to_csv(os.path.join(hyperparams['folder_name'], 'curves'), ac_tn, ac_val, ls_tn, ls_val)
+    with open(os.path.join(hyperparams['folder_name'], 'curves', 'train_time.csv'), 'w') as f:
         f.write('{} hours'.format(train_time.seconds/3600))
 
     # testing
@@ -225,7 +224,7 @@ if __name__ == '__main__':
     logger.debug(args.test_dir)
     p = subprocess.Popen(['python', 'main_testing.py',
                           '-tstd', args.test_dir,
-                          '-ckpt', hyperparams['folder_name'] + '/curves/best_model',
-                          '-sd', hyperparams['folder_name'] + 'test_score.csv'])
+                          '-ckpt', os.path.join(hyperparams['folder_name'], '/curves/best_model'),
+                          '-sd', os.path.join(hyperparams['folder_name'], 'test_score.csv')])
     o, e = p.communicate()
 
