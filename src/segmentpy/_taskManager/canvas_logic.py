@@ -4,13 +4,14 @@ from PySide2.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as canvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as toolbar
-from segmentpy.tf114.score_extractor import lr_curve_extractor
+from segmentpy.tf114.score_extractor import lr_curve_extractor, df_to_csv
 
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QT5Agg')
 
 import re
+import os
 import pandas as pd
 import numpy as np
 import string
@@ -86,8 +87,12 @@ class MPL(QWidget):
     def load_event(self, key):
         if key not in self.curves.keys():
             try:
-                ac_tn, _, ls_tn, _ = lr_curve_extractor(self.paths[key] + 'train/')
-                _, ac_val, _, ls_val = lr_curve_extractor(self.paths[key] + 'test/')
+                ac_tn, _, ls_tn, _ = lr_curve_extractor(os.path.join(os.path.abspath(self.paths[key]), 'train'))
+                _, ac_val, _, ls_val = lr_curve_extractor(os.path.join(os.path.abspath(self.paths[key]), 'test'))
+                # rewrite the dropped acc_test.cvs etc.
+                if all(v is not None for v in [ac_tn, ac_val, ls_tn, ls_val]):
+                    df_to_csv(os.path.join(os.path.abspath(self.paths[key]), 'curves'),
+                              ac_tn, ac_val, ls_tn, ls_val)
                 self.curves[key] = [ac_tn, ac_val, ls_tn, ls_val]
             except Exception as e:
                 logger.error(e)
