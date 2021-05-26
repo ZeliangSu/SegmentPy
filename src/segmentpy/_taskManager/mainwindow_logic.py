@@ -33,7 +33,7 @@ import re
 import logging
 from segmentpy.tf114 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.DEBUG)  #changeHere: debug level
+logger.setLevel(logging.INFO)  #changeHere: debug level
 
 loggerDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log')
 imgDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img')
@@ -180,7 +180,6 @@ class training_Worker(QRunnable):
         ]
 
         print(self.params)
-        print('\n', terminal)
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
         logger.info('******** Run ********\n %s' % terminal)

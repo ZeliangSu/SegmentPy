@@ -211,6 +211,7 @@ class string_to_data(string_to_hypers):
 
                     # rewrite into curves
                     if all(v is not None for v in [acc_tn, acc_tt, lss_tn, lss_tt]):
+                        logger.info('###### adding the acc_test.csv in curves folder')
                         df_to_csv(os.path.join(os.path.abspath(self.folder_name), tfev_folder, 'curves'),
                                   acc_tn, acc_tt, lss_tn, lss_tt)
 
@@ -223,6 +224,7 @@ class string_to_data(string_to_hypers):
             acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, 'train'))
             _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, 'test'))
             if all(v is not None for v in [acc_tn, acc_tt, lss_tn, lss_tt]):
+                logger.info('###### adding the acc_test.csv in curves folder')
                 df_to_csv(os.path.join(os.path.abspath(self.folder_name), 'curves'),
                           acc_tn, acc_tt, lss_tn, lss_tt)
 

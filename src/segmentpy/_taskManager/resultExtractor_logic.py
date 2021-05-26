@@ -354,15 +354,15 @@ class rltExtractor_logic(QWidget, Ui_Extractor):
         grid = self.pd_df.to_numpy()[:, :-1]
         fig2 = plt.figure(figsize=(4, 2))
         ax = fig2.add_subplot(111)
-        ax.imshow(np.zeros((20 * grid.shape[1], 20 * grid.shape[0], 3)))
+        ax.imshow(np.zeros((30 * grid.shape[1], 30 * grid.shape[0], 3)))
         for i in range(grid.shape[1]):
             # print(i, tb)
             for j in range(grid.shape[0]):
                 # print(j)
                 color = self.colors[str(grid[j, i])]
                 # print(color)
-                rect = patches.Rectangle((j * 20, i * 20), 20, 20,
-                                         linewidth=1, edgecolor='black',
+                rect = patches.Rectangle((j * 30, i * 30), 30, 30,
+                                         linewidth=0.5, edgecolor='black',
                                          facecolor=color, snap=False) # snap=False anti-aliasing
                 ax.add_patch(rect)
         plt.axis('off')
@@ -403,7 +403,7 @@ class rltExtractor_logic(QWidget, Ui_Extractor):
     def saveResult(self):
         save_path = file_dialog(title='choose a folder to save the plot|legend|data', type='/').openFolderDialog()
         self.pd_df.to_csv(os.path.join(save_path, 'data.csv'))
-        self.MPLwidget.canvas_acc.figure.savefig(os.path.join(save_path, 'plot.png'))
+        self.MPLwidget.canvas1.figure.savefig(os.path.join(save_path, 'plot.png'))
         Image.fromarray(np.asarray(self.fig2)).save(os.path.join(save_path, 'legend.png'))
 
 

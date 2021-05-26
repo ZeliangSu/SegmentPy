@@ -162,10 +162,11 @@ def _pyfn_aug_wrapper(X_img, y_img):
 
 
 def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3, stretch=2.0):
-    img = np.asarray(Image.open(fname))
+    img = np.asarray(Image.open(fname.decode('utf8')))
     label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
     logger.debug('crt, cls, stch: {}, {}, {}'.format(correction, impose_nb_cls, stretch))
+    logger.debug('img:{}, label:{}'.format(img.shape, label.shape))
     assert img.shape == label.shape, 'img and label shape should be equal'
     assert img.shape[0] >= x_coord + window_size, 'window is out of zone'
     assert img.shape[1] >= y_coord + window_size, 'window is out of zone'
