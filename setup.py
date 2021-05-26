@@ -4,7 +4,7 @@ from setuptools import find_namespace_packages
 
 setup(
     name="segmentpy",
-    version="0.1",
+    version="0.1a",
     description="Deep Learning Software for Tomography Segmentation",
     url="http://segmentpy.readthedocs.org",
     author="Zeliang Su, Arnaud Demortiere",

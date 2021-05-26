@@ -1,4 +1,4 @@
-.. image:: ../img/SegmentPy_logo.png
+.. image:: ../src/segmentpy/img/SegmentPy_logo.png
    :width: 256pt
    :alt: LRCS logo
    :align: center

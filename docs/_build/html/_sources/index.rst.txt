@@ -1,12 +1,13 @@
-.. image:: ../img/logo.png
+.. image:: ../src/segmentpy/img/SegmentPy_logo.png
+   :width: 256pt
    :alt: LRCS logo
    :align: center
 
 =====================================
 Welcome to SegmentPy's homepage!
 =====================================
-SegmentPy is a open-source graphical interface which facilitates training machine learning models for CT-image segmentation.
-This package includes also other analytic tools.
+SegmentPy BETA 0.1 (Pronunciation: Segment Pie) is a open-source graphical interface which facilitates training machine learning models for CT-image segmentation.
+This package includes also analytic tools.
 
 .. toctree::
    :maxdepth: 3
