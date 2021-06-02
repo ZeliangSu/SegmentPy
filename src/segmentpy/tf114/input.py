@@ -4,6 +4,7 @@ from scipy.ndimage.interpolation import map_coordinates
 from scipy.interpolate import interp2d
 from itertools import product
 from PIL import Image
+from multiprocessing import cpu_count
 from segmentpy.tf114.augmentation import random_aug
 from segmentpy.tf114.filter import *
 from segmentpy.tf114.util import load_img, check_raw_gt_pair
@@ -16,7 +17,7 @@ logger = log.setup_custom_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def inputpipeline_V2(batch_size, ncores=mp.cpu_count(),
+def inputpipeline_V2(batch_size, ncores=cpu_count(),
                      suffix='', augmentation=False, mode='regression',
                      ):
     """

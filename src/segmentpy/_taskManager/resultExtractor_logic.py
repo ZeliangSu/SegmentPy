@@ -58,6 +58,7 @@ class rltExtractor_logic(QWidget, Ui_Extractor):
             if not folder.startswith('.'):  # skip the hidden files or in MacOS: avoid './.DS_Store/'
                 hypers = string_to_data(os.path.join(self.dir, folder))
                 tmp = hypers.hyper_to_DataFrame()
+                tmp['path'] = folder
                 # pd_df.columns = tmp.columns
                 self.pd_df = self.pd_df.append(tmp, ignore_index=True)
             self.progressBar.setValue(i / len(l_fn) * 100)
@@ -68,13 +69,15 @@ class rltExtractor_logic(QWidget, Ui_Extractor):
 
     def sort(self):
         self.pd_df = self.pd_df.sort_values(by='acc_tts_max', ascending=False)
-        self.pd_df = pd.concat([self.pd_df.model,
-                             self.pd_df.batch_size,
-                             self.pd_df.lr_decay,
-                             self.pd_df.kernel_size,
-                             self.pd_df.nb_conv,
-                             self.pd_df.lr_init,
-                             self.pd_df.acc_tts_max], axis=1).copy()
+        self.pd_df = pd.concat([
+            self.pd_df.path,
+            self.pd_df.model,
+            self.pd_df.batch_size,
+            self.pd_df.lr_decay,
+            self.pd_df.kernel_size,
+            self.pd_df.nb_conv,
+            self.pd_df.lr_init,
+            self.pd_df.acc_tts_max], axis=1).copy()
 
     @staticmethod
     def enumerated_product(*args):
@@ -351,7 +354,7 @@ class rltExtractor_logic(QWidget, Ui_Extractor):
         # make the grid in matplotlib
         logger.debug(self.pd_df.info())
         logger.debug(self.pd_df.head())
-        grid = self.pd_df.to_numpy()[:, :-1]
+        grid = self.pd_df.to_numpy()[:, 1:-1]
         fig2 = plt.figure(figsize=(4, 2))
         ax = fig2.add_subplot(111)
         ax.imshow(np.zeros((30 * grid.shape[1], 30 * grid.shape[0], 3)))

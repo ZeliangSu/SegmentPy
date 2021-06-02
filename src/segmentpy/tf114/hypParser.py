@@ -48,7 +48,14 @@ class string_to_hypers:
         _param_list['lr_period'] = self.get_lr_period()
         _param_list['comment'] = self.get_comment()
         _param_list['mode'] = self.get_cls_or_reg()
+        # _param_list['train_id'] = self.get_train_id()
         return _param_list
+
+    def get_train_id(self):
+        id = re.search('^(\d+)\_', self.folder_name)
+        if id is not None:
+            id = id.group(1)
+        return id
 
     def get_step(self):
         step = re.search('step(\d+)', self.folder_name)

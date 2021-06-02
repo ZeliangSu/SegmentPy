@@ -631,4 +631,4 @@ if __name__ == '__main__':
                                norm=args.correction)
     except Exception as e:
         logger.error("%%%%%%%%%%%%%%%%%%%%%%Errors appear during inferencing")
-        logger.info('ha')
+    logger.info('%%%%%%%%%%%%%%%%%Finished inferring the volume')

@@ -1,6 +1,6 @@
 import tensorflow as tf
-from layers import *
-from util import print_nodes_name_shape
+from segmentpy.tf114.layers import *
+from segmentpy.tf114.util import print_nodes_name_shape
 
 
 def regression_nodes(pipeline,
