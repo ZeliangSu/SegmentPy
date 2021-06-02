@@ -622,10 +622,13 @@ if __name__ == '__main__':
         'correction': args.correction,
     }
 
-    l_img_path = [paths['raw_dir'] + f for f in sorted(os.listdir(paths['raw_dir']))]
-    inference_recursive_V3(l_input_path=l_img_path,
-                           conserve_nodes=c_nodes,
-                           paths=paths,
-                           hyper=hyperparams,
-                           norm=args.correction)
-    print('ha')
+    try:
+        l_img_path = [paths['raw_dir'] + f for f in sorted(os.listdir(paths['raw_dir']))]
+        inference_recursive_V3(l_input_path=l_img_path,
+                               conserve_nodes=c_nodes,
+                               paths=paths,
+                               hyper=hyperparams,
+                               norm=args.correction)
+    except Exception as e:
+        logger.error("%%%%%%%%%%%%%%%%%%%%%%Errors appear during inferencing")
+        logger.info('ha')

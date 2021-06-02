@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 # from tensorflow.core.framework import graph_pb2
 
-from segmentpy.tf114.score_extractor import lr_curve_extractor, gradient_extractor
+from segmentpy.tf114.score_extractor import lr_curve_extractor, gradient_extractor, df_to_csv
 
 import logging
 from segmentpy.tf114 import log
@@ -14,6 +14,7 @@ logger = log.setup_custom_logger('root')
 logger.setLevel(logging.DEBUG)
 
 
+# todo: should change this file name parser mechanism to a more stable for a cross-platform app
 ultimate_numeric_pattern = '[-+]?(?:(?:\\d*\\.\\d+)|(?:\\d+\\.?))(?:[Ee][+-]?\\d+)?'
 
 
@@ -21,8 +22,9 @@ class string_to_hypers:
     # todo: this could be an object
     def __init__(self, folder_name: str):
         self.folder_name = folder_name
-        if not self.folder_name.endswith('/'):
-            self.folder_name += '/'
+        logger.info(self.folder_name)
+        # if not os.path.isdir(self.folder_name):
+        #     self.folder_name += '/'
         self.param_list = {}
 
     def parse(self):
@@ -92,8 +94,11 @@ class string_to_hypers:
 
     def get_act_fn(self):
         af = re.search('act\_(relu|leaky|sigmoid|tanh)', self.folder_name)
-        if af is not None:
-            af = af.group(1)
+        if af is None:
+            # for Windows
+            af = re.search('aF\_(relu|leaky|sigmoid|tanh)', self.folder_name)
+            if af is not None:
+                af = af.group(1)
         return af
 
     def get_BN(self):
@@ -104,26 +109,38 @@ class string_to_hypers:
 
     def get_aug(self):
         ag = re.search('aug\_(True|False)', self.folder_name)
-        if ag is not None:
-            ag = ag.group(1)
+        if ag is None:
+            # for Windows
+            ag = re.search('ag\_(True|False)', self.folder_name)
+            if ag is not None:
+                ag = ag.group(1)
         return ag
 
     def get_loss_fn(self):
         lss = re.search('lossFn\_(DSC|cross\_entropy|MSE)', self.folder_name)
-        if lss is not None:
-            lss = lss.group(1)
+        if lss is None:
+            # for Windows
+            lss = re.search('lF\_(DSC|cross\_entropy|MSE)', self.folder_name)
+            if lss is not None:
+                lss = lss.group(1)
         return lss
 
     def get_decay_type(self):
         dt = re.search('lrtype\_*(exp|ramp|constant)', self.folder_name)
-        if dt is not None:
-            dt = dt.group(1)
+        if dt is None:
+            # for Windows
+            dt = re.search('lT\_*(exp|ramp|constant)', self.folder_name)
+            if dt is not None:
+                dt = dt.group(1)
         return dt
 
     def get_lr_init(self):
         init = re.search('decay({})'.format(ultimate_numeric_pattern), self.folder_name)
-        if init is not None:
-            init = init.group(1)
+        if init is None:
+            # for Windows
+            init = re.search('dK({})'.format(ultimate_numeric_pattern), self.folder_name)
+            if init is not None:
+                init = init.group(1)
         return init
 
     def get_lr_decay_ratio(self):
@@ -140,8 +157,11 @@ class string_to_hypers:
 
     def get_comment(self):
         cmt = re.search('comment\_(.+)\/?', self.folder_name)
-        if cmt is not None:
-            cmt = cmt.group(1)
+        if cmt is None:
+            # for Windows
+            cmt = re.search('cmt\_(.+)\/?', self.folder_name)
+            if cmt is not None:
+                cmt = cmt.group(1)
         return cmt
 
     def get_cls_or_reg(self):
@@ -151,13 +171,20 @@ class string_to_hypers:
         return cls_reg
 
     def folder_level(self):
-        if re.search('hour\_gpu-?\d+\/?$', self.folder_name) is not None:
+        logger.info('chosen folder: {}'.format(self.folder_name))
+        if 'hour' in self.folder_name:
+            # todo: should replace this folder level mechanism not stable in different platform
             # level 2: e.g. .../hour13_gpu1/
-            logger.debug('detected a level 2 folder name')
+            logger.info('detected a level 2 folder name')
             return 2
-        elif re.search('\/.+comment\_\w+\/', self.folder_name) is not None:
+        elif re.search('\/.+comment\_\w+', self.folder_name) is not None:
             # level 1: e.g. ...comment_None/
-            logger.debug('detected a level 1 folder name')
+            logger.info('detected a level 1 folder name')
+            return 1
+        elif re.search('\/.+cmt\_\w+', self.folder_name) is not None:
+            # for Windows
+            # level 1: e.g. ...cmt_None/
+            logger.info('detected a level 1 folder name')
             return 1
         else:
             return 0
@@ -166,6 +193,7 @@ class string_to_hypers:
 class string_to_data(string_to_hypers):
     def __init__(self, folder_name: str):
         super().__init__(folder_name=folder_name)
+        logger.info(self.folder_name)
 
     def extract_learning_curves(self):
         self.acc_tns = []
@@ -177,9 +205,15 @@ class string_to_data(string_to_hypers):
         if folder_level == 1:
             for tfev_folder in tqdm(os.listdir(self.folder_name)):
                 if not tfev_folder.startswith('.'):
-                    tfev_folder += '/'
-                    acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, tfev_folder, 'train/'))
-                    _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, tfev_folder, 'test/'))
+                    # tfev_folder += '/'
+                    acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, tfev_folder, 'train'))
+                    _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, tfev_folder, 'test'))
+
+                    # rewrite into curves
+                    if all(v is not None for v in [acc_tn, acc_tt, lss_tn, lss_tt]):
+                        logger.info('###### adding the acc_test.csv in curves folder')
+                        df_to_csv(os.path.join(os.path.abspath(self.folder_name), tfev_folder, 'curves'),
+                                  acc_tn, acc_tt, lss_tn, lss_tt)
 
                     self.acc_tns.append(acc_tn)
                     self.acc_tts.append(acc_tt)
@@ -187,8 +221,12 @@ class string_to_data(string_to_hypers):
                     self.lss_tts.append(lss_tt)
 
         elif folder_level == 2:
-            acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, 'train/'))
-            _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, 'test/'))
+            acc_tn, _, lss_tn, _ = lr_curve_extractor(os.path.join(self.folder_name, 'train'))
+            _, acc_tt, _, lss_tt = lr_curve_extractor(os.path.join(self.folder_name, 'test'))
+            if all(v is not None for v in [acc_tn, acc_tt, lss_tn, lss_tt]):
+                logger.info('###### adding the acc_test.csv in curves folder')
+                df_to_csv(os.path.join(os.path.abspath(self.folder_name), 'curves'),
+                          acc_tn, acc_tt, lss_tn, lss_tt)
 
             self.acc_tns.append(acc_tn)
             self.acc_tts.append(acc_tt)

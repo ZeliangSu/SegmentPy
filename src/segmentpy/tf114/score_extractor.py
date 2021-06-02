@@ -98,19 +98,19 @@ def gradient_extractor(event_dir: str, write_rlt=True):
         check_N_mkdir(event_dir + 'grad/')
 
         # save gradient mappings
-        Image.fromarray(block_mapping).save(event_dir + 'grad/each_block_mapping.tif')
-        Image.fromarray(layer_mapping).save(event_dir + 'grad/each_layer_mapping.tif')
-        Image.fromarray(full_mapping).save(event_dir + 'grad/all_param_mapping.tif')
-        Image.fromarray(gamma).save(event_dir + 'grad/gamma.tif')
-        Image.fromarray(beta).save(event_dir + 'grad/beta.tif')
-        Image.fromarray(w).save(event_dir + 'grad/w.tif')
+        Image.fromarray(block_mapping).save(os.path.join(event_dir, 'grad', 'each_block_mapping.tif'))
+        Image.fromarray(layer_mapping).save(os.path.join(event_dir, 'grad', 'each_layer_mapping.tif'))
+        Image.fromarray(full_mapping).save(os.path.join(event_dir, 'grad', 'all_param_mapping.tif'))
+        Image.fromarray(gamma).save(os.path.join(event_dir, 'grad', ' gamma.tif'))
+        Image.fromarray(beta).save(os.path.join(event_dir, 'grad', 'beta.tif'))
+        Image.fromarray(w).save(os.path.join(event_dir, 'grad', 'w.tif'))
 
         # save gradient as .csv
-        np.savetxt(event_dir + "grad/each_layer_mapping.csv", block_mapping, delimiter=",")
-        np.savetxt(event_dir + "grad/all_param_mapping.csv", full_mapping, delimiter=",")
-        np.savetxt(event_dir + "grad/gamma.csv", gamma, delimiter=",")
-        np.savetxt(event_dir + "grad/beta.csv", beta, delimiter=",")
-        np.savetxt(event_dir + "grad/w.csv", w, delimiter=",")
+        np.savetxt(os.path.join(event_dir, "grad", "each_layer_mapping.csv"), block_mapping, delimiter=",")
+        np.savetxt(os.path.join(event_dir, "grad", "all_param_mapping.csv"), full_mapping, delimiter=",")
+        np.savetxt(os.path.join(event_dir, "grad", "gamma.csv"), gamma, delimiter=",")
+        np.savetxt(os.path.join(event_dir, "grad", "beta.csv"), beta, delimiter=",")
+        np.savetxt(os.path.join(event_dir, "grad", "w.csv"), w, delimiter=",")
 
     _gamma = {}
     _betaOrBias = {}
@@ -141,13 +141,16 @@ def get_sum(accumulator, param_name):
 
 def lr_curve_extractor(event_dir: str):
     logger.info(event_dir)
-    if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(event_dir)), 'curves', 'acc_test.csv')):
-        logger.debug('found the accuracy summary .csv file')
-        curvesDir = os.path.join(os.path.dirname(os.path.dirname(event_dir)), 'curves')
-        return pd.read_csv(os.path.join(curvesDir, 'acc_train.csv')), \
-               pd.read_csv(os.path.join(curvesDir, 'acc_test.csv')), \
-               pd.read_csv(os.path.join(curvesDir, 'lss_train.csv')), \
-               pd.read_csv(os.path.join(curvesDir, 'lss_test.csv')),
+    # windows
+    logger.info(os.path.join(os.path.abspath(os.path.dirname(event_dir)), 'curves', 'acc_test.csv'))
+    if os.path.exists(os.path.join(os.path.abspath(os.path.dirname(event_dir)), 'curves', 'acc_test.csv')):
+        logger.info('found the accuracy summary .csv file')
+        curvesDir = os.path.join(os.path.abspath(os.path.dirname(event_dir)), 'curves')
+        logger.info(os.path.join(os.path.abspath(curvesDir), 'acc_train.csv'))
+        return pd.read_csv(os.path.join(os.path.abspath(curvesDir), 'acc_train.csv')), \
+               pd.read_csv(os.path.join(os.path.abspath(curvesDir), 'acc_test.csv')), \
+               pd.read_csv(os.path.join(os.path.abspath(curvesDir), 'lss_train.csv')), \
+               pd.read_csv(os.path.join(os.path.abspath(curvesDir), 'lss_test.csv')),
 
     else:
         logger.debug('cannot found the accuracy summary .csv file')
@@ -159,25 +162,25 @@ def lr_curve_extractor(event_dir: str):
         accumulator.Reload()
 
         try:
-            acc_train = pd.DataFrame(accumulator.Scalars('train_metrics/accuracy')).drop(columns=['wall_time'])
+            acc_train = pd.DataFrame(accumulator.Scalars(os.path.join('train_metrics', 'accuracy'))).drop(columns=['wall_time'])
         except Exception as e:
             logger.debug(e)
             acc_train = None
 
         try:
-            acc_test = pd.DataFrame(accumulator.Scalars('test_metrics/accuracy')).drop(columns=['wall_time'])
+            acc_test = pd.DataFrame(accumulator.Scalars(os.path.join('test_metrics', 'accuracy'))).drop(columns=['wall_time'])
         except Exception as e:
             logger.debug(e)
             acc_test = None
 
         try:
-            lss_train = pd.DataFrame(accumulator.Scalars('train_metrics/loss')).drop(columns=['wall_time'])
+            lss_train = pd.DataFrame(accumulator.Scalars(os.path.join('train_metrics', 'loss'))).drop(columns=['wall_time'])
         except Exception as e:
             logger.debug(e)
             lss_train = None
 
         try:
-            lss_test = pd.DataFrame(accumulator.Scalars('test_metrics/loss')).drop(columns=['wall_time'])
+            lss_test = pd.DataFrame(accumulator.Scalars(os.path.join('test_metrics', 'loss'))).drop(columns=['wall_time'])
         except Exception as e:
             logger.debug(e)
             lss_test = None
@@ -192,10 +195,10 @@ def df_to_csv(where: str, acc_train, acc_test, lss_train, lss_test):
     assert isinstance(lss_test, pd.DataFrame)
     assert os.path.isdir(where)
 
-    acc_train.to_csv(where + '/acc_train.csv')
-    acc_test.to_csv(where + '/acc_test.csv')
-    lss_train.to_csv(where + '/lss_train.csv')
-    lss_test.to_csv(where + '/lss_test.csv')
+    acc_train.to_csv(os.path.join(os.path.abspath(where), 'acc_train.csv'))
+    acc_test.to_csv(os.path.join(os.path.abspath(where), 'acc_test.csv'))
+    lss_train.to_csv(os.path.join(os.path.abspath(where), 'lss_train.csv'))
+    lss_test.to_csv(os.path.join(os.path.abspath(where), 'lss_test.csv'))
 
 
 def get_pd_lr_curves(pd_dir: str):
@@ -205,14 +208,14 @@ def get_pd_lr_curves(pd_dir: str):
     lss_train = None
     lss_test = None
     try:
-        if not os.path.exists(pd_dir+'curves/acc_train.csv'):
+        if not os.path.exists(os.path.join(pd_dir, 'curves', 'acc_train.csv')):
             # todo: this way of finding score is not accurate
             logger.warning('[SegmentPy]: could not find the lr curves .csv file')
         else:
-            acc_train = pd.read_csv(pd_dir + '/acc_train.csv')
-            acc_test = pd.read_csv(pd_dir + '/acc_test.csv')
-            lss_train = pd.read_csv(pd_dir + '/lss_train.csv')
-            lss_test = pd.read_csv(pd_dir + '/lss_test.csv')
+            acc_train = pd.read_csv(os.path.join(pd_dir, 'acc_train.csv'))
+            acc_test = pd.read_csv(os.path.join(pd_dir, 'acc_test.csv'))
+            lss_train = pd.read_csv(os.path.join(pd_dir, 'lss_train.csv'))
+            lss_test = pd.read_csv(os.path.join(pd_dir, 'lss_test.csv'))
 
     except Exception as e:
         logger.error(e)

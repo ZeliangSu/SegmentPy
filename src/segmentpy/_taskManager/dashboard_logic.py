@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 from time import sleep
 import re
+import platform
 
 # logging
 import logging
@@ -119,6 +120,7 @@ class dashboard_logic(QDialog, Ui_dashboard):
 
     def dropEvent(self, event):
         path = event.mimeData().text()
+        logger.info(path)
         if self.mplwidget.geometry().contains(event.pos()):
             # note: $ ends of the input
             tmp = re.search(
@@ -131,8 +133,12 @@ class dashboard_logic(QDialog, Ui_dashboard):
                 self.setCursor(Qt.WaitCursor)
 
                 tmp = tmp.group(1)
-                if not tmp.endswith('/'):
-                    tmp += '/'
+                if platform.system() == 'Windows':
+                    # todo: should change by os for a generalizing
+                    pass
+                else:
+                    if not tmp.endswith('/'):
+                        tmp += '/'
 
                 max_id = 0
                 if self.mplwidget.paths.__len__() != 0:
@@ -140,7 +146,11 @@ class dashboard_logic(QDialog, Ui_dashboard):
                         max_id = max(max_id, int(i))
 
                 # add event folder path
-                path = tmp.replace('file://', '')
+                if platform.system() == 'Windows':
+                    path = tmp.replace('file:///', '')
+                    path = os.path.abspath(path)
+                else:
+                    path = tmp.replace('file://', '')
                 logger.debug(path)
                 self.mplwidget.paths[max_id + 1] = path
 
@@ -165,9 +175,9 @@ class dashboard_logic(QDialog, Ui_dashboard):
             self.mplwidget.plot()
 
         elif self.save_path_box.geometry().contains(event.pos()):
-            if os.path.isdir(path.replace('file://', '').replace('\r','').replace('\n','')):
-                if not path.endswith('/'):
-                    path += '/'
+            if os.path.isdir(path.replace('file://', '').replace('\r', '').replace('\n', '')):
+                # if not path.endswith('/'):
+                #     path += '/'
                 self.save_path_box.setText(path)
 
     def choose_save_path(self):

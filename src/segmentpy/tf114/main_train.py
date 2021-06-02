@@ -117,8 +117,8 @@ if __name__ == '__main__':
             'train_dir': args.train_dir,
             'val_dir': args.val_dir,
             'test_dir': args.test_dir,
-            'correction': 1e3,
-            'stretch': 2.0,
+            'correction': args.correction,
+            'stretch': args.stretch,
             'condition': args.condition,
         }
 
@@ -130,10 +130,12 @@ if __name__ == '__main__':
                                                  stride=args.sampling_stride,
                                                  nb_batch=None,
                                                  batch_size=hyperparams['batch_size'])
-
         # calculate nb_batch
         hyperparams['nb_batch'] = hyperparams['input_coords'].get_nb_batch()
-
+    except Exception as e:
+        logger.error('%%%%%%%%%%%%%Errors in while generating coordiantions for batches')
+        logger.error(e)
+    try:
         # get learning rate schedule
         if args.lr_decay_type == 'exp':
             hyperparams['learning_rate'] = exponential_decay(
@@ -158,8 +160,9 @@ if __name__ == '__main__':
         # get last training number
         latest_number = get_latest_training_number(args.log_dir) + 1
         # name the log directory
+
         hyperparams['folder_name'] = os.path.join(
-            '{}{}_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_act_{}_aug_{}_BN_{}_mode_{}_lossFn_{}_lrtype{}_decay{}_k{}_p{}_comment_{}'.format(
+            '{}{}_{}_mdl_{}_bs{}_ps{}_cs{}_nc{}_do{}_aF_{}_ag_{}_BN_{}_md_{}_lF_{}_lT{}_dK{}_k{}_p{}_cmt_{}'.format(
                 args.log_dir,
                 latest_number,
                 hyperparams['date'],
@@ -178,53 +181,65 @@ if __name__ == '__main__':
                 args.init_lr,
                 args.lr_decay_ratio,
                 args.lr_period,
-                args.comment.replace(' ', '_'),
-                'hour{}_{}'.format(hyperparams['hour'],
-                'gpu{}'.format(args.device) if args.device != 'cpu' else 'cpu')))
+                args.comment.replace(' ', '_')),
+            'hour{}_{}'.format(hyperparams['hour'],
+                               'gpu{}'.format(args.device) if args.device != 'cpu' else 'cpu')
+        )
 
         check_N_mkdir(hyperparams['folder_name'])
         with open(os.path.join(hyperparams['folder_name'], 'HPs.json'), 'w') as file:
-            json.dump({'corr': hyperparams['correction'],
-                       'str': hyperparams['stretch'],
-                       'cond': hyperparams['condition'],
-                       'gap': args.sampling_stride,
-                       }, file)
+            tmp = {}
+            for k, v in hyperparams.items():
+                if ('input_coords' not in k):
+                    if not isinstance(v, np.ndarray):
+                        # not for learning rate
+                        tmp[k] = v
+            logger.info(tmp)
+            json.dump(tmp, file)
 
     except Exception as e:
         logger.warning(
-            '\n\n(main_train.py)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A PARSER ERROR, but still run with default values%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
+            '\n\n(main_train.py)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%THERE IS A HP PARSER ERROR%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n')
         logger.error(e)
     ###################################################################
 
 
     # backup dataset
     check_N_mkdir(os.path.join(hyperparams['folder_name'], 'copy'))
-    shutil.copytree(hyperparams['train_dir'], os.path.join(hyperparams['folder_name'], 'copy','train'))
+    shutil.copytree(hyperparams['train_dir'], os.path.join(hyperparams['folder_name'], 'copy', 'train'))
     shutil.copytree(hyperparams['val_dir'], os.path.join(hyperparams['folder_name'], 'copy', 'val'))
     shutil.copytree(hyperparams['test_dir'], os.path.join(hyperparams['folder_name'], 'copy', 'test'))
 
-    # try:
-    hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
-    start_time = datetime.datetime.now()
-    main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
-    train_time = (datetime.datetime.now() - start_time) / 3600
-    # save lr_curves
-    check_N_mkdir(hyperparams['folder_name'] + 'curves')
-    ac_tn, _, ls_tn, _ = lr_curve_extractor(os.path.join(hyperparams['folder_name'], 'train'))
-    _, ac_val, _, ls_val = lr_curve_extractor(os.path.join(hyperparams['folder_name'], 'test'))
-    best_step = ac_val.step.loc[ac_val.value.argmax()]
-    # best_step=0
-    df_to_csv(os.path.join(hyperparams['folder_name'], 'curves'), ac_tn, ac_val, ls_tn, ls_val)
-    with open(os.path.join(hyperparams['folder_name'], 'curves', 'train_time.csv'), 'w') as f:
-        f.write('{} hours'.format(train_time.seconds/3600))
+    try:
+        hyperparams['max_nb_cls'] = get_max_nb_cls(hyperparams['train_dir'])[1]
+        start_time = datetime.datetime.now()
+        main_train(hyperparams, grad_view=True, nb_classes=hyperparams['max_nb_cls'])
+        train_time = (datetime.datetime.now() - start_time) / 3600
+    except Exception as e:
+        logger.error('%%%%%%%%%%%%%%%%%%%%Errors during training')
+        logger.error(e)
 
-    # testing
-    logger.debug(best_step)
-    logger.debug(hyperparams['folder_name'])
-    logger.debug(args.test_dir)
+    try:
+        # save lr_curves
+        check_N_mkdir(os.path.join(hyperparams['folder_name'], 'curves'))
+        ac_tn, _, ls_tn, _ = lr_curve_extractor(os.path.join(hyperparams['folder_name'], 'train'))
+        _, ac_val, _, ls_val = lr_curve_extractor(os.path.join(hyperparams['folder_name'], 'test'))
+        best_step = ac_val.step.loc[ac_val.value.argmax()]
+        # best_step=0
+        df_to_csv(os.path.join(hyperparams['folder_name'], 'curves'), ac_tn, ac_val, ls_tn, ls_val)
+        with open(os.path.join(hyperparams['folder_name'], 'curves', 'train_time.csv'), 'w') as f:
+            f.write('{} hours'.format(train_time.seconds/3600))
+
+        # testing
+        logger.debug(best_step)
+        logger.debug(hyperparams['folder_name'])
+        logger.debug(args.test_dir)
     p = subprocess.Popen(['python', os.path.join(os.path.dirname(__file__),'main_testing.py'),
-                          '-tstd', args.test_dir,
-                          '-ckpt', os.path.join(hyperparams['folder_name'], 'curves', 'best_model'),
-                          '-sd', os.path.join(hyperparams['folder_name'], 'test_score.csv')])
-    o, e = p.communicate()
+                              '-tstd', args.test_dir,
+                              '-ckpt', os.path.join(hyperparams['folder_name'], 'curves', 'best_model'),
+                              '-sd', os.path.join(hyperparams['folder_name'], 'test_score.csv')])
+        o, e = p.communicate()
+    except Exception as e:
+        logger.error("%%%%%%%%%%%%%%%%%Errors during testing")
+        logger.error(e)
 

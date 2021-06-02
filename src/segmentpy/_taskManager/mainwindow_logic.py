@@ -33,12 +33,16 @@ import re
 import logging
 from segmentpy.tf114 import log
 logger = log.setup_custom_logger(__name__)
-logger.setLevel(logging.DEBUG)  #changeHere: debug level
+logger.setLevel(logging.INFO)  #changeHere: debug level
 
 loggerDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log')
 imgDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img')
 segmentpyDir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tf114')
 parentDir = os.path.dirname(__file__)
+logger.debug(loggerDir)
+logger.debug(imgDir)
+logger.debug(segmentpyDir)
+logger.debug(parentDir)
 
 if not os.path.exists(loggerDir):
     os.makedirs(loggerDir)
@@ -105,7 +109,7 @@ class predict_Worker(QRunnable):
 
         terminal = [
             'mpirun', '--use-hwthread-cpus',
-            'python', os.path.join(segmentpyDir, 'inference.py'),
+            'python', os.path.join(os.path.abspath(segmentpyDir), 'inference.py'),
             '--ckpt', self.ckpt_path,
             '--raw', self.pred_dir,
             '--pred', self.save_dir,
@@ -114,7 +118,7 @@ class predict_Worker(QRunnable):
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
         # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
-
+        logger.info('******** Run ********\n %s' % terminal)
         process = subprocess.Popen(
             terminal,
         )
@@ -176,10 +180,9 @@ class training_Worker(QRunnable):
         ]
 
         print(self.params)
-        print('\n', terminal)
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
-
+        logger.info('******** Run ********\n %s' % terminal)
         process = subprocess.Popen(
             terminal,
         )
@@ -239,7 +242,7 @@ class retraining_Worker(QRunnable):
         print('\n', terminal)
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
-
+        logger.info('******** Run ********\n %s' % terminal)
         process = subprocess.Popen(
             terminal,
         )
@@ -261,6 +264,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def __init__(self, *args, **kwargs):
         QMainWindow.__init__(self, *args, **kwargs)
         self.setupUi(self)
+        self.setWindowTitle('Welcome to SegmentPy v0.1a')
         self.menubar.setNativeMenuBar(False)
 
         # init the gpu queue and proc list
