@@ -474,24 +474,28 @@ def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, h
                 pbar1.update(1)
 
     else:
-        if (rank - 1) < rest_img:
-            start_id = (rank - 1) * (nb_img_per_rank + 1)
-            id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
-        else:
-            start_id = (rank - 1) * nb_img_per_rank + rest_img
-            id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
+        try:
+            if (rank - 1) < rest_img:
+                start_id = (rank - 1) * (nb_img_per_rank + 1)
+                id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
+            else:
+                start_id = (rank - 1) * nb_img_per_rank + rest_img
+                id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
 
-        logger.debug('{}: {}'.format(rank, id_list))
-        _inference_recursive_V3(
-            l_input_path=l_input_path,
-            id_list=id_list,
-            pb_path=paths['optimized_pb_path'],
-            conserve_nodes=conserve_nodes,
-            hyper=hyper,
-            comm=communicator,
-            maxp_times=hyperparams['maxp_times'],
-            normalization=norm
-        )
+            logger.debug('{}: {}'.format(rank, id_list))
+            _inference_recursive_V3(
+                l_input_path=l_input_path,
+                id_list=id_list,
+                pb_path=paths['optimized_pb_path'],
+                conserve_nodes=conserve_nodes,
+                hyper=hyper,
+                comm=communicator,
+                maxp_times=hyperparams['maxp_times'],
+                normalization=norm
+            )
+        except Exception as e:
+            logger.error(e)
+            MPI.MPI_abort(communicator)
 
     # ************************************************************************************************ I'm a Barrier
     communicator.Barrier()

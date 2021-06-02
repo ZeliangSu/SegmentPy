@@ -222,9 +222,9 @@ if __name__ == '__main__':
     logger.debug(best_step)
     logger.debug(hyperparams['folder_name'])
     logger.debug(args.test_dir)
-    p = subprocess.Popen(['python', 'main_testing.py',
+    p = subprocess.Popen(['python', os.path.join(os.path.dirname(__file__),'main_testing.py'),
                           '-tstd', args.test_dir,
-                          '-ckpt', os.path.join(hyperparams['folder_name'], '/curves/best_model'),
+                          '-ckpt', os.path.join(hyperparams['folder_name'], 'curves', 'best_model'),
                           '-sd', os.path.join(hyperparams['folder_name'], 'test_score.csv')])
     o, e = p.communicate()
 
