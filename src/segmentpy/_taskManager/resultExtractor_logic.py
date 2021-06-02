@@ -405,7 +405,7 @@ class rltExtractor_logic(QWidget, Ui_Extractor):
 
     def saveResult(self):
         save_path = file_dialog(title='choose a folder to save the plot|legend|data', type='/').openFolderDialog()
-        self.pd_df.to_csv(os.path.join(save_path, 'data.csv'))
+        self.pd_df.to_csv(os.path.join(save_path, 'data.csv'), index=False)
         self.MPLwidget.canvas1.figure.savefig(os.path.join(save_path, 'plot.png'))
         Image.fromarray(np.asarray(self.fig2)).save(os.path.join(save_path, 'legend.png'))
 
