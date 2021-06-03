@@ -22,7 +22,7 @@ copyright = '2020, ZeliangSu'
 author = 'ZeliangSu'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.1alpha'
 
 
 # -- General configuration ---------------------------------------------------
@@ -48,7 +48,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-html_logo = '../src/segmentpy/img/logo.png'
+html_logo = 'img/logo.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -1,4 +1,4 @@
-.. image:: ../src/segmentpy/img/SegmentPy_logo.png
+.. image:: img/SegmentPy_logo.png
    :width: 256pt
    :alt: LRCS logo
    :align: center
@@ -6,8 +6,9 @@
 =====================================
 Welcome to SegmentPy's homepage!
 =====================================
-SegmentPy BETA 0.1 (Pronunciation: Segment Pie) is a open-source graphical interface which facilitates training machine learning models for CT-image segmentation.
-This package includes also analytic tools.
+SegmentPy (Pronunciation: Segment Pie) Alpha v0.1a is a open-source graphical interface, which facilitates training machine learning models for CT-image segmentation.
+This software includes also analytic tools. 
+If you encountered issues, or you hope to have new features, any questions you are welcomed to join us at https://github.com/ZeliangSu/SegmentPy/labels
 
 .. toctree::
    :maxdepth: 3
@@ -29,6 +30,13 @@ This package includes also analytic tools.
    plug-ins
    developpers
    credits
+
+=====================================
+Upcoming features
+=====================================
+1. Switching to Tensorflow 2
+2. Interface for labeling
+3. Removing the MPI mechanism for the inferring, because the installation of MPI is not user-friendly and platform dependant. And sometimes generate phantom processes.
 
 Links
 =====================================

@@ -20,6 +20,7 @@ conv2   (B, H, W, cs)         (B, H, W, cs)
 maxpl1  (B, H, W, cs)         (B, H/2, W/2, cs)
 conv3   (B, H/2, W/2, cs)     (B, H/2, W/2, 2cs)
 conv4   (B, H/2, W/2, 2cs)    (B, H/2, W/2, 2cs)
+...     ...                   ...
 ======= ===================== ======================
 .. Note::
     * B: batch size
