@@ -129,7 +129,7 @@ def _pyfn_classification_parser_wrapper_V2(fname, patch_size, x_coord, y_coord,
                       )
 
 
-def _pyfn_classification_parser_wrapper_weka(fname, patch_size, x_coord, y_coord,
+def _pyfn_classification_parser_wrapper_V3(fname, patch_size, x_coord, y_coord,
                                              ):
     """
     input:
@@ -163,8 +163,12 @@ def _pyfn_aug_wrapper(X_img, y_img):
 
 
 def parse_h5_one_hot_V2(fname, window_size, x_coord, y_coord, correction=1e3, impose_nb_cls=3, stretch=2.0):
-    img = np.asarray(Image.open(fname.decode('utf8')))
-    label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
+    try:
+        img = np.asarray(Image.open(fname.decode('utf8')))
+        label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tif')))
+    except Exception as e:
+        img = np.asarray(Image.open(fname.decode('utf8')))
+        label = np.asarray(Image.open(fname.decode('utf8').replace('.tif', '_label.tiff')))
     logger.debug('fn, ws, x, y: {}, {}, {}, {}'.format(fname, window_size, x_coord, y_coord))
     logger.debug('crt, cls, stch: {}, {}, {}'.format(correction, impose_nb_cls, stretch))
     logger.debug('img:{}, label:{}'.format(img.shape, label.shape))

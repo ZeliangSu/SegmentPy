@@ -21,6 +21,7 @@ class predictDialog_logic(QDialog, Ui_Dialog):
         self.raw_folder = None
         self.pred_folder = None
         self.correction = None
+        self.cores = 'max'
         self.latestPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'log', 'latest_pred.json')
 
         if os.path.exists(self.latestPath):
@@ -33,13 +34,18 @@ class predictDialog_logic(QDialog, Ui_Dialog):
                 self.rawLine.setText(self.raw_folder)
                 self.pred_folder = tmp['pred_folder']
                 self.predLine.setText(self.pred_folder)
+                self.correction = tmp['corrector']
+                self.corrector.setText(self.correction)
+                self.cores = tmp['cores']
+                self.coresLine.setText(self.cores)
             except KeyError as e:
-                print(e)
+                logger.debug(e)
                 pass
         self.metaButton.clicked.connect(self.selectMeta)
         self.rawButton.clicked.connect(self.selectRaw)
         self.predButton.clicked.connect(self.selectPred)
         self.corrector.editingFinished.connect(self.setCorrector)
+        self.coresLine.editingFinished.connect(self.setCores)
         self.buttonBox.accepted.connect(self.get_returns)
         self.buttonBox.rejected.connect(self.reject)
 
@@ -58,6 +64,11 @@ class predictDialog_logic(QDialog, Ui_Dialog):
     def setCorrector(self):
         self.correction = self.corrector.text()
         logger.debug('the corrector is modified to {}'.format(self.correction))
+
+    def setCores(self):
+        self.cores = self.coresLine.text().lower()
+        self.coresLine.setText(self.cores)
+        logger.debug('the cores is modified to {}'.format(self.cores))
 
     def logWindow(self, Msg='Error', title='Error'):
         msg = QMessageBox()
@@ -82,9 +93,10 @@ class predictDialog_logic(QDialog, Ui_Dialog):
                     'raw_folder': self.raw_folder,
                     'pred_folder': self.pred_folder,
                     'corrector': self.correction,
+                    'cores': self.cores,
                 }, f)
             self.accept()
 
     def get_params(self):
-        return self.meta_path, self.raw_folder, self.pred_folder, self.correction
+        return self.meta_path, self.raw_folder, self.pred_folder, self.correction, self.cores
 

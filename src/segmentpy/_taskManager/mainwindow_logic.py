@@ -91,13 +91,16 @@ class WorkerSignals(QObject):
 
 
 class predict_Worker(QRunnable):
-    def __init__(self, ckpt_path: str, pred_dir: list, save_dir: str, correction: float, *args, **kwargs):
+    def __init__(self, ckpt_path: str, pred_dir: list,
+                 save_dir: str, correction: float, cores='max',
+                 *args, **kwargs):
         super(predict_Worker, self).__init__()
         self.ckpt_path = ckpt_path
         self.pred_dir = pred_dir
         self.save_dir = save_dir
         self.correction = correction
         self.device = 'cpu'
+        self.cores = cores
         self.signals = WorkerSignals()
 
     @Slot(name='predict')
@@ -107,17 +110,38 @@ class predict_Worker(QRunnable):
         print('On CPU')
         print('running name:{} on id:{}'.format(thread_name, thread_id))
 
-        terminal = [
-            'mpirun', '--use-hwthread-cpus',
-            'python', os.path.join(os.path.abspath(segmentpyDir), 'inference.py'),
-            '--ckpt', self.ckpt_path,
-            '--raw', self.pred_dir,
-            '--pred', self.save_dir,
-            '--corr', str(self.correction),
-        ]
+        if isinstance(self.cores, float):
+            self.cores = int(self.cores)
+
+        if self.cores == 'max':
+            logger.info('******** Using {} CPU cores'.format(self.cores))
+            terminal = [
+                'mpirun', '--use-hwthread-cpus',
+                'python', os.path.join(os.path.abspath(segmentpyDir), 'inference.py'),
+                '--ckpt', self.ckpt_path,
+                '--raw', self.pred_dir,
+                '--pred', self.save_dir,
+                '--corr', str(self.correction),
+            ]
+
+        elif isinstance(self.cores, int) or isinstance(self.cores, str):
+            logger.info('******** Using {} CPU cores'.format(self.cores))
+            terminal = [
+                'mpirun', '-n', str(self.cores),
+                'python', os.path.join(os.path.abspath(segmentpyDir), 'inference.py'),
+                '--ckpt', self.ckpt_path,
+                '--raw', self.pred_dir,
+                '--pred', self.save_dir,
+                '--corr', str(self.correction),
+            ]
+
+        else:
+            logger.info(self.cores)
+            raise ValueError('Did not understand the input')
 
         # terminal = ['python', 'test.py']  # todo: uncomment here for similation
         # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
+        logger.info(self.cores)
         logger.info('******** Run ********\n %s' % terminal)
         process = subprocess.Popen(
             terminal,
@@ -828,12 +852,14 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.predDialog = predictDialog_logic(None)
         self.predDialog.exec()
         if self.predDialog.result() == 1:
-            ckpt_path, raw_folder, pred_folder, correction = self.predDialog.get_params()
-            logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\ncorr:{}'.format(ckpt_path, raw_folder, pred_folder, correction))
+            ckpt_path, raw_folder, pred_folder, correction, cores = self.predDialog.get_params()
+            logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\ncorr:{}\ncpu:{}\n'.format(ckpt_path, raw_folder, pred_folder, correction, cores))
             _Worker = predict_Worker(ckpt_path=ckpt_path,
                                      pred_dir=raw_folder,
                                      save_dir=pred_folder,
-                                     correction=correction)
+                                     correction=correction,
+                                     cores=cores,
+                                     )
             self.threadpool.start(_Worker)
             _Worker.signals.start_proc.connect(self.add_proc_surveillance)
             _Worker.signals.released_proc.connect(self.remove_process_from_list)

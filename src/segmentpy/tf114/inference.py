@@ -24,36 +24,6 @@ tag_compute = 1002
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #todo: uncomment this line will infect the detection of GPU in SegmentPy
 
-class reconstructor_V2_reg():
-    def __init__(self, image_size, patch_size, stride):
-        self.i_h, self.i_w = image_size[:2]  # e.g. (a, b)
-        # todo: p_h and p_w can be generalize to the case that they are different
-        self.p_h, self.p_w = patch_size, patch_size  # e.g. (a, b)
-        self.stride = stride
-        self.result = np.zeros((self.i_h, self.i_w))
-        self.n_h = (self.i_h - self.p_h) // self.stride + 1
-        self.n_w = (self.i_w - self.p_w) // self.stride + 1
-
-    def add_batch(self, batch, start_id):
-        id_list = np.arange(start_id, start_id + batch.shape[0], 1)
-        for i, id in enumerate(id_list):
-            b = id // self.n_h
-            a = id % self.n_h
-            self.result[a * self.stride: a * self.stride + self.p_h, b * self.stride: b * self.stride + self.p_w] += np.squeeze(batch[i])
-
-    def reconstruct(self):
-        print('***Reconostructing')
-        for i in range(self.i_h):
-            for j in range(self.i_w):
-                self.result[i, j] /= float(min(i + self.stride, self.p_h, self.i_h - i) *
-                                   min(j + self.stride, self.p_w, self.i_w - j))
-
-    def get_reconstruction(self):
-        return self.result
-
-    def get_nb_patch(self):
-        return self.n_h, self.n_w
-
 
 class reconstructor_V2_cls():
     def __init__(self, image_size, patch_size, stride, nb_class):
@@ -230,193 +200,6 @@ def optimize_pb_for_inference(paths=None, conserve_nodes=None):
         f.write(optimize_graph_def.SerializeToString())
 
 
-def inference_recursive_V2(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, normalization=1e-3):
-    assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
-    assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
-    assert isinstance(paths, dict), 'paths should be a dict'
-    assert isinstance(hyper, dict), 'hyper should be a dict'
-
-    from mpi4py import MPI
-    # prevent GPU
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    communicator = MPI.COMM_WORLD
-    rank = communicator.Get_rank()
-    nb_process = communicator.Get_size()
-
-    # optimize ckpt to pb for inference
-    if rank == 0:
-        check_N_mkdir(paths['out_dir'])
-        freeze_ckpt_for_inference(paths=paths, hyper=hyper,
-                                  conserve_nodes=conserve_nodes)  # there's still some residual nodes
-        optimize_pb_for_inference(paths=paths,
-                                  conserve_nodes=conserve_nodes)  # clean residual nodes: gradients, td.data.pipeline...
-        pbar1 = tqdm(total=len(l_input_path))
-
-    # ************************************************************************************************ I'm a Barrier
-    communicator.Barrier()
-
-    # reconstruct volumn
-    for i, path in enumerate(l_input_path):
-        # ************************************************************************************************ I'm a Barrier
-        communicator.Barrier()
-        img = np.asarray(Image.open(path)) * normalization
-        n_h = (img.shape[0] - hyper['patch_size']) // hyper['stride'] + 1
-        n_w = (img.shape[1] - hyper['patch_size']) // hyper['stride'] + 1
-        remaining = n_h * n_w
-        nb_img_per_rank = remaining // (nb_process - 1)
-        rest_img = remaining % (nb_process - 1)
-
-        if rank == 0:
-            pbar2 = tqdm(total=remaining)
-            # use reconstructor to not saturate the RAM
-            if hyper['mode'] == 'classification':
-                reconstructor = reconstructor_V2_cls(img.shape, hyper['patch_size'], hyper['stride'], hyper['nb_classes'])
-            else:
-                raise NotImplementedError('inference recursive V2 not implemented yet for regression')
-
-            # start gathering batches from other rank
-            s = MPI.Status()
-            communicator.Probe(status=s)
-            while remaining > 0:
-                # if s.tag != -1:
-                #     print(s.tag)
-
-                if s.tag == tag_compute:
-                    # receive outputs
-                    core, stt_id, out_batch = communicator.recv(tag=tag_compute)
-                    reconstructor.add_batch(out_batch, stt_id)
-
-                    # progress
-                    remaining -= out_batch.shape[0]
-                    pbar2.update(out_batch.shape[0])
-
-        else:
-            if (rank - 1) <= rest_img:
-                start_id = (rank - 1) * (nb_img_per_rank + 1)
-                id_list = np.arange(start_id, start_id + nb_img_per_rank + 1, 1)
-            else:
-                start_id = (rank - 1) * nb_img_per_rank + rest_img
-                id_list = np.arange(start_id, start_id + nb_img_per_rank, 1)
-
-            _inference_recursive_V2(
-                img=img,
-                n_h=n_h,
-                id_list=id_list,
-                pb_path=paths['optimized_pb_path'],
-                conserve_nodes=conserve_nodes,
-                hyper=hyper,
-                comm=communicator,
-            )
-
-        # save recon
-        if rank == 0:
-            reconstructor.reconstruct()
-            recon = reconstructor.get_reconstruction()
-            Image.fromarray(recon).save(paths['out_dir'] + 'step{}_{}.tif'.format(paths['step'], i))
-            pbar1.update(1)
-
-
-def _inference_recursive_V2(img=None, id_list=None, n_h=None, pb_path=None, conserve_nodes=None, hyper=None, comm=None):
-    # load graph
-    graph_def_optimized = read_pb(pb_path)
-
-    with tf.Session(config=tf.ConfigProto(device_count={'GPU': 0})) as sess:
-        _ = tf.import_graph_def(graph_def_optimized, return_elements=[conserve_nodes[-1]])
-        G = tf.get_default_graph()
-        X = G.get_tensor_by_name('import/' + 'new_input:0')
-        y = G.get_tensor_by_name('import/' + conserve_nodes[-1] + ':0')
-        bn = G.get_tensor_by_name('import/' + 'new_BN:0')
-        try:
-            do = G.get_tensor_by_name('import/' + 'new_dropout:0')
-        except Exception as e:
-            print(e)
-            print('drop out not exists in graph')
-            do = None
-            pass
-
-        batch_id = id_list.size // hyper['batch_size']
-        batch_rest = id_list.size % hyper['batch_size']
-        print(comm.Get_rank(), ': bid:{}, brst:{}'.format(batch_id, batch_rest))
-
-        if batch_id != 0:
-            for bid in range(batch_id):
-                batch = []
-                for id in id_list[bid * hyper['batch_size']: (bid + 1) * hyper['batch_size']]:
-                    b = id // n_h
-                    a = id % n_h
-                    # concat patch to batch
-                    batch.append(img[
-                                 a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],  # fixme
-                                 b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']   # fixme
-                                 ])
-
-                batch = np.stack(batch, axis=0)
-                # inference
-                # batch = _minmaxscalar(batch)  # note: don't forget the minmaxscalar, since during training we put it
-                batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
-
-                if do is not None:
-                    feed_dict = {
-                        X: batch,
-                        do: 1.0,
-                        bn: False,
-                    }
-                else:
-                    feed_dict = {
-                        X: batch,
-                        bn: False,
-                    }
-
-                if hyper['mode'] == 'classification':
-                    output = sess.run(y, feed_dict=feed_dict)
-                    output = customized_softmax_np(output)
-                    comm.send([comm.Get_rank(), id_list[bid * hyper['batch_size']], output], dest=0, tag=tag_compute)
-                else:
-                    raise NotImplementedError('!')
-
-        if batch_rest != 0:
-            batch = []
-            for id in id_list[-batch_rest:]:
-                a = id % n_h
-                b = id // n_h
-                # concat patch to batch
-                batch.append(img[
-                             a * hyper['stride']: a * hyper['stride'] + hyper['patch_size'],
-                             b * hyper['stride']: b * hyper['stride'] + hyper['patch_size']
-                             ])
-
-            batch = np.stack(batch, axis=0)
-
-            # 1-padding for the last batch
-            # note: 0-padding will give a wrong output shape
-            batch = np.concatenate([batch, np.ones(
-                (hyper['batch_size'] - batch_rest, *batch.shape[1:])
-            )], axis=0)
-            # inference
-            # batch = _minmaxscalar(batch)  # note: don't forget the minmaxscalar, since during training we put it
-            batch = np.expand_dims(batch, axis=3)  # ==> (8, 512, 512, 1)
-
-            if do is not None:
-                feed_dict = {
-                    X: batch,
-                    do: 1.0,
-                    bn: False,
-                }
-            else:
-                feed_dict = {
-                    X: batch,
-                    bn: False,
-                }
-
-            if hyper['mode'] == 'classification':
-                output = sess.run(y, feed_dict=feed_dict)
-                output = customized_softmax_np(output)
-                comm.send([comm.Get_rank(), id_list[-batch_rest], output[:batch_rest]], dest=0, tag=tag_compute)
-
-            else:
-                raise NotImplementedError('!')
-
-
 def inference_recursive_V3(l_input_path=None, conserve_nodes=None, paths=None, hyper=None, norm=1e-3):
     assert isinstance(conserve_nodes, list), 'conserve nodes should be a list'
     assert isinstance(l_input_path, list), 'inputs is expected to be a list of images for heterogeneous image size!'
@@ -540,7 +323,7 @@ def _inference_recursive_V3(l_input_path: list,
             for id in np.nditer(id_list):
                 # note: the following dimensions should be multiple of 8 if 3x Maxpooling
                 logger.debug('rank {}: {}'.format(comm.Get_rank(), id))
-                img = load_img(l_input_path[id]) / normalization
+                img = load_img(l_input_path[id]) * normalization
                 img = dimension_regulator(img, maxp_times=maxp_times)
 
                 batch = img.reshape((1, *img.shape, 1))
@@ -612,11 +395,11 @@ if __name__ == '__main__':
         'batch_size': args.batch_size,
         'nb_batch': None,
         'nb_patch': None,
-        'stride': 200,  # stride == 30, reconstuction time ~ 1min per tomogram
+        # 'stride': 200,  # stride == 30, reconstuction time ~ 1min per tomogram
         'batch_normalization': True,
         'device_option': 'cpu',  #'cpu',
         'mode': 'classification',
-        'nb_classes': args.nb_cls,
+        'nb_classes': args.nb_cls,  #todo:
         'feature_map': True if mdl_name in ['LRCS8', 'LRCS9', 'LRCS10', 'Unet3'] else False,
         'maxp_times': 4 if mdl_name in ['Unet', 'Segnet', 'Unet5', 'Unet6'] else 3,
         'correction': args.correction,

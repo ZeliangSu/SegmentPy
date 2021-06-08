@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>441</width>
-    <height>272</height>
+    <height>275</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,13 +18,6 @@
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="4" column="0">
-        <widget class="QLineEdit" name="corrector">
-         <property name="placeholderText">
-          <string>keep identical as the one of the training e.g, 1e-3</string>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
@@ -50,30 +43,19 @@
          </item>
         </layout>
        </item>
-       <item row="0" column="0">
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout">
-           <item>
-            <widget class="QLabel" name="metaLabel">
-             <property name="text">
-              <string>select a checkpoint file .meta</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="metaLine"/>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <widget class="QPushButton" name="metaButton">
-           <property name="text">
-            <string>...</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
+       <item row="5" column="0">
+        <widget class="QLabel" name="coreLabel">
+         <property name="text">
+          <string>Use how many cores?</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLineEdit" name="corrector">
+         <property name="placeholderText">
+          <string>keep identical as the one of the training e.g, 1e-3</string>
+         </property>
+        </widget>
        </item>
        <item row="1" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -104,6 +86,38 @@
         <widget class="QLabel" name="label">
          <property name="text">
           <string>Manually apply the following corrector on the raw tomogram</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout">
+           <item>
+            <widget class="QLabel" name="metaLabel">
+             <property name="text">
+              <string>select a checkpoint file .meta</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="metaLine"/>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QPushButton" name="metaButton">
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLineEdit" name="coresLine">
+         <property name="placeholderText">
+          <string>max or specific number of cores </string>
          </property>
         </widget>
        </item>

@@ -172,6 +172,6 @@ class dialog_logic(QDialog, Ui_Dialog):
         self.test_dir_line.setText(self.tst_dir)
 
     def set_log_dir(self):
-        log_dir_dial = file_dialog(title='select a folder to save the data', type='/')
+        log_dir_dial = file_dialog(title='select a folder to save the model', type='/')
         self.log_dir = log_dir_dial.openFolderDialog()
         self.log_dir_line.setText(self.log_dir)
