@@ -18,14 +18,15 @@ Pre-requirements
 2. cudatoolkit 10.0 (for the current implemented tensorflow version)
 
 .. image:: img/tensorflow_cuda_compatible.png
- :width: 400
+   :width: 400
 
 3. openmpi 
 
 Linux or MacOS
----------------------
+--------------
 Installation by command 
-.. Note::
+
+.. warning::
    The interface is an alpha version, we invite you for now to install from source. 
    See below for installation from source.
 
@@ -42,7 +43,7 @@ After the installation, you should be able to open from Terminal by typing::
 
 Installation from source (nightly version):
 
-1. go to https://github.com/ZeliangSu/SegmentPy 
+1. go to https://github.com/ZeliangSu/SegmentPy and copy the HTTPS link
 
 .. image:: img/download_from_git.png
   :width: 400
@@ -60,9 +61,9 @@ Launch the SegmentPy by typing in the Terminal::
 
    $ segmentpy
 
-Windows 
----------------------
-SegmentPy can be used on Windows, if the MS-MPI (MPI for microsoft) is properly installed.
-
 Frequent installation questions
 ---------------------------------
+
+Q: can SegmentPy run on Windows workstation?
+
+A: Yes, SegmentPy can be used on Windows, if the MS-MPI (MPI for microsoft) is properly installed.

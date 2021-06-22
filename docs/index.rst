@@ -6,9 +6,10 @@
 =====================================
 Welcome to SegmentPy's homepage!
 =====================================
-SegmentPy (Pronunciation: Segment Pie) Alpha v0.1a is a open-source graphical interface, which facilitates training machine learning models for CT-image segmentation.
-This software includes also analytic tools. 
-If you encountered issues, or you hope to have new features, any questions you are welcomed to join us at https://github.com/ZeliangSu/SegmentPy/labels
+SegmentPy (Pronunciation: Segment Pie) Alpha v0.1a is a open-source graphical interface for training machine learning models to segment CT-images.
+This software includes also analytic tools for research purposes. 
+
+Thank you for using the SegmentPy! If you encountered issues, or you hope to have new features, or have any other questions, you are welcomed to join us at https://github.com/ZeliangSu/SegmentPy/issues
 
 .. toctree::
    :maxdepth: 3
