@@ -19,7 +19,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy==1.19.1",
-        "tensorflow-gpu==1.14",
+        "tensorflow-gpu==2.5.1",
         "pandas==1.1.1",
         "Pillow",
         # "openmpi",
