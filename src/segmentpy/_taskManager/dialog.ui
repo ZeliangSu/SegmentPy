@@ -23,15 +23,42 @@
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
-            <string>model name</string>
+            <string>model</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="mdl">
-           <property name="placeholderText">
-            <string>(e.g. LRCS, Unet, custom...)</string>
-           </property>
+          <widget class="QComboBox" name="modelComBox">
+           <item>
+            <property name="text">
+             <string>Unet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>LRCS-Net(shallow)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>LRCS-Net(deep)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>SegNet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Xlearn</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>custom</string>
+            </property>
+           </item>
           </widget>
          </item>
          <item>

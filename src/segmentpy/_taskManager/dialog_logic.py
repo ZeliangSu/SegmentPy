@@ -24,7 +24,7 @@ class dialog_logic(QDialog, Ui_Dialog):
 
             # set line editors
             try:
-                self.mdl.setText(params['mdl'])
+                self.modelComBox.setText(self.getModelName(params['mdl']))
                 self.ksize.setText(params['conv_size'])
                 self.nbconv.setText(params['nb_conv'])
                 self.winsize.setText(params['win_size'])
@@ -71,7 +71,7 @@ class dialog_logic(QDialog, Ui_Dialog):
         self.log_dir_button.clicked.connect(self.set_log_dir)
 
         # remove automatically the space
-        self.mdl.editingFinished.connect(lambda: self.removeSpace(self.mdl))
+        # self.modelComBox.editingFinished.connect(lambda: self.removeSpace(self.modelComBox))
         self.ksize.editingFinished.connect(lambda: self.removeSpace(self.ksize))
         self.nbconv.editingFinished.connect(lambda: self.removeSpace(self.nbconv))
         self.batsize.editingFinished.connect(lambda: self.removeSpace(self.batsize))
@@ -88,6 +88,22 @@ class dialog_logic(QDialog, Ui_Dialog):
     def removeSpace(qline):
         qline.setText(qline.text().replace(" ", ""))
 
+    @staticmethod
+    def getModelName(name: str):
+        dictionary = {
+            'Unet': 'Unet',
+            'LRCS-Net(shallow)': 'LRCS11',
+            'LRCS-Net(deep)': 'LRCS13',
+            'SegNet': 'Segnet',
+            'Xlearn': 'Xlearn',
+            'custom': 'custom',
+            ######## reverse
+            'LRCS11': 'LRCS-Net(shallow)',
+            'LRCS13': 'LRCS-Net(deep)',
+            'Segnet': 'SegNet',
+        }
+        return dictionary[name]
+
     def log_window(self, title: str, Msg: str):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -97,7 +113,7 @@ class dialog_logic(QDialog, Ui_Dialog):
 
     def return_params(self):
         output = {
-            'mdl': self.mdl.text(),
+            'mdl': self.getModelName(str(self.modelComBox.currentText())),
             'conv_size': self.ksize.text(),
             'nb_conv': self.nbconv.text(),
             'win_size': self.winsize.text(),

@@ -44,6 +44,9 @@ logger.debug(imgDir)
 logger.debug(segmentpyDir)
 logger.debug(parentDir)
 
+
+SEGMENTPY_VERSION = 'v0.1a'
+
 if not os.path.exists(loggerDir):
     os.makedirs(loggerDir)
 
@@ -116,22 +119,22 @@ class predict_Worker(QRunnable):
         if self.cores == 'max':
             logger.info('******** Using {} CPU cores'.format(self.cores))
             terminal = [
-                'mpirun', '--use-hwthread-cpus',
+                'mpiexec', '--use-hwthread-cpus',
                 'python', os.path.join(os.path.abspath(segmentpyDir), 'inference.py'),
-                '--ckpt', self.ckpt_path,
-                '--raw', self.pred_dir,
-                '--pred', self.save_dir,
+                '--ckpt', os.path.abspath(self.ckpt_path),
+                '--raw', os.path.abspath(self.pred_dir),
+                '--pred', os.path.abspath(self.save_dir),
                 '--corr', str(self.correction),
             ]
 
         elif isinstance(self.cores, int) or isinstance(self.cores, str):
             logger.info('******** Using {} CPU cores'.format(self.cores))
             terminal = [
-                'mpirun', '-n', str(self.cores),
+                'mpiexec', '-np', str(self.cores),
                 'python', os.path.join(os.path.abspath(segmentpyDir), 'inference.py'),
-                '--ckpt', self.ckpt_path,
-                '--raw', self.pred_dir,
-                '--pred', self.save_dir,
+                '--ckpt', os.path.abspath(self.ckpt_path),
+                '--raw', os.path.abspath(self.pred_dir),
+                '--pred', os.path.abspath(self.save_dir),
                 '--corr', str(self.correction),
             ]
 
@@ -143,9 +146,17 @@ class predict_Worker(QRunnable):
         # terminal = ['mpiexec', '--use-hwthread-cpus', 'python', 'test.py']  # todo: uncomment here for mpi similation
         logger.info(self.cores)
         logger.info('******** Run ********\n %s' % terminal)
-        process = subprocess.Popen(
-            terminal,
-        )
+        try:
+            process = subprocess.Popen(
+                terminal,
+            )
+        except FileNotFoundError as e:
+            logger.error(e)
+            terminal[1] = 'mpiexec' 
+            process = subprocess.Popen(
+                terminal,
+            )
+
         signal = ('pred on {}: pid:{}'.format(self.device, process.pid), self.device, process, self.ckpt_path)
         # put proc queue pid and proc
         self.signals.start_proc.emit(signal)
@@ -288,9 +299,10 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
     def __init__(self, *args, **kwargs):
         QMainWindow.__init__(self, *args, **kwargs)
         self.setupUi(self)
-        self.setWindowTitle('Welcome to SegmentPy v0.1a')
+        self.setWindowTitle('Welcome to SegmentPy {}'.format(SEGMENTPY_VERSION))
         self.menubar.setNativeMenuBar(False)
 
+        self.printLogo()
         # init the gpu queue and proc list
         self.gpu_queue = Queue()
         gpu_list = get_available_gpus_wrapper()
@@ -852,6 +864,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.predDialog = predictDialog_logic(None)
         self.predDialog.exec()
         if self.predDialog.result() == 1:
+            self.printLogo()
             ckpt_path, raw_folder, pred_folder, correction, cores = self.predDialog.get_params()
             logger.debug('ckpt path:{}\nraw dir:{}\npred dir:{}\ncorr:{}\ncpu:{}\n'.format(ckpt_path, raw_folder, pred_folder, correction, cores))
             _Worker = predict_Worker(ckpt_path=ckpt_path,
@@ -866,6 +879,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
     def start(self):
         if self.header[1] == 'nextTrain':
+            self.printLogo()
             if not self.gpu_queue.empty() and self.verify_column_not_None():
                 gpu = self.gpu_queue.get()
                 self.refresh_gpu_list()
@@ -886,6 +900,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
                 print('Waiting for available gpu \r')
 
         elif self.header[1] == 'nextResume':
+            self.printLogo()
             gpu = self.gpu_queue.get()
             self.refresh_gpu_list()
 
@@ -1092,6 +1107,18 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
         self.setHeader()
 
+    def printLogo(self):
+        
+        print('\n\n\n')
+        print('███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗ ')
+        print('██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝ ')
+        print('███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝  ')
+        print('╚════██║██╔══╝  ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   ██╔═══╝   ╚██╔╝   ')
+        print('███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║        ██║    ')
+        print('╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝        ╚═╝    ')
+        print('\n')
+        print('                                                          -version {}'.format(SEGMENTPY_VERSION))
+        print('\n\n\n')
 
 def main():
     app = QApplication(sys.argv)
