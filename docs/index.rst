@@ -1,8 +1,3 @@
-.. image:: img/SegmentPy_logo.png
-   :width: 256pt
-   :alt: LRCS logo
-   :align: center
-
 =====================================
 Welcome to SegmentPy's homepage!
 =====================================
