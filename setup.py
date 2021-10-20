@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 from setuptools import find_namespace_packages
-
+import platform
 setup(
     name="segmentpy",
     version="0.1a",
@@ -19,7 +19,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy==1.19.1",
-        "tensorflow-gpu==1.14",
+        "tensorflow-gpu==1.14" if platform.system() != 'Darwin' else "tensorflow==1.14",
         "pandas==1.1.1",
         "Pillow",
         # "openmpi",
