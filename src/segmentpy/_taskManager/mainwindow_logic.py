@@ -1122,7 +1122,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), 'img', 'logo.png')))
+    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), 'img', 'icon.png')))
 
     # set ui
     ui = mainwindow_logic()
