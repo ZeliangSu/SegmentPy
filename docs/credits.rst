@@ -23,4 +23,4 @@ References
 
 Contributors
 -------------
-Zeliang SU (zeliang.su@u-picardie.fr) & Arnaud Demortière (arnaud.demortiere@u-picardie.fr)
+Zeliang SU (zeliang.su@u-picardie.fr) & Arnaud Demortière (arnaud.demortiere@energie-rs2e.com)
