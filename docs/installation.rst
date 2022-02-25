@@ -58,4 +58,4 @@ Frequent installation questions
 
 Q: Can SegmentPy run on a Windows workstation?
 
-A: Unfortunately, we could not at the current state garentee the performance on Windows machine. We recently gathered some expected behavior reports on Windows and are currently working on it. 
+A: Unfortunately, we could not at the current state garentee the performance on Windows machine. We recently gathered some unexpected behavior reports on Windows and are currently working on it. 
