@@ -2,16 +2,10 @@
 CNN Models
 =====================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Installation & Setup
-
-   Unet
-   LRCS-Net 
-
 U-net
-------
-.. _unet_link:
+-----
+The :ref:`U-Net <paper1>`.
+
 ======= ===================== ======================
 layers  input                 output
 ======= ===================== ======================
@@ -22,15 +16,15 @@ conv3   (B, H/2, W/2, cs)     (B, H/2, W/2, 2cs)
 conv4   (B, H/2, W/2, 2cs)    (B, H/2, W/2, 2cs)
 ...     ...                   ...
 ======= ===================== ======================
+
 .. Note::
     * B: batch size
     * cls: number of class
     * cs: number of convolution kernel per layers
 
 LRCS-Net
-----------
-.. _lrcsnet_link:
-The :ref:`LRCS-Net <paper1>` is a trimed model derived from Seg-Net.
+--------
+The :ref:`LRCS-Net <paper2>` is a trimed model derived from :ref:`Seg-Net <paper2>`.
 
 **Encoder:**
 
@@ -64,6 +58,7 @@ conv8a      (B, H, W, 2cs)        (B, H, W, cs)
 conv8b      (B, H, W, cs)         (B, H, W, cs)
 conv8c      (B, H, W, cs)         (B, H, W, cls)
 =========== ===================== ======================
+
 .. Note::
     * B: batch size
     * cls: number of class

@@ -1,7 +1,7 @@
 =====================================
 Installation & Setup
 =====================================
-We highly recommand to use GPUs for the training. Cuda and MPI should be pre-installed in the device.
+We highly recommand to use GPUs for the training. CUDA and MPI should be pre-installed in the device.
 
 .. .. toctree::
 ..    :maxdepth: 3
@@ -27,31 +27,23 @@ Linux or MacOS
 Installation by command 
 
 .. warning::
-   The interface is an alpha version, we invite you for now to install from source. 
+   The interface is an *testing alpha* version, we invite you for now to install from source. 
    See below for installation from source.
 
-Then in terminal type::
 
-   $ pip install SegmentPy
-or::
-
-   $ conda install -c lrcs SegmentPy
-
-After the installation, you should be able to open from Terminal by typing::
-
-   $ segmentpy
-
-Installation from source (nightly version):
+Installation from source:
 
 1. go to https://github.com/ZeliangSu/SegmentPy and copy the HTTPS link
 
 .. image:: img/download_from_git.png
   :width: 400
+  
 and download by typing::
 
    $ git clone https://github.com/ZeliangSu/SegmentPy.git
    $ cd to/the/path/of/the/git/cloned/SegmentPy
    $ python setup.py install
+
 2. or download the zip file and zip it, then::
 
    $ cd to/the/path/of/the/unzipped/SegmentPy
@@ -64,6 +56,6 @@ Launch the SegmentPy by typing in the Terminal::
 Frequent installation questions
 ---------------------------------
 
-Q: can SegmentPy run on Windows workstation?
+Q: Can SegmentPy run on a Windows workstation?
 
-A: Yes, SegmentPy can be used on Windows, if the MS-MPI (MPI for microsoft) is properly installed.
+A: Unfortunately, we could not at the current state garentee the performance on Windows machine. We recently gathered some expected behavior reports on Windows and are currently working on it. 

@@ -18,17 +18,18 @@ setup(
     },
     include_package_data=True,
     install_requires=[
-        "numpy==1.19.1",
+        #SciPy      Python              NumPy versions
+        #1.5        >=3.6, <=3.9        >=1.14.5, <= 1.19.3
+        "numpy==1.19",  
+        "scipy==1.5.2",
         "tensorflow-gpu==1.14" if platform.system() != 'Darwin' else "tensorflow==1.14",
         "pandas==1.1.1",
         "Pillow",
         # "openmpi",
         "mpi4py==3.0.3",
-        "PySide2",
+        "PySide2==5.15.2",
         "matplotlib==3.3.1",
         "scikit-learn==0.23.2",
-        "scikit-image==0.16.2",
-        "scipy==1.5.2",
         "tqdm",
         "opencv-python==3.4.2.*",
         "h5py==2.8.0",

@@ -72,7 +72,7 @@ For predicting, click on the 'predict' button at the main interface. In the pope
    :align: center
 
 Optional: Track activations of each layer
--------------------------------
+-----------------------------------------
 
 You can also monitor outputs of each neural layer using the 'ActViewer' in the 'Visualization' menu.
 

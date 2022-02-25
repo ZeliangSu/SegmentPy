@@ -4,7 +4,7 @@ import numpy as np
 import os
 from math import nan
 from PIL import Image
-from skimage import exposure
+from cv2 import equalizeHist
 import re
 import shutil
 
@@ -234,7 +234,7 @@ def load_img(path):
 
 
 def auto_contrast(img):
-    img = exposure.equalize_hist(img)
+    img = equalize_hist(img)
     return img
 
 

@@ -28,6 +28,7 @@ from time import sleep
 import subprocess
 from itertools import product
 import re
+import webbrowser
 
 # logging
 import logging
@@ -327,7 +328,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
 
         _translate = QtCore.QCoreApplication.translate
 
-        # set button icons
+        # manually set absolute path for button icons
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(os.path.join(imgDir, "play-button.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.start_button.setIcon(icon)
@@ -363,6 +364,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         icon8.addPixmap(QtGui.QPixmap(os.path.join(imgDir, "speedometer.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         icon8.addPixmap(QtGui.QPixmap(os.path.join(imgDir, "speedometer.png")), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.dashboard_button.setIcon(icon8)
+        icon9 = QtGui.QIcon()
+        icon9.addPixmap(QtGui.QPixmap(os.path.join(imgDir, "tuto.png")))
+        self.tuto_button.setIcon(icon9)
 
         # init the hyper-params tablewidget
         item = self.tableWidget.item(0, 0)
@@ -491,6 +495,7 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         self.forward_button.clicked.connect(self.forward)
         self.dashboard_button.clicked.connect(self.openDashboard)
         self.predict_button.clicked.connect(self.predict)
+        self.tuto_button.clicked.connect(self.open_website)
 
         # menu bar
         self.Activations.triggered.connect(self.activation_plugin)
@@ -637,7 +642,6 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         )
 
     ############ main button methods
-
     def addTrain(self):
         default = {
             # 'mdl': 'model',
@@ -1119,6 +1123,9 @@ class mainwindow_logic(QMainWindow, Ui_LRCSNet):
         print('\n')
         print('                                                          -version {}'.format(SEGMENTPY_VERSION))
         print('\n\n\n')
+
+    def open_website(self):
+        webbrowser.open_new_tab('https://segmentpy.readthedocs.io/en/latest/')
 
 def main():
     app = QApplication(sys.argv)
